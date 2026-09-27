@@ -103,6 +103,18 @@ function trajetoriaBlock(c) {
   </section>`;
 }
 
+// Poll average (majoritarian) or 2022-calibrated model (deputies); see the Expectativa tab.
+function prevBlock(p) {
+  if (!p) return "";
+  const chance = p.p >= 0.995 ? ">99%" : p.p > 0 && p.p < 0.005 ? "<1%" : pct(p.p);
+  const detalhe = p.fonte === "pesquisas"
+    ? `${pct(p.media, 1)} dos votos válidos na média das pesquisas (faixa de 90%: ${pct(p.lo, 1)}–${pct(p.hi, 1)})${p.p2t !== null && p.p2t !== undefined ? ` · chance de ir ao 2º turno: ${pct(p.p2t)}` : ""}`
+    : "Modelo calibrado na eleição de 2022 (arrecadação, força da lista e mandato atual). Sem pesquisa pública por candidato.";
+  return `<section><h3>Expectativa <small>não é pesquisa eleitoral</small></h3>
+    <div class="prevline"><span class="big">${chance}</span><span class="muted">de chance de ser eleito</span></div>
+    <p class="muted small">${h(detalhe)}</p></section>`;
+}
+
 export function renderDossier(c, s, inCola, agenda, foto) {
   const f = c.fin;
   return `
@@ -122,6 +134,7 @@ export function renderDossier(c, s, inCola, agenda, foto) {
       <div><span class="nota small">${pct(s.cobertura)}</span><span class="muted">do peso com evidência</span></div>
       <button type="button" class="btn-confirma" data-cola="${h(c.id)}">${inCola ? "Tirar da cola" : "Pôr na cola"}</button>
     </div>
+    ${prevBlock(c.prev)}
     ${trajetoriaBlock(c)}
     ${agendaBlock(c.mandato, agenda)}
     <section><h3>Indicadores <small>(0 a 100)</small></h3><ul class="inds">${indicatorRows(c)}</ul></section>

@@ -8,16 +8,22 @@ Não recomenda votos: o eleitor escolhe o peso de cada indicador.
 ```sh
 bun install
 bun run radar:fetch     # baixa os arquivos da Câmara (idempotente; --force atualiza)
-bun run radar:build     # gera web/data/meta.json e web/data/uf/<UF>.json
+bun run radar:polls     # pesquisas da Wikipédia -> data/pesquisas.json (cache diário; --force atualiza)
+bun run radar:model     # treina o modelo de deputados em 2022 -> data/modelo-deputados.json
+bun run radar:profiles  # trajetória e fotos de reserva (Câmara, Senado, Wikidata)
+bun run radar:build     # gera web/data/ (uf/<UF>.json, fotos/, expectativa.json, meta.json)
 bun run radar:serve     # http://127.0.0.1:4173  (health: /health)
 bun test src/radar web
 ```
 
 ### Passo manual: TSE
 
-O TSE bloqueia downloads automáticos (403 do WAF). Baixe no navegador e salve em `data/`:
+O TSE bloqueia downloads automáticos (403 do WAF). Baixe no navegador (URLs em
+`https://cdn.tse.jus.br/estatistica/sead/odsele/...`) e salve em `data/tse/`:
 
-- `prestacao_de_contas_eleitorais_candidatos_2026.zip`, em https://dadosabertos.tse.jus.br (conjunto "Prestação de contas eleitorais 2026")
+- `consulta_cand_2026.zip` (cadastro), `prestacao_de_contas_eleitorais_candidatos_2026.zip` (contas),
+  `consulta_vagas_2026.zip` (vagas por cargo), `foto_cand2026_<UF>_div.zip` (fotos, uma por UF + `BR`)
+- Para o modelo de deputados: `consulta_cand_2022.zip` e `prestacao_de_contas_eleitorais_candidatos_2022.zip`
 
 Depois rode `bun run radar:build` de novo. Outro caminho: `TSE_ZIP=caminho.zip bun run radar:build`.
 
@@ -37,12 +43,43 @@ Depois rode `bun run radar:build` de novo. Outro caminho: `TSE_ZIP=caminho.zip b
 Cada indicador vira um percentil de 0 a 1. A nota é a média ponderada pelos pesos do usuário.
 Indicador ausente conta como 0,5, para que evidência parcial não supere um histórico completo.
 
+## Expectativa (quem deve vencer)
+
+- **Presidente, governador, senador:** pesquisas registradas no TSE, compiladas nas páginas
+  "Pesquisas eleitorais ... 2026" da Wikipédia (`src/radar/polls/`). Só entram cenários reais: todo
+  nome com percentual precisa ser candidatura registrada na disputa. Média da pesquisa mais recente de
+  cada instituto nos últimos 21 dias (meia-vida 10 dias, peso √amostra), em votos válidos.
+  20 mil simulações com erro amostral + 3,5 p.p. de erro sistemático; 2º turno usa confronto direto
+  quando existe. Senado elege os 2 mais votados (vagas de `consulta_vagas_2026`).
+- **Deputados:** sem pesquisa pública por candidato. Regressão logística treinada em 2022 com dados de
+  7 dias antes da eleição (arrecadação escalada pelas vagas, força da lista partido/federação, posição
+  na lista, ocupação declarada "deputado"), ajustada para somar as vagas de cada UF e recalibrada
+  (isotônica). Validação cruzada por UF: acerta 58% dos eleitos contra 49% de "top-N por dinheiro".
+- Não é pesquisa eleitoral e não substitui uma; a interface diz isso junto de cada número.
+
+## Deploy
+
+Imagem `ghcr.io/juninmd/eleicoes-radar` (`Dockerfile`: só `web/` + `serve.ts`), servida em
+`https://eleicoes-radar.antonio-code.duckdns.org` via `juninmd/app-charts/eleicoes-radar` (ArgoCD).
+`web/data` vem dos arquivos do TSE, que não estão no git, então a imagem é construída na máquina
+que rodou o pipeline:
+
+```sh
+bun run radar:build && bun test src/radar web
+docker build --platform linux/amd64 -t ghcr.io/juninmd/eleicoes-radar:$(git rev-parse --short HEAD) -t ghcr.io/juninmd/eleicoes-radar:latest .
+docker push ghcr.io/juninmd/eleicoes-radar:latest   # o Deployment usa :latest + imagePullPolicy Always
+kubectl -n apps rollout restart deploy/eleicoes-radar
+```
+
+Rollback: `docker push` da tag anterior como `:latest` e `rollout restart`. Saúde: `GET /health`.
+
 ## Decisões e limites
 
-- **Cruzamento TSE × Câmara por nome civil.** O TSE mascara CPF nos arquivos de 2026. Homônimos
-  são desempatados por UF; se continuar ambíguo, a candidatura fica sem vínculo.
+- **Cruzamento TSE × Câmara por CPF** (cadastro do TSE × cota parlamentar), com nome civil + UF como
+  reserva. O CPF só é usado como chave e nunca vai para o JSON público.
 - **Sem CPF nem identidade de doador no JSON público** (há teste de regressão para isso).
 - **Presença** usa `/deputados/{id}/historico` para descontar licenças. Líderes que só orientam têm presença medida menor.
-- **Cobertura**: só candidaturas com alguma receita declarada. Senado e assembleias estaduais ainda não entram.
+- **Cobertura**: todas as candidaturas do cadastro do TSE. Mandatos no Senado e nas assembleias estaduais
+  ainda não entram nos indicadores.
 - `src/*.ts` (fora de `src/radar`) e `dashboard/` são a versão anterior (ranking de "fraude" de deputados de SP),
   mantidos sem alteração.

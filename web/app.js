@@ -1,6 +1,7 @@
 import { DEFAULT_PRESET, INDICATORS, PRESETS, score } from "./score.js";
 import { displayName, h, int, moneyShort, pct, slug, STATUS, titleName } from "./format.js";
 import { renderDossier } from "./dossier.js";
+import { renderExpectativa } from "./expectativa.js";
 
 // Ballot order and digit count exactly as on the urna.
 const BALLOTS = [
@@ -32,6 +33,8 @@ const state = {
   cands: [],
   open: null,
   cola: store.get("cola", {}),
+  modo: store.get("modo", "radar"), // "radar" | "expectativa"
+  exp: null,
 };
 const $ = (s) => document.querySelector(s);
 const cache = new Map();
@@ -61,6 +64,7 @@ async function loadFotos() {
   Object.assign(state.fotos, fotos);
   renderList();
   renderDossierPanel();
+  renderModo();
 }
 
 function visible() {
@@ -157,8 +161,19 @@ function renderCola() {
     <li>${pick ? avatar(pick, "xs") : `<span class="av xs ini" aria-hidden="true"></span>`}<span>${h(b.cargo)}</span><span class="num">${pick ? h(pick.num) : "_".repeat(b.digits)}</span><small>${pick ? h(`${titleName(pick.nome)} (${pick.partido})`) : "em branco na cola"}</small></li>`).join("");
 }
 
+function renderModo() {
+  for (const b of document.querySelectorAll("[data-modo]")) b.setAttribute("aria-selected", String(b.dataset.modo === state.modo));
+  $("#radar-view").hidden = state.modo !== "radar";
+  $("#exp-view").hidden = state.modo !== "expectativa";
+  if (state.modo !== "expectativa") return;
+  const b = BALLOTS[state.ballot];
+  const cargo = state.uf === "DF" && b.alt ? b.alt : b.cargo;
+  $("#exp-view").innerHTML = renderExpectativa({ exp: state.exp, cargo, uf: b.national ? "BR" : state.uf, cands: state.cands, avatar, limit: state.limit });
+}
+
 function render() {
   renderTabs();
+  renderModo();
   renderList();
   renderDossierPanel();
   renderCola();
@@ -199,10 +214,12 @@ function bind() {
     render();
   });
   document.addEventListener("click", (e) => {
-    const t = e.target.closest("[data-ballot],[data-open],[data-close],[data-cola]");
+    const t = e.target.closest("[data-ballot],[data-open],[data-close],[data-cola],[data-modo],#exp-mais");
     if (!t) return;
+    if (t.dataset.modo) { state.modo = t.dataset.modo; state.limit = PAGE; store.set("modo", state.modo); renderModo(); return; }
+    if (t.id === "exp-mais") { state.limit += PAGE; renderModo(); return; }
     if (t.dataset.ballot) { state.ballot = Number(t.dataset.ballot); state.limit = PAGE; state.open = null; render(); loadFotos(); }
-    else if (t.dataset.open) { state.open = state.open === t.dataset.open ? null : t.dataset.open; renderList(); renderDossierPanel(); }
+    else if (t.dataset.open) { state.open = state.open === t.dataset.open ? null : t.dataset.open; renderList(); renderDossierPanel(); renderModo(); }
     else if ("close" in t.dataset) { state.open = null; renderList(); renderDossierPanel(); }
     else if (t.dataset.cola) {
       const c = state.cands.find((x) => x.id === t.dataset.cola);
@@ -219,11 +236,13 @@ function bind() {
     navigator.clipboard?.writeText(text).then(() => done("Cola copiada."), () => { $("#cola-texto").value = text; $("#cola-texto").hidden = false; $("#cola-texto").select(); done("Selecione e copie o texto."); });
   });
   $("#limpar").addEventListener("click", () => { state.cola = {}; store.set("cola", state.cola); render(); });
+  $("#imprimir").addEventListener("click", () => window.print());
 }
 
 async function main() {
-  const [meta, agenda] = await Promise.all([loadJson("data/meta.json"), loadJson("data/agenda.json")]);
+  const [meta, agenda, exp] = await Promise.all([loadJson("data/meta.json"), loadJson("data/agenda.json"), loadJson("data/expectativa.json").catch(() => null)]);
   state.agenda = agenda;
+  state.exp = exp;
   $("#uf").innerHTML = meta.ufs.filter((u) => u.uf !== "BR").map((u) => `<option value="${u.uf}">${u.uf}</option>`).join("");
   if (!meta.ufs.some((u) => u.uf === state.uf)) state.uf = "SP";
   $("#retrato").textContent = `TSE: contas de campanha até ${meta.retratoTse} · Câmara: dados até ${new Date(meta.geradoEm).toLocaleDateString("pt-BR")} · ${int(meta.total)} candidaturas, ${int(meta.comMandato)} com mandato na Câmara`;

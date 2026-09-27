@@ -12,6 +12,7 @@ import { normalizeName, round } from "./stats";
 import type { Candidate } from "./tse";
 import type { AgendaConfig } from "./camara/agenda";
 import { classify, RENOVACAO, type Senator } from "./incumbency";
+import { buildExpectativa, type Prev } from "./expectativa";
 
 export function loadSenators(path = "data/senado/senadores-atual.json"): Map<string, Senator[]> {
   const out = new Map<string, Senator[]>();
@@ -48,7 +49,7 @@ export function linkMandate(c: Candidate, { byName, byCpf }: MandateIndex): Mand
   return sameUf.length === 1 ? sameUf[0]! : null;
 }
 
-export function toPublic({ c, m, ind, perfil }: Scored, bio: Profile | null = null, fotoCredito: string | null = null) {
+export function toPublic({ c, m, ind, perfil }: Scored, bio: Profile | null = null, fotoCredito: string | null = null, prev: Prev | null = null) {
   const f = c.finance;
   return {
     id: c.sq,
@@ -90,6 +91,7 @@ export function toPublic({ c, m, ind, perfil }: Scored, bio: Profile | null = nu
       wikidata: bio.wikidata,
     },
     ind,
+    prev,
   };
 }
 
@@ -118,11 +120,12 @@ async function main() {
     const p = profiles[sq]?.foto;
     return p && existsSync(p.file) ? p : null;
   };
+  const { porCandidato, resumo } = buildExpectativa(cands);
   const byUf = new Map<string, ReturnType<typeof toPublic>[]>();
   for (const s of items) {
     const list = byUf.get(s.c.uf) ?? [];
     const foto = photoOf(s.c.sq);
-    list.push(toPublic(s, profiles[s.c.sq] ?? null, foto?.credito ?? null));
+    list.push(toPublic(s, profiles[s.c.sq] ?? null, foto?.credito ?? null, porCandidato.get(s.c.sq) ?? null));
     byUf.set(s.c.uf, list);
   }
 
@@ -151,6 +154,7 @@ async function main() {
     ufs: ufs.map((uf) => ({ uf, n: byUf.get(uf)!.length })),
   };
   writeFileSync(`${OUT}/agenda.json`, JSON.stringify(agenda));
+  writeFileSync(`${OUT}/expectativa.json`, JSON.stringify(resumo));
   writeFileSync(`${OUT}/meta.json`, JSON.stringify(meta, null, 2));
   console.log(`[build] ${meta.total} candidatos, ${meta.comMandato} com mandato na Câmara, ${ufs.length} arquivos em ${OUT}/uf (${((performance.now() - t0) / 1000).toFixed(1)}s)`);
 }

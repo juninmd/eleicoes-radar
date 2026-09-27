@@ -1,24 +1,52 @@
-// Local preview of web/. index.html is authored as an artifact body (no <html>/<head>),
-// so it is wrapped in the same skeleton the artifact host adds.
+// Serves web/ locally and in production (Docker). index.html is authored as an
+// artifact body (no <html>/<head>), so it is wrapped in the skeleton the artifact host adds.
+// Files are immutable inside an image, so gzip output is cached in memory.
 import { resolve, sep } from "node:path";
 
-const ROOT = resolve("web");
+const ROOT = resolve(process.env.WEB_ROOT ?? "web");
 const PORT = Number(process.env.PORT ?? 4173);
+const HOST = process.env.HOST ?? "127.0.0.1";
 const SKELETON = (body: string) =>
   `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>${body}</body></html>`;
+const COMPRESSIBLE = /\.(html|js|css|json|svg)$/;
+const gz = new Map<string, Uint8Array>();
 
-const server = Bun.serve({
-  port: PORT,
-  hostname: "127.0.0.1",
-  async fetch(req) {
-    const path = decodeURIComponent(new URL(req.url).pathname);
-    if (path === "/health") return new Response("ok");
-    const file = resolve(ROOT, `.${path === "/" ? "/index.html" : path}`);
-    if (!file.startsWith(ROOT + sep)) return new Response("forbidden", { status: 403 });
-    const f = Bun.file(file);
-    if (!(await f.exists())) return new Response("not found", { status: 404 });
-    if (file.endsWith("index.html")) return new Response(SKELETON(await f.text()), { headers: { "Content-Type": "text/html; charset=utf-8" } });
-    return new Response(f);
-  },
-});
-console.log(`Radar do Voto em http://${server.hostname}:${server.port}`);
+async function body(file: string): Promise<Uint8Array> {
+  const f = Bun.file(file);
+  return file.endsWith("index.html") ? new TextEncoder().encode(SKELETON(await f.text())) : new Uint8Array(await f.arrayBuffer());
+}
+
+export async function handle(req: Request): Promise<Response> {
+  if (req.method !== "GET" && req.method !== "HEAD") return new Response("method not allowed", { status: 405, headers: { Allow: "GET, HEAD" } });
+  let path: string;
+  try {
+    path = decodeURIComponent(new URL(req.url).pathname);
+  } catch {
+    return new Response("bad request", { status: 400 });
+  }
+  if (path === "/health") return new Response("ok");
+  const file = resolve(ROOT, `.${path === "/" ? "/index.html" : path}`);
+  if (!file.startsWith(ROOT + sep)) return new Response("forbidden", { status: 403 });
+  if (!(await Bun.file(file).exists())) return new Response("not found", { status: 404 });
+
+  const html = file.endsWith(".html");
+  const headers = new Headers({
+    "Content-Type": html ? "text/html; charset=utf-8" : Bun.file(file).type,
+    // Data changes on each deploy; a short cache keeps repeat visits fast without going stale.
+    "Cache-Control": html ? "no-cache" : "public, max-age=300",
+    "X-Content-Type-Options": "nosniff",
+    Vary: "Accept-Encoding",
+  });
+  if (COMPRESSIBLE.test(file) && /\bgzip\b/.test(req.headers.get("accept-encoding") ?? "")) {
+    let z = gz.get(file);
+    if (!z) gz.set(file, (z = Bun.gzipSync(await body(file))));
+    headers.set("Content-Encoding", "gzip");
+    return new Response(req.method === "HEAD" ? null : z, { headers });
+  }
+  return new Response(req.method === "HEAD" ? null : await body(file), { headers });
+}
+
+if (import.meta.main) {
+  const server = Bun.serve({ port: PORT, hostname: HOST, fetch: handle });
+  console.log(`Radar do Voto em http://${server.hostname}:${server.port}`);
+}

@@ -1,0 +1,52 @@
+/* Expectativa view (loaded after the inline urna styles, reuses their tokens) */
+#modos { display: flex; gap: 0; margin-bottom: 12px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; width: fit-content; max-width: 100%; }
+#modos button { font: 700 14px var(--body); text-transform: uppercase; letter-spacing: 0.06em; background: var(--surface); color: var(--ink-2); border: 0; padding: 10px 16px; cursor: pointer; }
+#modos button + button { border-left: 1px solid var(--line); }
+#modos button[aria-selected="true"] { background: var(--confirma); color: var(--confirma-ink); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.exp-card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 20px; margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+.exp-card h2 { font: 900 30px/1 var(--display); text-transform: uppercase; margin: 0; }
+.exp-card h3 { font: 700 13px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.1em; margin: 8px 0 0; color: var(--ink-2); display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.exp-card h3 small { text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--muted); }
+.exp-lead { margin: 0; font-size: 17px; max-width: 70ch; }
+.exp-meta { margin: 0; font-size: 13px; max-width: 80ch; }
+.exp-card .num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.linkish { display: flex; gap: 8px; align-items: center; background: none; border: 0; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.linkish:hover span { text-decoration: underline; }
+.linkish small { color: var(--muted); font-size: 12px; }
+.exp-bars { width: 100%; border-collapse: collapse; font-size: 14px; }
+.exp-bars th, .exp-bars td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.exp-bars thead th { font: 700 11px var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); text-align: left; }
+.exp-bars thead th.num { text-align: right; }
+.exp-bars tbody th { font-weight: 600; text-align: left; min-width: 180px; }
+.exp-bars td:nth-child(2) { width: 45%; min-width: 160px; }
+.exp-bars .bar { position: relative; height: 22px; background: var(--sunk); border-radius: 4px; }
+.exp-bars .range { position: absolute; top: 5px; height: 12px; background: color-mix(in srgb, var(--s1) 35%, transparent); border-radius: 4px; }
+.exp-bars .mean { position: absolute; top: 2px; width: 3px; height: 18px; margin-left: -1px; background: var(--s1); border-radius: 2px; }
+.exp-bars .lbl { position: absolute; right: 6px; top: 2px; font: 700 12px var(--mono); color: var(--ink); }
+.bancadas, .exp-seats { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.bancadas li { display: grid; grid-template-columns: 140px minmax(0, 1fr) 48px; gap: 10px; align-items: center; }
+.bancadas b, .exp-seats b { font: 700 14px var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
+.bancadas .bar, .exp-seats .bar { height: 10px; background: var(--sunk); border-radius: 4px; overflow: hidden; }
+.bancadas .fill { display: block; height: 100%; background: var(--s1); border-radius: 0 4px 4px 0; }
+.exp-seats li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(80px, 200px) 56px; gap: 10px; align-items: center; padding: 4px 0; }
+.exp-seats .fill { display: block; height: 100%; background: var(--confirma); border-radius: 0 4px 4px 0; }
+.exp-seats li.corte { border-bottom: 2px dashed var(--corrige); padding-bottom: 8px; margin-bottom: 4px; }
+.exp-seats li.corte::after { content: "linha das vagas"; grid-column: 1 / -1; font: 500 11px var(--mono); color: var(--corrige); text-transform: uppercase; letter-spacing: 0.08em; }
+.exp-card details summary { cursor: pointer; font-weight: 600; }
+.exp-card details[open] summary { margin-bottom: 8px; }
+.prevline { display: flex; gap: 16px; flex-wrap: wrap; align-items: baseline; }
+.prevline .big { font-size: 28px; }
+@media (max-width: 520px) {
+  .exp-bars tbody th { min-width: 120px; }
+  .exp-bars td:nth-child(2) { min-width: 110px; }
+  .bancadas li { grid-template-columns: 90px minmax(0, 1fr) 40px; }
+  .exp-seats li { grid-template-columns: minmax(0, 1fr) 70px 48px; }
+}
+@media print {
+  body > *:not(.layout), .layout > *:not(.rail), .rail > *:not(.cola), .cola .row, .cola p { display: none !important; }
+  body { background: #fff; padding: 0; }
+  .layout { display: block; margin: 0; }
+  .cola { background: #fff; color: #000; border: 1px solid #000; }
+  #cola-lista li, #cola-lista .num, #cola-lista small, .cola h2 { color: #000; }
+}

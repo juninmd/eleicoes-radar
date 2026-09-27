@@ -1,13 +1,17 @@
-// Streaming-free but quote-aware CSV parser: TSE/Câmara files embed newlines
+// Quote-aware CSV parser: TSE/Câmara files embed newlines
 // and delimiters inside quoted fields, so a naive split("\n") corrupts rows.
 export type Row = Record<string, string>;
 
-export function* parseCsv(text: string, delimiter = ";"): Generator<Row> {
+// Incremental parser: feed() may be called with arbitrary chunks (quotes and CRLF can
+// straddle chunk boundaries), end() flushes the last record.
+export function createCsvParser(delimiter = ";") {
   let header: string[] | null = null;
   let field = "";
   let record: string[] = [];
   let inQuotes = false;
-  const start = text.charCodeAt(0) === 0xfeff ? 1 : 0;
+  let quotePending = false; // '"' inside quotes at a chunk end: escaped quote or closing?
+  let crPending = false;
+  let first = true;
 
   const emit = (): Row | null => {
     record.push(field);
@@ -24,29 +28,62 @@ export function* parseCsv(text: string, delimiter = ";"): Generator<Row> {
     return row;
   };
 
-  for (let i = start; i < text.length; i++) {
-    const c = text[i];
-    if (inQuotes) {
-      if (c === '"') {
-        if (text[i + 1] === '"') {
+  function* feed(text: string): Generator<Row> {
+    let i = 0;
+    if (first) {
+      first = false;
+      if (text.charCodeAt(0) === 0xfeff) i = 1;
+    }
+    for (; i < text.length; i++) {
+      const c = text[i];
+      if (crPending) {
+        crPending = false;
+        if (c === "\n") continue;
+      }
+      if (quotePending) {
+        quotePending = false;
+        if (c === '"') {
           field += '"';
-          i++;
-        } else inQuotes = false;
+          continue;
+        }
+        inQuotes = false;
+      }
+      if (inQuotes) {
+        if (c === '"') {
+          if (i + 1 === text.length) quotePending = true;
+          else if (text[i + 1] === '"') {
+            field += '"';
+            i++;
+          } else inQuotes = false;
+        } else field += c;
+      } else if (c === '"') inQuotes = true;
+      else if (c === delimiter) {
+        record.push(field);
+        field = "";
+      } else if (c === "\n" || c === "\r") {
+        if (c === "\r") {
+          if (i + 1 === text.length) crPending = true;
+          else if (text[i + 1] === "\n") i++;
+        }
+        const row = emit();
+        if (row) yield row;
       } else field += c;
-    } else if (c === '"') inQuotes = true;
-    else if (c === delimiter) {
-      record.push(field);
-      field = "";
-    } else if (c === "\n" || c === "\r") {
-      if (c === "\r" && text[i + 1] === "\n") i++;
+    }
+  }
+
+  function* end(): Generator<Row> {
+    if (field !== "" || record.length > 0) {
       const row = emit();
       if (row) yield row;
-    } else field += c;
+    }
   }
-  if (field !== "" || record.length > 0) {
-    const row = emit();
-    if (row) yield row;
-  }
+  return { feed, end };
+}
+
+export function* parseCsv(text: string, delimiter = ";"): Generator<Row> {
+  const p = createCsvParser(delimiter);
+  yield* p.feed(text);
+  yield* p.end();
 }
 
 export const decodeLatin1 = (buf: Uint8Array | ArrayBuffer) => new TextDecoder("latin1").decode(buf);

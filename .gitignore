@@ -12,3 +12,5 @@ data/tse/
 /*.csv
 .env*
 *.log
+data/polls/
+data/pesquisas.json

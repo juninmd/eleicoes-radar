@@ -1,0 +1,5 @@
+# Allowlist: only the static site and its server go into the image.
+*
+!src/radar/serve.ts
+!web/
+web/*.test.js
