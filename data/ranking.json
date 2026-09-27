@@ -1,0 +1,1169 @@
+{
+  "ranking": [
+    {
+      "id": 204528,
+      "nome": "Adriana Ventura",
+      "partido": "NOVO",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/204528.jpg",
+      "gastoTotal": 224474,
+      "totalProposicoes": 1639,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 664,
+      "fraudeScore": 49.8,
+      "fraudeIndicios": [
+        "166 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 100,
+      "notaGeral": 48.2
+    },
+    {
+      "id": 204535,
+      "nome": "Sâmia Bomfim",
+      "partido": "PSOL",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/204535.jpg",
+      "gastoTotal": 1111618,
+      "totalProposicoes": 1900,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 127,
+      "fraudeScore": 44.6,
+      "fraudeIndicios": [
+        "223 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 100,
+      "notaGeral": 46.2
+    },
+    {
+      "id": 220654,
+      "nome": "Delegado Paulo Bilynskyj",
+      "partido": "PL",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/220654.jpg",
+      "gastoTotal": 1311748,
+      "totalProposicoes": 1904,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 74,
+      "fraudeScore": 46.3,
+      "fraudeIndicios": [
+        "419 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 100,
+      "notaGeral": 44.4
+    },
+    {
+      "id": 204536,
+      "nome": "Kim Kataguiri",
+      "partido": "MISSÃO",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/204536.jpg",
+      "gastoTotal": 341360,
+      "totalProposicoes": 1492,
+      "proposicoesAprovadas": 2,
+      "totalDiscursos": 318,
+      "fraudeScore": 43.5,
+      "fraudeIndicios": [
+        "28 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.9,
+      "notaGeral": 43
+    },
+    {
+      "id": 204534,
+      "nome": "Tabata Amaral",
+      "partido": "PSB",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/204534.jpg",
+      "gastoTotal": 1393402,
+      "totalProposicoes": 1766,
+      "proposicoesAprovadas": 18,
+      "totalDiscursos": 29,
+      "fraudeScore": 44.7,
+      "fraudeIndicios": [
+        "282 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99,
+      "notaGeral": 42.4
+    },
+    {
+      "id": 204506,
+      "nome": "Marcos Pereira",
+      "partido": "REPUBLICANOS",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/204506.jpg",
+      "gastoTotal": 1242411,
+      "totalProposicoes": 1980,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 9,
+      "fraudeScore": 52.2,
+      "fraudeIndicios": [
+        "46% do gasto concentrado em 1 fornecedor (MIND COMUNICACAO LTDA)",
+        "93 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 100,
+      "notaGeral": 41.4
+    },
+    {
+      "id": 141555,
+      "nome": "Vinicius Carvalho",
+      "partido": "PL",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/141555.jpg",
+      "gastoTotal": 1094150,
+      "totalProposicoes": 1642,
+      "proposicoesAprovadas": 7,
+      "totalDiscursos": 138,
+      "fraudeScore": 46.2,
+      "fraudeIndicios": [
+        "313 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.6,
+      "notaGeral": 41.1
+    },
+    {
+      "id": 160601,
+      "nome": "Pr. Marco Feliciano",
+      "partido": "PL",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/160601.jpg",
+      "gastoTotal": 1293275,
+      "totalProposicoes": 1461,
+      "proposicoesAprovadas": 1,
+      "totalDiscursos": 47,
+      "fraudeScore": 41.8,
+      "fraudeIndicios": [
+        "142 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.9,
+      "notaGeral": 38.7
+    },
+    {
+      "id": 220648,
+      "nome": "Marangoni",
+      "partido": "PODE",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/220648.jpg",
+      "gastoTotal": 1323214,
+      "totalProposicoes": 1374,
+      "proposicoesAprovadas": 2,
+      "totalDiscursos": 13,
+      "fraudeScore": 40.1,
+      "fraudeIndicios": [
+        "202 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.9,
+      "notaGeral": 37.5
+    },
+    {
+      "id": 178992,
+      "nome": "Vitor Lippi",
+      "partido": "PSD",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/178992.jpg",
+      "gastoTotal": 1330866,
+      "totalProposicoes": 1367,
+      "proposicoesAprovadas": 8,
+      "totalDiscursos": 11,
+      "fraudeScore": 42.3,
+      "fraudeIndicios": [
+        "788 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.4,
+      "notaGeral": 36.3
+    },
+    {
+      "id": 73433,
+      "nome": "Arlindo Chinaglia",
+      "partido": "PT",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/73433.jpg",
+      "gastoTotal": 1241882,
+      "totalProposicoes": 1344,
+      "proposicoesAprovadas": 1,
+      "totalDiscursos": 49,
+      "fraudeScore": 43.4,
+      "fraudeIndicios": [
+        "260 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.9,
+      "notaGeral": 35.9
+    },
+    {
+      "id": 141391,
+      "nome": "Arnaldo Jardim",
+      "partido": "CIDADANIA",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/141391.jpg",
+      "gastoTotal": 1220037,
+      "totalProposicoes": 1536,
+      "proposicoesAprovadas": 4,
+      "totalDiscursos": 44,
+      "fraudeScore": 51.6,
+      "fraudeIndicios": [
+        "496 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.7,
+      "notaGeral": 34.7
+    },
+    {
+      "id": 74273,
+      "nome": "Jefferson Campos",
+      "partido": "PL",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/74273.jpg",
+      "gastoTotal": 1298368,
+      "totalProposicoes": 1044,
+      "proposicoesAprovadas": 5,
+      "totalDiscursos": 76,
+      "fraudeScore": 39.5,
+      "fraudeIndicios": [
+        "390 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.5,
+      "notaGeral": 33.3
+    },
+    {
+      "id": 74784,
+      "nome": "Luiza Erundina",
+      "partido": "PSOL",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/74784.jpg",
+      "gastoTotal": 1325316,
+      "totalProposicoes": 1333,
+      "proposicoesAprovadas": 4,
+      "totalDiscursos": 5,
+      "fraudeScore": 46.5,
+      "fraudeIndicios": [
+        "457 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.7,
+      "notaGeral": 33.3
+    },
+    {
+      "id": 178987,
+      "nome": "Orlando Silva",
+      "partido": "PCdoB",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/178987.jpg",
+      "gastoTotal": 1231012,
+      "totalProposicoes": 1154,
+      "proposicoesAprovadas": 8,
+      "totalDiscursos": 73,
+      "fraudeScore": 44.3,
+      "fraudeIndicios": [
+        "240 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.3,
+      "notaGeral": 32.6
+    },
+    {
+      "id": 74262,
+      "nome": "Carlos Sampaio",
+      "partido": "PSD",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/74262.jpg",
+      "gastoTotal": 1158888,
+      "totalProposicoes": 1158,
+      "proposicoesAprovadas": 7,
+      "totalDiscursos": 1,
+      "fraudeScore": 42.5,
+      "fraudeIndicios": [
+        "292 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.4,
+      "notaGeral": 32.4
+    },
+    {
+      "id": 178986,
+      "nome": "Nilto Tatto",
+      "partido": "PT",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/178986.jpg",
+      "gastoTotal": 1245074,
+      "totalProposicoes": 1370,
+      "proposicoesAprovadas": 1,
+      "totalDiscursos": 135,
+      "fraudeScore": 53.4,
+      "fraudeIndicios": [
+        "233 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.9,
+      "notaGeral": 32.4
+    },
+    {
+      "id": 160545,
+      "nome": "Alexandre Leite",
+      "partido": "UNIÃO",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/160545.jpg",
+      "gastoTotal": 316686,
+      "totalProposicoes": 1403,
+      "proposicoesAprovadas": 1,
+      "totalDiscursos": 0,
+      "fraudeScore": 50.4,
+      "fraudeIndicios": [
+        "45% do gasto concentrado em 1 fornecedor (RAUL IMÓVEIS - HARALAMOS BASSOUKOU)",
+        "69 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.9,
+      "notaGeral": 32.3
+    },
+    {
+      "id": 204526,
+      "nome": "Luiz Philippe de Orleans e Bragança",
+      "partido": "PL",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/204526.jpg",
+      "gastoTotal": 1351659,
+      "totalProposicoes": 1069,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 38,
+      "fraudeScore": 41.8,
+      "fraudeIndicios": [
+        "234 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 100,
+      "notaGeral": 31.7
+    },
+    {
+      "id": 141488,
+      "nome": "Paulo Teixeira",
+      "partido": "PT",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/141488.jpg",
+      "gastoTotal": 90989,
+      "totalProposicoes": 1336,
+      "proposicoesAprovadas": 8,
+      "totalDiscursos": 6,
+      "fraudeScore": 51.4,
+      "fraudeIndicios": [
+        "66% do gasto concentrado em 1 fornecedor (CABOCLO PRODUCOES LTDA)",
+        "12 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.4,
+      "notaGeral": 30.8
+    },
+    {
+      "id": 73441,
+      "nome": "Celso Russomanno",
+      "partido": "REPUBLICANOS",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/73441.jpg",
+      "gastoTotal": 697617,
+      "totalProposicoes": 1130,
+      "proposicoesAprovadas": 9,
+      "totalDiscursos": 8,
+      "fraudeScore": 47.1,
+      "fraudeIndicios": [
+        "232 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.2,
+      "notaGeral": 29.6
+    },
+    {
+      "id": 221338,
+      "nome": "Professora Luciene Cavalcante",
+      "partido": "PSOL",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/221338.jpg",
+      "gastoTotal": 1038758,
+      "totalProposicoes": 951,
+      "proposicoesAprovadas": 2,
+      "totalDiscursos": 126,
+      "fraudeScore": 45.1,
+      "fraudeIndicios": [
+        "64 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.8,
+      "notaGeral": 29.5
+    },
+    {
+      "id": 220637,
+      "nome": "Marina Silva",
+      "partido": "REDE",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/220637.jpg",
+      "gastoTotal": 43705,
+      "totalProposicoes": 3,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 18,
+      "fraudeScore": 45.3,
+      "fraudeIndicios": [
+        "69% do gasto concentrado em 1 fornecedor (PANTANAL VEÍCULOS LTDA)",
+        "6 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 26.2,
+      "notaGeral": 29.4
+    },
+    {
+      "id": 204501,
+      "nome": "Alencar Santana",
+      "partido": "PT",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/204501.jpg",
+      "gastoTotal": 1271657,
+      "totalProposicoes": 775,
+      "proposicoesAprovadas": 3,
+      "totalDiscursos": 118,
+      "fraudeScore": 43.4,
+      "fraudeIndicios": [
+        "169 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.6,
+      "notaGeral": 27.2
+    },
+    {
+      "id": 220645,
+      "nome": "Erika Hilton",
+      "partido": "PSOL",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/220645.jpg",
+      "gastoTotal": 965014,
+      "totalProposicoes": 1003,
+      "proposicoesAprovadas": 1,
+      "totalDiscursos": 38,
+      "fraudeScore": 48.1,
+      "fraudeIndicios": [
+        "282 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.9,
+      "notaGeral": 27.2
+    },
+    {
+      "id": 220643,
+      "nome": "Sônia Guajajara",
+      "partido": "PSOL",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/220643.jpg",
+      "gastoTotal": 103779,
+      "totalProposicoes": 16,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 5,
+      "fraudeScore": 37.1,
+      "fraudeIndicios": [
+        "58% do gasto concentrado em 1 fornecedor (LRS COMUNICACAO E CONSULTORIA LTDA)",
+        "4 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 53.5,
+      "notaGeral": 27
+    },
+    {
+      "id": 220644,
+      "nome": "Rosangela Moro",
+      "partido": "PL",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/220644.jpg",
+      "gastoTotal": 881321,
+      "totalProposicoes": 766,
+      "proposicoesAprovadas": 1,
+      "totalDiscursos": 50,
+      "fraudeScore": 41.6,
+      "fraudeIndicios": [
+        "162 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.9,
+      "notaGeral": 26.8
+    },
+    {
+      "id": 160548,
+      "nome": "Jonas Donizette",
+      "partido": "PSB",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/160548.jpg",
+      "gastoTotal": 1256209,
+      "totalProposicoes": 802,
+      "proposicoesAprovadas": 2,
+      "totalDiscursos": 59,
+      "fraudeScore": 43.2,
+      "fraudeIndicios": [
+        "907 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.8,
+      "notaGeral": 26.7
+    },
+    {
+      "id": 141398,
+      "nome": "Carlos Zarattini",
+      "partido": "PT",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/141398.jpg",
+      "gastoTotal": 1366760,
+      "totalProposicoes": 934,
+      "proposicoesAprovadas": 4,
+      "totalDiscursos": 67,
+      "fraudeScore": 48.9,
+      "fraudeIndicios": [
+        "277 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.6,
+      "notaGeral": 26.2
+    },
+    {
+      "id": 74270,
+      "nome": "Gilberto Nascimento",
+      "partido": "PODE",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/74270.jpg",
+      "gastoTotal": 1332700,
+      "totalProposicoes": 905,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 51,
+      "fraudeScore": 47.6,
+      "fraudeIndicios": [
+        "264 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 100,
+      "notaGeral": 26
+    },
+    {
+      "id": 178829,
+      "nome": "Capitão Augusto",
+      "partido": "PL",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/178829.jpg",
+      "gastoTotal": 1343778,
+      "totalProposicoes": 866,
+      "proposicoesAprovadas": 4,
+      "totalDiscursos": 7,
+      "fraudeScore": 46.4,
+      "fraudeIndicios": [
+        "377 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.5,
+      "notaGeral": 25.3
+    },
+    {
+      "id": 178972,
+      "nome": "Alex Manente",
+      "partido": "CIDADANIA",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/178972.jpg",
+      "gastoTotal": 853703,
+      "totalProposicoes": 719,
+      "proposicoesAprovadas": 2,
+      "totalDiscursos": 12,
+      "fraudeScore": 43.1,
+      "fraudeIndicios": [
+        "145 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.7,
+      "notaGeral": 24.6
+    },
+    {
+      "id": 204540,
+      "nome": "Maria Rosas",
+      "partido": "REPUBLICANOS",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/204540.jpg",
+      "gastoTotal": 1314799,
+      "totalProposicoes": 769,
+      "proposicoesAprovadas": 3,
+      "totalDiscursos": 37,
+      "fraudeScore": 47.3,
+      "fraudeIndicios": [
+        "649 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.6,
+      "notaGeral": 23.6
+    },
+    {
+      "id": 141518,
+      "nome": "Paulinho da Força",
+      "partido": "SOLIDARIEDADE",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/141518.jpg",
+      "gastoTotal": 841530,
+      "totalProposicoes": 893,
+      "proposicoesAprovadas": 2,
+      "totalDiscursos": 6,
+      "fraudeScore": 53.3,
+      "fraudeIndicios": [
+        "51% do gasto concentrado em 1 fornecedor (2HC CRIATIVIDADE E PRODUÇÕES LTDA)",
+        "120 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.8,
+      "notaGeral": 22
+    },
+    {
+      "id": 204511,
+      "nome": "David Soares",
+      "partido": "PODE",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/204511.jpg",
+      "gastoTotal": 1334646,
+      "totalProposicoes": 561,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 25,
+      "fraudeScore": 44.2,
+      "fraudeIndicios": [
+        "127 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 100,
+      "notaGeral": 21.4
+    },
+    {
+      "id": 204504,
+      "nome": "Cezinha de Madureira",
+      "partido": "PL",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/204504.jpg",
+      "gastoTotal": 1308280,
+      "totalProposicoes": 622,
+      "proposicoesAprovadas": 4,
+      "totalDiscursos": 3,
+      "fraudeScore": 45.8,
+      "fraudeIndicios": [
+        "208 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.4,
+      "notaGeral": 21.3
+    },
+    {
+      "id": 230957,
+      "nome": "João Cury",
+      "partido": "MDB",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/230957.jpg",
+      "gastoTotal": 841515,
+      "totalProposicoes": 19,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 4,
+      "fraudeScore": 47.5,
+      "fraudeIndicios": [
+        "188 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 56.5,
+      "notaGeral": 20.7
+    },
+    {
+      "id": 66828,
+      "nome": "Fausto Pinato",
+      "partido": "UNIÃO",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/66828.jpg",
+      "gastoTotal": 1384925,
+      "totalProposicoes": 714,
+      "proposicoesAprovadas": 2,
+      "totalDiscursos": 9,
+      "fraudeScore": 50.6,
+      "fraudeIndicios": [
+        "302 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.7,
+      "notaGeral": 20.4
+    },
+    {
+      "id": 141456,
+      "nome": "Jilmar Tatto",
+      "partido": "PT",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/141456.jpg",
+      "gastoTotal": 1221377,
+      "totalProposicoes": 393,
+      "proposicoesAprovadas": 2,
+      "totalDiscursos": 22,
+      "fraudeScore": 41,
+      "fraudeIndicios": [
+        "173 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.5,
+      "notaGeral": 20.3
+    },
+    {
+      "id": 154700,
+      "nome": "Paulo Soares",
+      "partido": "PODE",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/154700.jpg",
+      "gastoTotal": 36363,
+      "totalProposicoes": 22,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 12,
+      "fraudeScore": 47.8,
+      "fraudeIndicios": [
+        "83% do gasto concentrado em 1 fornecedor (ENGAGE CRM - CONSULTORIA E SISTEMAS DA INFORMACAO LTDA.)",
+        "13 notas (30%) emitidas em fim de semana"
+      ],
+      "fantasmaIndex": 59.2,
+      "notaGeral": 20.1
+    },
+    {
+      "id": 73604,
+      "nome": "Rui Falcão",
+      "partido": "PT",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/73604.jpg",
+      "gastoTotal": 993470,
+      "totalProposicoes": 725,
+      "proposicoesAprovadas": 4,
+      "totalDiscursos": 6,
+      "fraudeScore": 52.2,
+      "fraudeIndicios": [
+        "129 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.4,
+      "notaGeral": 19.7
+    },
+    {
+      "id": 220640,
+      "nome": "Juliana Cardoso",
+      "partido": "PT",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/220640.jpg",
+      "gastoTotal": 1305508,
+      "totalProposicoes": 461,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 68,
+      "fraudeScore": 46.6,
+      "fraudeIndicios": [
+        "360 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 100,
+      "notaGeral": 19.1
+    },
+    {
+      "id": 175765,
+      "nome": "Ribamar Silva",
+      "partido": "PODE",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/175765.jpg",
+      "gastoTotal": 743462,
+      "totalProposicoes": 48,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 23,
+      "fraudeScore": 44.3,
+      "fraudeIndicios": [
+        "143 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 73.5,
+      "notaGeral": 19
+    },
+    {
+      "id": 204525,
+      "nome": "Rosana Valle",
+      "partido": "PL",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/204525.jpg",
+      "gastoTotal": 1109382,
+      "totalProposicoes": 439,
+      "proposicoesAprovadas": 4,
+      "totalDiscursos": 11,
+      "fraudeScore": 45.5,
+      "fraudeIndicios": [
+        "445 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.1,
+      "notaGeral": 18.5
+    },
+    {
+      "id": 226837,
+      "nome": "Saulo Pedroso",
+      "partido": "PSD",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/226837.jpg",
+      "gastoTotal": 1314448,
+      "totalProposicoes": 161,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 9,
+      "fraudeScore": 38.1,
+      "fraudeIndicios": [
+        "144 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 96,
+      "notaGeral": 18.4
+    },
+    {
+      "id": 220641,
+      "nome": "Rodrigo Gambale",
+      "partido": "PODE",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/220641.jpg",
+      "gastoTotal": 1181033,
+      "totalProposicoes": 523,
+      "proposicoesAprovadas": 1,
+      "totalDiscursos": 12,
+      "fraudeScore": 49.9,
+      "fraudeIndicios": [
+        "184 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.8,
+      "notaGeral": 17.5
+    },
+    {
+      "id": 220647,
+      "nome": "Mauricio Neves",
+      "partido": "PP",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/220647.jpg",
+      "gastoTotal": 1180906,
+      "totalProposicoes": 114,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 3,
+      "fraudeScore": 41.4,
+      "fraudeIndicios": [
+        "116 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 89.6,
+      "notaGeral": 17.3
+    },
+    {
+      "id": 220649,
+      "nome": "Delegado da Cunha",
+      "partido": "UNIÃO",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/220649.jpg",
+      "gastoTotal": 1236417,
+      "totalProposicoes": 166,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 25,
+      "fraudeScore": 40.6,
+      "fraudeIndicios": [
+        "141 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 96.6,
+      "notaGeral": 17.3
+    },
+    {
+      "id": 220633,
+      "nome": "Ricardo Salles",
+      "partido": "NOVO",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/220633.jpg",
+      "gastoTotal": 1396232,
+      "totalProposicoes": 363,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 38,
+      "fraudeScore": 46.3,
+      "fraudeIndicios": [
+        "239 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 100,
+      "notaGeral": 17
+    },
+    {
+      "id": 178985,
+      "nome": "Miguel Lombardi",
+      "partido": "PL",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/178985.jpg",
+      "gastoTotal": 885216,
+      "totalProposicoes": 114,
+      "proposicoesAprovadas": 2,
+      "totalDiscursos": 3,
+      "fraudeScore": 44,
+      "fraudeIndicios": [
+        "288 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 88,
+      "notaGeral": 16.3
+    },
+    {
+      "id": 162067,
+      "nome": "Kiko Celeguim",
+      "partido": "PT",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/162067.jpg",
+      "gastoTotal": 1350142,
+      "totalProposicoes": 155,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 30,
+      "fraudeScore": 43.2,
+      "fraudeIndicios": [
+        "293 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 95.3,
+      "notaGeral": 16.1
+    },
+    {
+      "id": 221328,
+      "nome": "Adilson Barroso",
+      "partido": "PL",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/221328.jpg",
+      "gastoTotal": 1290374,
+      "totalProposicoes": 70,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 13,
+      "fraudeScore": 46.8,
+      "fraudeIndicios": [
+        "201 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 80.5,
+      "notaGeral": 16.1
+    },
+    {
+      "id": 220655,
+      "nome": "Mario Frias",
+      "partido": "PL",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/220655.jpg",
+      "gastoTotal": 1111264,
+      "totalProposicoes": 323,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 19,
+      "fraudeScore": 46.4,
+      "fraudeIndicios": [
+        "94 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 100,
+      "notaGeral": 16
+    },
+    {
+      "id": 160558,
+      "nome": "Paulo Freire Costa",
+      "partido": "PL",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/160558.jpg",
+      "gastoTotal": 1046944,
+      "totalProposicoes": 277,
+      "proposicoesAprovadas": 2,
+      "totalDiscursos": 1,
+      "fraudeScore": 45.5,
+      "fraudeIndicios": [
+        "119 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.3,
+      "notaGeral": 15.5
+    },
+    {
+      "id": 154178,
+      "nome": "Milton Vieira",
+      "partido": "REPUBLICANOS",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/154178.jpg",
+      "gastoTotal": 86007,
+      "totalProposicoes": 99,
+      "proposicoesAprovadas": 1,
+      "totalDiscursos": 4,
+      "fraudeScore": 46.4,
+      "fraudeIndicios": [
+        "65% do gasto concentrado em 1 fornecedor (NSF TRANSPORTES LTDA)",
+        "9 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 86,
+      "notaGeral": 15.3
+    },
+    {
+      "id": 178975,
+      "nome": "Baleia Rossi",
+      "partido": "MDB",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/178975.jpg",
+      "gastoTotal": 948439,
+      "totalProposicoes": 251,
+      "proposicoesAprovadas": 5,
+      "totalDiscursos": 2,
+      "fraudeScore": 46,
+      "fraudeIndicios": [
+        "310 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 98,
+      "notaGeral": 15.1
+    },
+    {
+      "id": 204531,
+      "nome": "Guilherme Derrite",
+      "partido": "PP",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/204531.jpg",
+      "gastoTotal": 131492,
+      "totalProposicoes": 224,
+      "proposicoesAprovadas": 2,
+      "totalDiscursos": 11,
+      "fraudeScore": 45.3,
+      "fraudeIndicios": [
+        "18 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.1,
+      "notaGeral": 14.9
+    },
+    {
+      "id": 220638,
+      "nome": "Antonio Carlos Rodrigues",
+      "partido": "PODE",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/220638.jpg",
+      "gastoTotal": 995469,
+      "totalProposicoes": 153,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 11,
+      "fraudeScore": 45.3,
+      "fraudeIndicios": [
+        "157 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 95.1,
+      "notaGeral": 14.7
+    },
+    {
+      "id": 220646,
+      "nome": "Felipe Becari",
+      "partido": "PODE",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/220646.jpg",
+      "gastoTotal": 736420,
+      "totalProposicoes": 288,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 3,
+      "fraudeScore": 47.8,
+      "fraudeIndicios": [
+        "224 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 100,
+      "notaGeral": 14.3
+    },
+    {
+      "id": 220642,
+      "nome": "Delegado Bruno Lima",
+      "partido": "PODE",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/220642.jpg",
+      "gastoTotal": 993116,
+      "totalProposicoes": 261,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 0,
+      "fraudeScore": 47.6,
+      "fraudeIndicios": [
+        "75 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 100,
+      "notaGeral": 13.9
+    },
+    {
+      "id": 220653,
+      "nome": "Fábio Teruel",
+      "partido": "MDB",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/220653.jpg",
+      "gastoTotal": 811335,
+      "totalProposicoes": 100,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 0,
+      "fraudeScore": 48.4,
+      "fraudeIndicios": [
+        "257 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 87.1,
+      "notaGeral": 13.9
+    },
+    {
+      "id": 160561,
+      "nome": "Missionário José Olimpio",
+      "partido": "PL",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/160561.jpg",
+      "gastoTotal": 533334,
+      "totalProposicoes": 96,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 20,
+      "fraudeScore": 49.6,
+      "fraudeIndicios": [
+        "22 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 86.3,
+      "notaGeral": 13.7
+    },
+    {
+      "id": 204485,
+      "nome": "Luiz Carlos Motta",
+      "partido": "PL",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/204485.jpg",
+      "gastoTotal": 904662,
+      "totalProposicoes": 261,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 4,
+      "fraudeScore": 48.1,
+      "fraudeIndicios": [
+        "162 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 100,
+      "notaGeral": 13.7
+    },
+    {
+      "id": 220652,
+      "nome": "Delegado Palumbo",
+      "partido": "PODE",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/220652.jpg",
+      "gastoTotal": 1247747,
+      "totalProposicoes": 184,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 30,
+      "fraudeScore": 47.4,
+      "fraudeIndicios": [
+        "449 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 98.5,
+      "notaGeral": 13.6
+    },
+    {
+      "id": 221148,
+      "nome": "Alfredinho",
+      "partido": "PT",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/221148.jpg",
+      "gastoTotal": 1242890,
+      "totalProposicoes": 178,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 63,
+      "fraudeScore": 48.8,
+      "fraudeIndicios": [
+        "150 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 97.9,
+      "notaGeral": 13.4
+    },
+    {
+      "id": 220650,
+      "nome": "Paulo Alexandre Barbosa",
+      "partido": "PSD",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/220650.jpg",
+      "gastoTotal": 478782,
+      "totalProposicoes": 196,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 4,
+      "fraudeScore": 48.8,
+      "fraudeIndicios": [
+        "97 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 99.7,
+      "notaGeral": 12.3
+    },
+    {
+      "id": 178983,
+      "nome": "Marcio Alvino",
+      "partido": "PL",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/178983.jpg",
+      "gastoTotal": 132697,
+      "totalProposicoes": 120,
+      "proposicoesAprovadas": 4,
+      "totalDiscursos": 54,
+      "fraudeScore": 53.9,
+      "fraudeIndicios": [
+        "49% do gasto concentrado em 1 fornecedor (TAM)",
+        "152 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 87.5,
+      "notaGeral": 12.1
+    },
+    {
+      "id": 220651,
+      "nome": "Simone Marquetto",
+      "partido": "PP",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/220651.jpg",
+      "gastoTotal": 1299005,
+      "totalProposicoes": 173,
+      "proposicoesAprovadas": 4,
+      "totalDiscursos": 13,
+      "fraudeScore": 53.6,
+      "fraudeIndicios": [
+        "41% do gasto concentrado em 1 fornecedor (Vitória Terra Comunicações LTDA)",
+        "234 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 95.1,
+      "notaGeral": 10.6
+    },
+    {
+      "id": 160976,
+      "nome": "Tiririca",
+      "partido": "PSD",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/160976.jpg",
+      "gastoTotal": 982830,
+      "totalProposicoes": 173,
+      "proposicoesAprovadas": 1,
+      "totalDiscursos": 0,
+      "fraudeScore": 54.9,
+      "fraudeIndicios": [
+        "46% do gasto concentrado em 1 fornecedor (Strike Media)",
+        "125 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 96.8,
+      "notaGeral": 9.2
+    },
+    {
+      "id": 220635,
+      "nome": "Bruno Ganem",
+      "partido": "PODE",
+      "urlFoto": "https://www.camara.leg.br/internet/deputado/bandep/220635.jpg",
+      "gastoTotal": 1098608,
+      "totalProposicoes": 365,
+      "proposicoesAprovadas": 0,
+      "totalDiscursos": 0,
+      "fraudeScore": 65,
+      "fraudeIndicios": [
+        "67% do gasto concentrado em 1 fornecedor (Facebook Serviços Online do Brasil)",
+        "155 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"
+      ],
+      "fantasmaIndex": 100,
+      "notaGeral": 6.3
+    }
+  ],
+  "clas": [
+    {
+      "sobrenome": "TATTO",
+      "membros": [
+        {
+          "id": 141456,
+          "nome": "Jilmar Tatto",
+          "partido": "PT"
+        },
+        {
+          "id": 178986,
+          "nome": "Nilto Tatto",
+          "partido": "PT"
+        }
+      ]
+    },
+    {
+      "sobrenome": "SOARES",
+      "membros": [
+        {
+          "id": 154700,
+          "nome": "Paulo Soares",
+          "partido": "PODE"
+        },
+        {
+          "id": 204511,
+          "nome": "David Soares",
+          "partido": "PODE"
+        }
+      ]
+    }
+  ],
+  "geradoEm": "2026-08-31T07:13:50.907Z"
+}

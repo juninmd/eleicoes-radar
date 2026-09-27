@@ -1,0 +1,425 @@
+<title>Radar Eleitoral</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #EEF0EA;
+    --surface: #F8F8F3;
+    --surface-raised: #FFFFFF;
+    --ink: #23231F;
+    --ink-dim: #6B6A5E;
+    --line: #DAD8CC;
+    --accent: #8A6E3D;
+    --accent-ink: #FFFFFF;
+    --good: #2F6B4F;
+    --good-bg: #E3EEE6;
+    --warn: #9A6D14;
+    --warn-bg: #F4E9D2;
+    --bad: #9C3B2E;
+    --bad-bg: #F3E1DD;
+    --shadow: 0 1px 2px rgba(35,35,31,0.06), 0 4px 16px rgba(35,35,31,0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14181A;
+      --surface: #1B2023;
+      --surface-raised: #21272A;
+      --ink: #ECE7DD;
+      --ink-dim: #9A968A;
+      --line: #333A3D;
+      --accent: #C9A24B;
+      --accent-ink: #14181A;
+      --good: #5FA184;
+      --good-bg: #1E2C27;
+      --warn: #D6A94B;
+      --warn-bg: #2E2818;
+      --bad: #D08072;
+      --bad-bg: #2E1E1B;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14181A;
+    --surface: #1B2023;
+    --surface-raised: #21272A;
+    --ink: #ECE7DD;
+    --ink-dim: #9A968A;
+    --line: #333A3D;
+    --accent: #C9A24B;
+    --accent-ink: #14181A;
+    --good: #5FA184;
+    --good-bg: #1E2C27;
+    --warn: #D6A94B;
+    --warn-bg: #2E2818;
+    --bad: #D08072;
+    --bad-bg: #2E1E1B;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    line-height: 1.5;
+    padding: 0 0 5rem;
+  }
+  h1, h2, h3 { font-family: "Fraunces", Georgia, serif; text-wrap: balance; margin: 0; }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  a { color: inherit; }
+
+  header.top {
+    border-bottom: 1px solid var(--line);
+    padding: 2.25rem 2rem 1.75rem;
+    background: var(--surface);
+  }
+  header.top .wrap { max-width: 74rem; margin: 0 auto; }
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin-bottom: 0.6rem;
+  }
+  .eyebrow .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+  }
+  header.top h1 { font-size: clamp(1.9rem, 3.2vw, 2.6rem); font-weight: 600; }
+  header.top p.sub { color: var(--ink-dim); max-width: 46rem; margin-top: 0.6rem; font-size: 0.98rem; }
+  .privado {
+    display: inline-flex; align-items: center; gap: 0.4em;
+    margin-top: 1rem; font-size: 0.78rem; color: var(--ink-dim);
+    border: 1px solid var(--line); border-radius: 100px; padding: 0.3em 0.85em;
+    font-family: "IBM Plex Mono", monospace;
+  }
+
+  main { max-width: 74rem; margin: 0 auto; padding: 2rem; display: flex; flex-direction: column; gap: 2.75rem; }
+
+  section h2 {
+    font-size: 1.3rem; font-weight: 600; margin-bottom: 0.25rem;
+  }
+  section .desc { color: var(--ink-dim); font-size: 0.9rem; max-width: 50rem; margin-bottom: 1.1rem; }
+
+  .toolbar {
+    display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center;
+    margin-bottom: 1rem;
+  }
+  .toolbar input, .toolbar select {
+    font: inherit; font-size: 0.85rem;
+    background: var(--surface-raised); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 8px;
+    padding: 0.5em 0.8em;
+  }
+  .toolbar input { flex: 1; min-width: 12rem; }
+  .toolbar .count { font-family: "IBM Plex Mono", monospace; font-size: 0.78rem; color: var(--ink-dim); margin-left: auto; }
+
+  table { width: 100%; border-collapse: collapse; }
+  .table-wrap {
+    background: var(--surface-raised); border: 1px solid var(--line);
+    border-radius: 12px; overflow: hidden; box-shadow: var(--shadow);
+  }
+  .table-scroll { overflow-x: auto; }
+  thead th {
+    text-align: left; font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--ink-dim); font-weight: 500; font-family: "IBM Plex Mono", monospace;
+    padding: 0.75rem 1rem; border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  tbody tr.row { border-bottom: 1px solid var(--line); cursor: pointer; }
+  tbody tr.row:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+  tbody tr.row:last-child { border-bottom: none; }
+  tbody td { padding: 0.7rem 1rem; font-size: 0.88rem; vertical-align: middle; }
+  td.num { text-align: right; }
+  .dep-cell { display: flex; align-items: center; gap: 0.6rem; }
+  .dep-cell img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: var(--line); flex-shrink: 0; }
+  .dep-cell .nome { font-weight: 500; }
+  .dep-cell .partido { color: var(--ink-dim); font-size: 0.78rem; }
+  .pos { font-family: "IBM Plex Mono", monospace; color: var(--ink-dim); }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 0.35em;
+    font-family: "IBM Plex Mono", monospace; font-size: 0.8rem; font-weight: 500;
+    padding: 0.22em 0.6em; border-radius: 100px;
+  }
+  .pill.good { background: var(--good-bg); color: var(--good); }
+  .pill.warn { background: var(--warn-bg); color: var(--warn); }
+  .pill.bad { background: var(--bad-bg); color: var(--bad); }
+
+  .detail-row td { padding: 0 1rem 1.1rem; background: color-mix(in srgb, var(--accent) 4%, transparent); }
+  .detail-row[hidden] { display: none; }
+  .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1rem; padding-top: 0.9rem; border-top: 1px dashed var(--line); }
+  .detail-grid .stat-label { font-family: "IBM Plex Mono", monospace; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-dim); }
+  .detail-grid .stat-value { font-family: "IBM Plex Mono", monospace; font-size: 1.05rem; margin-top: 0.15rem; }
+  .indicios { grid-column: 1 / -1; }
+  .indicios ul { margin: 0.4rem 0 0; padding-left: 1.1rem; font-size: 0.85rem; color: var(--ink); }
+  .indicios li { margin-bottom: 0.25rem; }
+  .indicios .none { color: var(--ink-dim); font-style: italic; font-size: 0.85rem; }
+
+  .alert-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr)); gap: 0.9rem; }
+  .alert-card {
+    background: var(--surface-raised); border: 1px solid var(--line); border-left: 3px solid var(--bad);
+    border-radius: 10px; padding: 1rem 1.1rem; box-shadow: var(--shadow);
+  }
+  .alert-card .top-row { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
+  .alert-card .nome { font-weight: 600; }
+  .alert-card .score { font-family: "IBM Plex Mono", monospace; color: var(--bad); font-size: 0.9rem; }
+  .alert-card ul { margin: 0.5rem 0 0; padding-left: 1.05rem; font-size: 0.82rem; color: var(--ink-dim); }
+
+  .clas-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 0.8rem; }
+  .cla-card { background: var(--surface-raised); border: 1px solid var(--line); border-radius: 10px; padding: 0.85rem 1rem; }
+  .cla-card .sobrenome { font-family: "IBM Plex Mono", monospace; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); }
+  .cla-card ul { margin: 0.4rem 0 0; padding: 0; list-style: none; font-size: 0.85rem; }
+  .cla-card li { display: flex; justify-content: space-between; padding: 0.15rem 0; }
+  .cla-card li span.p { color: var(--ink-dim); font-size: 0.78rem; }
+
+  .empty-note {
+    border: 1px dashed var(--line); border-radius: 10px; padding: 1.2rem;
+    color: var(--ink-dim); font-size: 0.88rem; background: var(--surface);
+  }
+  .empty-note code { font-family: "IBM Plex Mono", monospace; background: var(--surface-raised); padding: 0.1em 0.4em; border-radius: 4px; }
+
+  .cand-uf-group { margin-bottom: 1.6rem; }
+  .cand-uf-group h3 { font-size: 1.02rem; font-weight: 600; margin-bottom: 0.7rem; }
+  .cand-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(17.5rem, 1fr)); gap: 0.9rem; }
+  .cand-card {
+    background: var(--surface-raised); border: 1px solid var(--line); border-left: 3px solid var(--accent);
+    border-radius: 10px; padding: 0.95rem 1.1rem; box-shadow: var(--shadow);
+    display: flex; flex-direction: column; gap: 0.4rem;
+  }
+  .cand-card .top-row { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
+  .cand-card .nome { font-weight: 600; font-size: 0.95rem; }
+  .cand-card .numero { font-family: "IBM Plex Mono", monospace; font-size: 0.78rem; color: var(--accent); }
+  .cand-card .partido-tag {
+    font-family: "IBM Plex Mono", monospace; font-size: 0.68rem; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--ink-dim);
+  }
+  .cand-card .vice { font-size: 0.8rem; color: var(--ink-dim); }
+  .cand-card .vice b { color: var(--ink); font-weight: 500; }
+  .cand-card .bio { font-size: 0.83rem; color: var(--ink); line-height: 1.45; }
+  .fonte-nota { font-size: 0.76rem; color: var(--ink-dim); margin-top: 0.6rem; }
+
+  footer.foot {
+    max-width: 74rem; margin: 0 auto; padding: 0 2rem; color: var(--ink-dim); font-size: 0.8rem;
+    border-top: 1px solid var(--line); padding-top: 1.5rem;
+  }
+  footer.foot p { margin: 0.4rem 0; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    tbody tr.row { transition: background 0.12s ease; }
+  }
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="eyebrow"><span class="dot"></span> Uso privado — não indexado, não publicado</div>
+    <h1>Radar Eleitoral</h1>
+    <p class="sub">Ranking de deputados federais de SP cruzando presença legislativa, produção real (proposições que viram norma) e indícios de anomalia na cota parlamentar — dado oficial aberto da Câmara dos Deputados, sem opinião partidária embutida.</p>
+    <div class="privado" id="geradoEm">gerado em —</div>
+  </div>
+</header>
+
+<main>
+  <section id="sec-ranking">
+    <h2>Ranking geral</h2>
+    <p class="desc">Nota 0–100: soma de atividade real, subtraída de indícios de fraude na cota e do índice de "parlamentar fantasma" (autoria em massa sem aprovação). Clique numa linha para ver o detalhe.</p>
+    <div class="toolbar">
+      <input id="filtroNome" type="text" placeholder="Filtrar por nome ou partido...">
+      <select id="ordenar">
+        <option value="notaGeral">Ordenar: nota geral</option>
+        <option value="fraudeScore">Ordenar: score de fraude</option>
+        <option value="fantasmaIndex">Ordenar: índice fantasma</option>
+        <option value="gastoTotal">Ordenar: gasto total</option>
+      </select>
+      <span class="count" id="contagem"></span>
+    </div>
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Deputado</th><th class="num">Nota</th><th class="num">Proposições</th>
+              <th class="num">Discursos</th><th class="num">Gasto cota</th><th class="num">Fraude</th><th class="num">Fantasma</th>
+            </tr>
+          </thead>
+          <tbody id="rankingBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="sec-alertas">
+    <h2>Alertas de fraude na cota</h2>
+    <p class="desc">Indícios estatísticos (concentração de fornecedor, valores repetidos, padrão de data) — não é prova de irregularidade, é ponto de partida pra checar as notas fiscais originais (link em cada linha do ranking).</p>
+    <div id="alertasWrap"></div>
+  </section>
+
+  <section id="sec-clas">
+    <h2>Clãs políticos</h2>
+    <p class="desc">Deputados atuais de SP que compartilham sobrenome incomum — sinal fraco, não confirma parentesco.</p>
+    <div id="clasWrap"></div>
+  </section>
+
+  <section id="sec-candidatos">
+    <h2>Candidatos 2026 — Presidente e Governador de SP</h2>
+    <p class="desc" id="candidatosDesc">Candidaturas oficializadas nas convenções de agosto/2026.</p>
+    <div id="candidatosWrap"></div>
+  </section>
+</main>
+
+<footer class="foot">
+  <p><strong>Metodologia:</strong> score de fraude é heurística sobre a cota CEAP (concentração de fornecedor, repetição de valor idêntico, notas em fim de semana) — não calibrada estatisticamente, tratar como triagem. Índice fantasma pondera volume de proposições de autoria própria pela taxa real de aprovação/sanção.</p>
+  <p>Fontes: dadosabertos.camara.leg.br (API + CSV bulk da cota parlamentar), dadosabertos.tse.jus.br (candidaturas). Projeto privado, sem afiliação partidária.</p>
+</footer>
+
+<script>
+const DADOS = {"ranking":[{"id":204528,"nome":"Adriana Ventura","partido":"NOVO","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/204528.jpg","gastoTotal":224474,"totalProposicoes":1639,"proposicoesAprovadas":0,"totalDiscursos":664,"fraudeScore":49.8,"fraudeIndicios":["166 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":100,"totalEmpenhadoEmendas":195007849,"top5FavorecidosEmendas":[{"nome":"G&E SERVICOS TERCEIRIZADOS LTDA","municipio":"BRASÍLIA","valor":0},{"nome":"MARCELO DOS SANTOS BARBOSA","municipio":"BARUERI","valor":0},{"nome":"MUNICIPIO DE SAO VICENTE","municipio":"SÃO VICENTE","valor":0},{"nome":"SAHA DISTRIBUIDORA E REFORMAS LTDA","municipio":"SÃO PAULO","valor":0},{"nome":"ASSOCIACAO LAR SAO FRANCISCO DE ASSIS NA PROVIDENCIA DE DEUS","municipio":"BRAGANÇA PAULISTA","valor":0}],"emendaIndicios":[],"notaGeral":52},{"id":204535,"nome":"Sâmia Bomfim","partido":"PSOL","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/204535.jpg","gastoTotal":1111618,"totalProposicoes":1900,"proposicoesAprovadas":0,"totalDiscursos":127,"fraudeScore":44.6,"fraudeIndicios":["223 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":100,"totalEmpenhadoEmendas":151631700,"top5FavorecidosEmendas":[{"nome":"A PAGINA DISTRIBUIDORA DE LIVROS LTDA","municipio":"CURITIBA","valor":0},{"nome":"ALTAMIR BASTOS","municipio":"SÃO JOSÉ DOS CAMPOS","valor":0},{"nome":"BANCO DO BRASIL SA","municipio":"BRASÍLIA","valor":0},{"nome":"CAMILA ALVES LIMA DE OLIVEIRA","municipio":"BRASÍLIA","valor":0},{"nome":"CT ALVES DE BRIGADA DE INCENDIO LTDA","municipio":"COTIA","valor":0}],"emendaIndicios":[],"notaGeral":50.2},{"id":220654,"nome":"Delegado Paulo Bilynskyj","partido":"PL","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/220654.jpg","gastoTotal":1311748,"totalProposicoes":1904,"proposicoesAprovadas":0,"totalDiscursos":74,"fraudeScore":46.3,"fraudeIndicios":["419 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":100,"totalEmpenhadoEmendas":117014046,"top5FavorecidosEmendas":[{"nome":"BASIS TECNOLOGIA DA INFORMACAO S.A.","municipio":"BRASÍLIA","valor":0},{"nome":"BRUMO ESPORTES LTDA","municipio":"COLOMBO","valor":0},{"nome":"SEM INFORMACAO","municipio":"Sem informação","valor":0},{"nome":"H DA CRUZ SANTANA","municipio":"JAGUAQUARA","valor":0},{"nome":"ESTADO DE SAO PAULO","municipio":"SÃO PAULO","valor":0}],"emendaIndicios":[],"notaGeral":48.7},{"id":204536,"nome":"Kim Kataguiri","partido":"MISSÃO","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/204536.jpg","gastoTotal":341360,"totalProposicoes":1492,"proposicoesAprovadas":2,"totalDiscursos":318,"fraudeScore":43.5,"fraudeIndicios":["28 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.9,"totalEmpenhadoEmendas":192489446,"top5FavorecidosEmendas":[{"nome":"DELAVAL LTDA","municipio":"JAGUARIÚNA","valor":0},{"nome":"GENERAL MOTORS DO BRASIL LTDA","municipio":"BRASÍLIA","valor":0},{"nome":"PS GUAIRA SISTEMAS DE IRRIGACAO LTDA","municipio":"GUAÍRA","valor":0},{"nome":"SEM INFORMACAO","municipio":"Sem informação","valor":0},{"nome":"BANCO DO BRASIL SA","municipio":"BRASÍLIA","valor":0}],"emendaIndicios":[],"notaGeral":47.5},{"id":204534,"nome":"Tabata Amaral","partido":"PSB","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/204534.jpg","gastoTotal":1393402,"totalProposicoes":1766,"proposicoesAprovadas":18,"totalDiscursos":29,"fraudeScore":44.7,"fraudeIndicios":["282 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99,"totalEmpenhadoEmendas":168812678,"top5FavorecidosEmendas":[{"nome":"AGENCIA BRASILEIRA DE DESENVOLVIMENTO INDUSTRIAL - ABDI","municipio":"BRASÍLIA","valor":0},{"nome":"BANCO DO BRASIL SA","municipio":"BRASÍLIA","valor":0},{"nome":"CAMARA DO COMERCIO INDUSTRIA E SERVICO DO EMPREENDEDORISMO NEGRO","municipio":"SÃO PAULO","valor":0},{"nome":"ASSOCIACAO APOIO AS MAES ESPECIAIS","municipio":"COTIA","valor":0},{"nome":"ASSOCIACAO DE MORADORES UNIDOS DO JARDIM TRANQUILIDADE E REGIAO","municipio":"GUARULHOS","valor":0}],"emendaIndicios":[],"notaGeral":46.8},{"id":204506,"nome":"Marcos Pereira","partido":"REPUBLICANOS","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/204506.jpg","gastoTotal":1242411,"totalProposicoes":1980,"proposicoesAprovadas":0,"totalDiscursos":9,"fraudeScore":52.2,"fraudeIndicios":["46% do gasto concentrado em 1 fornecedor (MIND COMUNICACAO LTDA)","93 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":100,"totalEmpenhadoEmendas":193676034,"top5FavorecidosEmendas":[{"nome":"CAIXA ECONOMICA FEDERAL","municipio":"BRASÍLIA","valor":0},{"nome":"MUNICIPIO DE ELDORADO","municipio":"ELDORADO","valor":0},{"nome":"STEFANINI CONSULTORIA E ASSESSORIA EM INFORMATICA S.A.","municipio":"BRASÍLIA","valor":0},{"nome":"MUNICIPIO DE ARACARIGUAMA","municipio":"ARAÇARIGUAMA","valor":0},{"nome":"FUNDO MUNICIPAL DA SAUDE DE OLIMPIA SP","municipio":"OLÍMPIA","valor":0}],"emendaIndicios":[],"notaGeral":46.1},{"id":141555,"nome":"Vinicius Carvalho","partido":"PL","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/141555.jpg","gastoTotal":1094150,"totalProposicoes":1642,"proposicoesAprovadas":7,"totalDiscursos":138,"fraudeScore":46.2,"fraudeIndicios":["313 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.6,"totalEmpenhadoEmendas":260025216,"top5FavorecidosEmendas":[{"nome":"ASSOCIACAO RACING","municipio":"PIEDADE","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DO MUNICIPIO DE VERA CRUZ","municipio":"VERA CRUZ","valor":0},{"nome":"PAGAMENTOS PIX COM LISTA","municipio":"BRASÍLIA","valor":0},{"nome":"35.631.227 ANDRE JESUS CAMPOS DE SOUZA","municipio":"FORMIGA","valor":0},{"nome":"FUNDO ESTADUAL DE SAUDE - FUNDES","municipio":"SÃO PAULO","valor":0}],"emendaIndicios":[],"notaGeral":45.8},{"id":160601,"nome":"Pr. Marco Feliciano","partido":"PL","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/160601.jpg","gastoTotal":1293275,"totalProposicoes":1461,"proposicoesAprovadas":1,"totalDiscursos":47,"fraudeScore":41.8,"fraudeIndicios":["142 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.9,"totalEmpenhadoEmendas":280880975,"top5FavorecidosEmendas":[{"nome":"TOYOTA DO BRASIL LTDA","municipio":"SOROCABA","valor":0},{"nome":"ESTADO DE SAO PAULO","municipio":"SÃO PAULO","valor":0},{"nome":"FUNDO ESTADUAL DE SAUDE - FUNDES","municipio":"SÃO PAULO","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DE MARILIA","municipio":"MARÍLIA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DO MUNICIPIO DE EMBU DAS ARTES","municipio":"EMBU","valor":0}],"emendaIndicios":[],"notaGeral":43.6},{"id":220648,"nome":"Marangoni","partido":"PODE","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/220648.jpg","gastoTotal":1323214,"totalProposicoes":1374,"proposicoesAprovadas":2,"totalDiscursos":13,"fraudeScore":40.1,"fraudeIndicios":["202 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.9,"totalEmpenhadoEmendas":111292955,"top5FavorecidosEmendas":[{"nome":"SEM INFORMACAO","municipio":"Sem informação","valor":0},{"nome":"ESPORTE CLUBE FUTURO","municipio":"ARAÇATUBA","valor":0},{"nome":"ALIANCA INTERNACIONAL DO ANIMAL","municipio":"COTIA","valor":0},{"nome":"FUNDO MUNICIPAL DA ASSISTENCIA SOCIAL DE SANTO ANDRE","municipio":"SANTO ANDRÉ","valor":0},{"nome":"FUNDO MUNICIPAL DE ASSISTENCIA SOCIAL","municipio":"FLÓRIDA PAULISTA","valor":0}],"emendaIndicios":[],"notaGeral":42.6},{"id":178992,"nome":"Vitor Lippi","partido":"PSD","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/178992.jpg","gastoTotal":1330866,"totalProposicoes":1367,"proposicoesAprovadas":8,"totalDiscursos":11,"fraudeScore":42.3,"fraudeIndicios":["788 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.4,"totalEmpenhadoEmendas":242198549,"top5FavorecidosEmendas":[{"nome":"CAIXA ECONOMICA FEDERAL","municipio":"BRASÍLIA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"ITU","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DE SOROCABA","municipio":"SOROCABA","valor":0},{"nome":"SEM INFORMACAO","municipio":"Sem informação","valor":0},{"nome":"FUNDO ESTADUAL DE SAUDE - FUNDES","municipio":"SÃO PAULO","valor":0}],"emendaIndicios":[],"notaGeral":41.5},{"id":73433,"nome":"Arlindo Chinaglia","partido":"PT","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/73433.jpg","gastoTotal":1241882,"totalProposicoes":1344,"proposicoesAprovadas":1,"totalDiscursos":49,"fraudeScore":43.4,"fraudeIndicios":["260 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.9,"totalEmpenhadoEmendas":250183912,"top5FavorecidosEmendas":[{"nome":"DUCTBUSTERS ENGENHARIA LIMITADA","municipio":"POÁ","valor":0},{"nome":"OYSTER COMERCIO DE EQUIPAMENTOS LTDA","municipio":"ITAJAÍ","valor":0},{"nome":"BANCO DO BRASIL SA","municipio":"BRASÍLIA","valor":0},{"nome":"JD CONSTRUCOES E SERVICOS LTDA","municipio":"BRASÍLIA","valor":0},{"nome":"SEM INFORMACAO","municipio":"Sem informação","valor":0}],"emendaIndicios":[],"notaGeral":41.2},{"id":141391,"nome":"Arnaldo Jardim","partido":"CIDADANIA","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/141391.jpg","gastoTotal":1220037,"totalProposicoes":1536,"proposicoesAprovadas":4,"totalDiscursos":44,"fraudeScore":51.6,"fraudeIndicios":["496 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.7,"totalEmpenhadoEmendas":245300938,"top5FavorecidosEmendas":[{"nome":"BANCO DO BRASIL SA","municipio":"BRASÍLIA","valor":0},{"nome":"FUNDO MUNICIPAL DA SAUDE","municipio":"TUPI PAULISTA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"ÁGUAS DA PRATA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"ANDRADINA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"URU","valor":0}],"emendaIndicios":[],"notaGeral":40.3},{"id":74273,"nome":"Jefferson Campos","partido":"PL","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/74273.jpg","gastoTotal":1298368,"totalProposicoes":1044,"proposicoesAprovadas":5,"totalDiscursos":76,"fraudeScore":39.5,"fraudeIndicios":["390 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.5,"totalEmpenhadoEmendas":261589153,"top5FavorecidosEmendas":[{"nome":"A LIGA INDEPENDENTE ESPORTIVA, CULTURAL, SOCIAL E EDUCACIONAL","municipio":"SERRANA","valor":0},{"nome":"FUNDO ESTADUAL DE SAUDE - FUNDES","municipio":"SÃO PAULO","valor":0},{"nome":"FUNDO MUNICIPAL DE ASSISTENCIA SOCIAL","municipio":"ITAPEVA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DE ARACATUBA","municipio":"ARAÇATUBA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DE CANAS","municipio":"CANAS","valor":0}],"emendaIndicios":[],"notaGeral":38.9},{"id":74784,"nome":"Luiza Erundina","partido":"PSOL","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/74784.jpg","gastoTotal":1325316,"totalProposicoes":1333,"proposicoesAprovadas":4,"totalDiscursos":5,"fraudeScore":46.5,"fraudeIndicios":["457 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.7,"totalEmpenhadoEmendas":226510722,"top5FavorecidosEmendas":[{"nome":"BANCO DO BRASIL SA","municipio":"BRASÍLIA","valor":0},{"nome":"CENTRO DE ESTUDOS BRASIL POPULAR","municipio":"SÃO PAULO","valor":0},{"nome":"DUCTBUSTERS ENGENHARIA LIMITADA","municipio":"POÁ","valor":0},{"nome":"FIOTEC - FUNDACAO PARA O DESENVOLVIMENTO CIENTIFICO E TECNOLOGICO EM SAUDE","municipio":"RIO DE JANEIRO","valor":0},{"nome":"FUNDACAO JOSUE MONTELLO","municipio":"SÃO LUÍS","valor":0}],"emendaIndicios":[],"notaGeral":38.9},{"id":178987,"nome":"Orlando Silva","partido":"PCdoB","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/178987.jpg","gastoTotal":1231012,"totalProposicoes":1154,"proposicoesAprovadas":8,"totalDiscursos":73,"fraudeScore":44.3,"fraudeIndicios":["240 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.3,"totalEmpenhadoEmendas":245155964,"top5FavorecidosEmendas":[{"nome":"G&E SERVICOS TERCEIRIZADOS LTDA","municipio":"BRASÍLIA","valor":0},{"nome":"INSTITUTO DE EDUCACAO, CULTURA E LAZER","municipio":"BARUERI","valor":0},{"nome":"NT EDITORA, IMAGENS E SERVICOS LTDA","municipio":"BRASÍLIA","valor":0},{"nome":"ONG ESPACO CLARIO","municipio":"TABOÃO DA SERRA","valor":0},{"nome":"SEM INFORMACAO","municipio":"Sem informação","valor":0}],"emendaIndicios":[],"notaGeral":38.3},{"id":178986,"nome":"Nilto Tatto","partido":"PT","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/178986.jpg","gastoTotal":1245074,"totalProposicoes":1370,"proposicoesAprovadas":1,"totalDiscursos":135,"fraudeScore":53.4,"fraudeIndicios":["233 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.9,"totalEmpenhadoEmendas":258336209,"top5FavorecidosEmendas":[{"nome":"G&E SERVICOS TERCEIRIZADOS LTDA","municipio":"BRASÍLIA","valor":0},{"nome":"ANDRE PANINI ALBISSU","municipio":"SÃO PAULO","valor":0},{"nome":"CAIXA ECONOMICA FEDERAL","municipio":"BRASÍLIA","valor":0},{"nome":"CENTRO DE ESTUDOS BRASIL POPULAR","municipio":"SÃO PAULO","valor":0},{"nome":"FUNDACAO DE DESENVOLVIMENTO DA PESQUISA","municipio":"BELO HORIZONTE","valor":0}],"emendaIndicios":[],"notaGeral":38.2},{"id":74262,"nome":"Carlos Sampaio","partido":"PSD","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/74262.jpg","gastoTotal":1158888,"totalProposicoes":1158,"proposicoesAprovadas":7,"totalDiscursos":1,"fraudeScore":42.5,"fraudeIndicios":["292 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.4,"totalEmpenhadoEmendas":245068888,"top5FavorecidosEmendas":[{"nome":"FUNDO MUNICIPAL DE SAUDE DE ORLANDIA","municipio":"ORLÂNDIA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DE SANTO ANTONIO DE POSSE","municipio":"SANTO ANTÔNIO DE POSSE","valor":0},{"nome":"TOYOTA DO BRASIL LTDA","municipio":"SOROCABA","valor":0},{"nome":"CENTRO CULTURAL TEATRO DE ARTE E OFICIO","municipio":"CAMPINAS","valor":0},{"nome":"FUNDO MUNICIPAL DE ASSISTENCIA SOCIAL","municipio":"CAMPINAS","valor":0}],"emendaIndicios":[],"notaGeral":38.1},{"id":160545,"nome":"Alexandre Leite","partido":"UNIÃO","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/160545.jpg","gastoTotal":316686,"totalProposicoes":1403,"proposicoesAprovadas":1,"totalDiscursos":0,"fraudeScore":50.4,"fraudeIndicios":["45% do gasto concentrado em 1 fornecedor (RAUL IMÓVEIS - HARALAMOS BASSOUKOU)","69 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.9,"totalEmpenhadoEmendas":244224023,"top5FavorecidosEmendas":[{"nome":"MUNICIPIO DE JUNDIAI","municipio":"JUNDIAÍ","valor":0},{"nome":"MUNICIPIO DE RIBEIRA","municipio":"RIBEIRA","valor":0},{"nome":"INSTITUTO TIME M","municipio":"LEME","valor":0},{"nome":"CAIXA ECONOMICA FEDERAL","municipio":"BRASÍLIA","valor":0},{"nome":"IRMANDADE DA SANTA CASA DE MISERICORDIA DE RIO CLARO","municipio":"RIO CLARO","valor":0}],"emendaIndicios":[],"notaGeral":38.1},{"id":204526,"nome":"Luiz Philippe de Orleans e Bragança","partido":"PL","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/204526.jpg","gastoTotal":1351659,"totalProposicoes":1069,"proposicoesAprovadas":0,"totalDiscursos":38,"fraudeScore":41.8,"fraudeIndicios":["234 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":100,"totalEmpenhadoEmendas":174290714,"top5FavorecidosEmendas":[{"nome":"SEM INFORMACAO","municipio":"Sem informação","valor":0},{"nome":"CENTRO DE CULTURA CINEMATOGRAFICA PROVIDENCE","municipio":"SÃO PAULO","valor":0},{"nome":"COPLATEX INDUSTRIA E COMERCIO DE TECIDOS S.A","municipio":"ITAQUAQUECETUBA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"SÃO SIMÃO","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"CONCHAS","valor":0}],"emendaIndicios":[],"notaGeral":37.5},{"id":141488,"nome":"Paulo Teixeira","partido":"PT","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/141488.jpg","gastoTotal":90989,"totalProposicoes":1336,"proposicoesAprovadas":8,"totalDiscursos":6,"fraudeScore":51.4,"fraudeIndicios":["66% do gasto concentrado em 1 fornecedor (CABOCLO PRODUCOES LTDA)","12 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.4,"totalEmpenhadoEmendas":135297847,"top5FavorecidosEmendas":[{"nome":"BANCO DO BRASIL SA","municipio":"BRASÍLIA","valor":0},{"nome":"SEM INFORMACAO","municipio":"Sem informação","valor":0},{"nome":"FUNDACAO DE APOIO INST AO DESENV CIENT E TECNOLOGICO","municipio":"SÃO CARLOS","valor":0},{"nome":"ELETROPAULO METROPOLITANA ELETRICIDADE DE SAO PAULO S.A.","municipio":"SÃO PAULO","valor":0},{"nome":"SK DISTRIBUIDORA E COMERCIO DE LIVROS LTDA","municipio":"SÃO PAULO","valor":0}],"emendaIndicios":[],"notaGeral":36.8},{"id":73441,"nome":"Celso Russomanno","partido":"REPUBLICANOS","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/73441.jpg","gastoTotal":697617,"totalProposicoes":1130,"proposicoesAprovadas":9,"totalDiscursos":8,"fraudeScore":47.1,"fraudeIndicios":["232 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.2,"totalEmpenhadoEmendas":237300761,"top5FavorecidosEmendas":[{"nome":"CAIXA ECONOMICA FEDERAL","municipio":"BRASÍLIA","valor":0},{"nome":"SEM INFORMACAO","municipio":"Sem informação","valor":0},{"nome":"MUNICIPIO DE PIRASSUNUNGA","municipio":"PIRASSUNUNGA","valor":0},{"nome":"NOVA - MOTOR COMERCIO IMPORTACAO E EXPORTACAO LTDA","municipio":"SÃO PAULO","valor":0},{"nome":"PACHECO ENGENHARIA LTDA","municipio":"GOIÂNIA","valor":0}],"emendaIndicios":[],"notaGeral":35.7},{"id":221338,"nome":"Professora Luciene Cavalcante","partido":"PSOL","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/221338.jpg","gastoTotal":1038758,"totalProposicoes":951,"proposicoesAprovadas":2,"totalDiscursos":126,"fraudeScore":45.1,"fraudeIndicios":["64 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.8,"totalEmpenhadoEmendas":95681962,"top5FavorecidosEmendas":[{"nome":"49.280.184 SUERALVA MARIA DA SILVA","municipio":"GUARULHOS","valor":0},{"nome":"63.963.737 DOUGLAS ROLLO CAMARGO","municipio":"NOVO HORIZONTE","valor":0},{"nome":"7C SEGURANCA E VIGILANCIA LTDA","municipio":"SÃO PAULO","valor":0},{"nome":"AGGE SERVICOS TERCEIRIZADOS LTDA","municipio":"SUZANO","valor":0},{"nome":"ASX COMERCIAL LTDA","municipio":"SÃO PAULO","valor":0}],"emendaIndicios":[],"notaGeral":35.6},{"id":220637,"nome":"Marina Silva","partido":"REDE","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/220637.jpg","gastoTotal":43705,"totalProposicoes":3,"proposicoesAprovadas":0,"totalDiscursos":18,"fraudeScore":45.3,"fraudeIndicios":["69% do gasto concentrado em 1 fornecedor (PANTANAL VEÍCULOS LTDA)","6 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":26.2,"totalEmpenhadoEmendas":0,"top5FavorecidosEmendas":[],"emendaIndicios":[],"notaGeral":34.2},{"id":204501,"nome":"Alencar Santana","partido":"PT","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/204501.jpg","gastoTotal":1271657,"totalProposicoes":775,"proposicoesAprovadas":3,"totalDiscursos":118,"fraudeScore":43.4,"fraudeIndicios":["169 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.6,"totalEmpenhadoEmendas":139031001,"top5FavorecidosEmendas":[{"nome":"ALCANCAR ASSESSORIA LTDA","municipio":"ALAGOINHAS","valor":0},{"nome":"ASSOCIACAO BARBARA CRISTINA SA","municipio":"GUARULHOS","valor":0},{"nome":"BANCO DO BRASIL SA","municipio":"BRASÍLIA","valor":0},{"nome":"DUCTBUSTERS ENGENHARIA LIMITADA","municipio":"POÁ","valor":0},{"nome":"FIOTEC - FUNDACAO PARA O DESENVOLVIMENTO CIENTIFICO E TECNOLOGICO EM SAUDE","municipio":"RIO DE JANEIRO","valor":0}],"emendaIndicios":[],"notaGeral":33.6},{"id":220645,"nome":"Erika Hilton","partido":"PSOL","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/220645.jpg","gastoTotal":965014,"totalProposicoes":1003,"proposicoesAprovadas":1,"totalDiscursos":38,"fraudeScore":48.1,"fraudeIndicios":["282 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.9,"totalEmpenhadoEmendas":96644015,"top5FavorecidosEmendas":[{"nome":"BANCO DO BRASIL SA","municipio":"BRASÍLIA","valor":0},{"nome":"FIOTEC - FUNDACAO PARA O DESENVOLVIMENTO CIENTIFICO E TECNOLOGICO EM SAUDE","municipio":"RIO DE JANEIRO","valor":0},{"nome":"SEM INFORMACAO","municipio":"Sem informação","valor":0},{"nome":"ALFA MED SISTEMAS MEDICOS LTDA","municipio":"LAGOA SANTA","valor":0},{"nome":"ARETE GESTAO E APOIO AO TERCEIRO SETOR","municipio":"CAMPINAS","valor":0}],"emendaIndicios":[],"notaGeral":33.6},{"id":160548,"nome":"Jonas Donizette","partido":"PSB","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/160548.jpg","gastoTotal":1256209,"totalProposicoes":802,"proposicoesAprovadas":2,"totalDiscursos":59,"fraudeScore":43.2,"fraudeIndicios":["907 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.8,"totalEmpenhadoEmendas":119496528,"top5FavorecidosEmendas":[{"nome":"FUNDO MUNICIPAL DE SAUDE DE SANTO ANTONIO DE POSSE","municipio":"SANTO ANTÔNIO DE POSSE","valor":0},{"nome":"FUNDO ESTADUAL DE SAUDE - FUNDES","municipio":"SÃO PAULO","valor":0},{"nome":"FUNDO MUNICIPAL DE ASSISTENCIA SOCIAL","municipio":"SÃO SEBASTIÃO DA GRAMA","valor":0},{"nome":"FUNDO MUNICIPAL DE ASSISTENCIA SOCIAL","municipio":"TAMBAÚ","valor":0},{"nome":"FUNDO MUNICIPAL DE ASSISTENCIA SOCIAL DE SANTA CRUZ DAS PALMEIRAS","municipio":"SANTA CRUZ DAS PALMEIRAS","valor":0}],"emendaIndicios":[],"notaGeral":33.2},{"id":220644,"nome":"Rosangela Moro","partido":"PL","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/220644.jpg","gastoTotal":881321,"totalProposicoes":766,"proposicoesAprovadas":1,"totalDiscursos":50,"fraudeScore":41.6,"fraudeIndicios":["162 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.9,"totalEmpenhadoEmendas":114485529,"top5FavorecidosEmendas":[{"nome":"GENERAL MOTORS DO BRASIL LTDA","municipio":"BRASÍLIA","valor":0},{"nome":"IRMANDADE DA SANTA CASA DE MISERICORDIA DE PIRACICABA","municipio":"PIRACICABA","valor":0},{"nome":"ASSOCIACAO LAR SAO FRANCISCO DE ASSIS NA PROVIDENCIA DE DEUS","municipio":"JACI","valor":0},{"nome":"FUNDACAO DE APOIO AO ENSINO PESQUISA E EXTENSAO - FEPE","municipio":"BELO HORIZONTE","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"PIRACICABA","valor":0}],"emendaIndicios":[],"notaGeral":33.2},{"id":141398,"nome":"Carlos Zarattini","partido":"PT","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/141398.jpg","gastoTotal":1366760,"totalProposicoes":934,"proposicoesAprovadas":4,"totalDiscursos":67,"fraudeScore":48.9,"fraudeIndicios":["277 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.6,"totalEmpenhadoEmendas":258215418,"top5FavorecidosEmendas":[{"nome":"INSTITUTO RECREATIVO, CULTURAL E ESPORTIVO FUZAO BRAZIL - I.F.B","municipio":"SÃO PAULO","valor":0},{"nome":"ASSOCIACAO ESPORTIVA, EDUCACIONAL, CULTURAL E SOCIAL - FORMANDO CIDADAO","municipio":"GUARUJÁ","valor":0},{"nome":"ASSOCIACAO TAEKWONDO ESPORTIVO SOCIAL SAUDE EDUCACIONAL","municipio":"SERRANA","valor":0},{"nome":"CENTRO DE INCLUSAO DIGITAL E APRENDIZAGEM PROFISSIONAL - CIDAP","municipio":"CARAPICUÍBA","valor":0},{"nome":"CENTRO POPULAR DE MIDIAS CPMIDIAS","municipio":"SÃO PAULO","valor":0}],"emendaIndicios":[],"notaGeral":32.7},{"id":74270,"nome":"Gilberto Nascimento","partido":"PODE","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/74270.jpg","gastoTotal":1332700,"totalProposicoes":905,"proposicoesAprovadas":0,"totalDiscursos":51,"fraudeScore":47.6,"fraudeIndicios":["264 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":100,"totalEmpenhadoEmendas":250643067,"top5FavorecidosEmendas":[{"nome":"MECATRON TECNOLOGIA E SERVICOS LTDA","municipio":"BRASÍLIA","valor":0},{"nome":"MUNICIPIO DE PIRASSUNUNGA","municipio":"PIRASSUNUNGA","valor":0},{"nome":"NANO BITS SERVICOS ESPECIALIZADOS LTDA","municipio":"RIO DE JANEIRO","valor":0},{"nome":"NEXCOPE IMPORTACAO E EXPORTACAO LTDA","municipio":"FLORIANÓPOLIS","valor":0},{"nome":"POLITEC IMPORTACAO E COMERCIO LTDA.","municipio":"BARUERI","valor":0}],"emendaIndicios":[],"notaGeral":32.6},{"id":220643,"nome":"Sônia Guajajara","partido":"PSOL","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/220643.jpg","gastoTotal":103779,"totalProposicoes":16,"proposicoesAprovadas":0,"totalDiscursos":5,"fraudeScore":37.1,"fraudeIndicios":["58% do gasto concentrado em 1 fornecedor (LRS COMUNICACAO E CONSULTORIA LTDA)","4 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":53.5,"totalEmpenhadoEmendas":0,"top5FavorecidosEmendas":[],"emendaIndicios":[],"notaGeral":32.5},{"id":178829,"nome":"Capitão Augusto","partido":"PL","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/178829.jpg","gastoTotal":1343778,"totalProposicoes":866,"proposicoesAprovadas":4,"totalDiscursos":7,"fraudeScore":46.4,"fraudeIndicios":["377 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.5,"totalEmpenhadoEmendas":260875701,"top5FavorecidosEmendas":[{"nome":"FUNDO MUNICIPAL DE ASSISTENCIA SOCIAL","municipio":"PALMITAL","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"PLATINA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DE AVAI","municipio":"AVAÍ","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DE RUBIACEA","municipio":"RUBIÁCEA","valor":0},{"nome":"FUNDO DE SAUDE DO MUNICIPIO DE PAULICEIA","municipio":"PAULICÉIA","valor":0}],"emendaIndicios":[],"notaGeral":32},{"id":178972,"nome":"Alex Manente","partido":"CIDADANIA","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/178972.jpg","gastoTotal":853703,"totalProposicoes":719,"proposicoesAprovadas":2,"totalDiscursos":12,"fraudeScore":43.1,"fraudeIndicios":["145 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.7,"totalEmpenhadoEmendas":267755014,"top5FavorecidosEmendas":[{"nome":"FUNDO MUNICIPAL DE SAUDE DE SAO SEBASTIAO DA GRAMA","municipio":"SÃO SEBASTIÃO DA GRAMA","valor":0},{"nome":"FUNDO MUNICIPAL DA SAUDE","municipio":"CAJAMAR","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"RIO GRANDE DA SERRA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"FERRAZ DE VASCONCELOS","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"SÃO BERNARDO DO CAMPO","valor":0}],"emendaIndicios":[],"notaGeral":31.3},{"id":204540,"nome":"Maria Rosas","partido":"REPUBLICANOS","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/204540.jpg","gastoTotal":1314799,"totalProposicoes":769,"proposicoesAprovadas":3,"totalDiscursos":37,"fraudeScore":47.3,"fraudeIndicios":["649 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.6,"totalEmpenhadoEmendas":197814632,"top5FavorecidosEmendas":[{"nome":"G&E SERVICOS TERCEIRIZADOS LTDA","municipio":"BRASÍLIA","valor":0},{"nome":"ASSOCIACAO ESPORTIVA INSTINTO","municipio":"ITARIRI","valor":0},{"nome":"ASSOCIACAO EXPANSAO CULTURAL","municipio":"SÃO PAULO","valor":0},{"nome":"ASSOCIACAO MAPA VOLEI","municipio":"RIO CLARO","valor":0},{"nome":"INSTITUTO APAB","municipio":"BARRETOS","valor":0}],"emendaIndicios":[],"notaGeral":30.5},{"id":141518,"nome":"Paulinho da Força","partido":"SOLIDARIEDADE","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/141518.jpg","gastoTotal":841530,"totalProposicoes":893,"proposicoesAprovadas":2,"totalDiscursos":6,"fraudeScore":53.3,"fraudeIndicios":["51% do gasto concentrado em 1 fornecedor (2HC CRIATIVIDADE E PRODUÇÕES LTDA)","120 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.8,"totalEmpenhadoEmendas":140551935,"top5FavorecidosEmendas":[{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"ITAPEVA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"ARARAS","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"ITAPECERICA DA SERRA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DE BEBEDOURO","municipio":"BEBEDOURO","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DE ITAPIRAPUA PAULISTA","municipio":"ITAPIRAPUÃ PAULISTA","valor":0}],"emendaIndicios":[],"notaGeral":29.1},{"id":204504,"nome":"Cezinha de Madureira","partido":"PL","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/204504.jpg","gastoTotal":1308280,"totalProposicoes":622,"proposicoesAprovadas":4,"totalDiscursos":3,"fraudeScore":45.8,"fraudeIndicios":["208 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.4,"totalEmpenhadoEmendas":196600100,"top5FavorecidosEmendas":[{"nome":"RENATO PALLADINO DE FREITAS 41131128869","municipio":"SÃO PAULO","valor":0},{"nome":"A FRENTE SOLUCOES INTEGRADAS LTDA","municipio":"LAGOA SANTA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"AREIAS","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"PIRACICABA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"SÃO CARLOS","valor":0}],"emendaIndicios":[],"notaGeral":28.5},{"id":204511,"nome":"David Soares","partido":"PODE","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/204511.jpg","gastoTotal":1334646,"totalProposicoes":561,"proposicoesAprovadas":0,"totalDiscursos":25,"fraudeScore":44.2,"fraudeIndicios":["127 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":100,"totalEmpenhadoEmendas":193356267,"top5FavorecidosEmendas":[{"nome":"LIGA NACIONAL DE TAEKWONDO","municipio":"SÃO PAULO","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"IGARATÁ","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"DOBRADA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"SALTO","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"TAQUARITINGA","valor":0}],"emendaIndicios":[],"notaGeral":28.5},{"id":66828,"nome":"Fausto Pinato","partido":"UNIÃO","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/66828.jpg","gastoTotal":1384925,"totalProposicoes":714,"proposicoesAprovadas":2,"totalDiscursos":9,"fraudeScore":50.6,"fraudeIndicios":["302 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.7,"totalEmpenhadoEmendas":250595784,"top5FavorecidosEmendas":[{"nome":"G&E SERVICOS TERCEIRIZADOS LTDA","municipio":"BRASÍLIA","valor":0},{"nome":"SERVICO COMUNITARIO DO ITAIM PAULISTA","municipio":"SÃO PAULO","valor":0},{"nome":"ASSOCIACAO BENEFICENTE PRACA 12","municipio":"SÃO PAULO","valor":0},{"nome":"ASSOCIACAO CAMINHO DO ESPORTE - ACE","municipio":"SÃO PAULO","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DE MONCOES","municipio":"MONÇÕES","valor":0}],"emendaIndicios":[],"notaGeral":27.7},{"id":141456,"nome":"Jilmar Tatto","partido":"PT","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/141456.jpg","gastoTotal":1221377,"totalProposicoes":393,"proposicoesAprovadas":2,"totalDiscursos":22,"fraudeScore":41,"fraudeIndicios":["173 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.5,"totalEmpenhadoEmendas":109134303,"top5FavorecidosEmendas":[{"nome":"CARPLAC COMERCIO E SERVICOS LTDA","municipio":"BRASÍLIA","valor":0},{"nome":"DUCTBUSTERS ENGENHARIA LIMITADA","municipio":"POÁ","valor":0},{"nome":"SEM INFORMACAO","municipio":"Sem informação","valor":0},{"nome":"ARQUIMEDES AUTOMACAO E INFORMATICA LTDA","municipio":"BELO HORIZONTE","valor":0},{"nome":"ASSOCIACAO BRASILEIRA DE USUARIOS DE RODOVIAS SOB CONCESSAO - USUVIAS","municipio":"SÃO PAULO","valor":0}],"emendaIndicios":[],"notaGeral":27.5},{"id":73604,"nome":"Rui Falcão","partido":"PT","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/73604.jpg","gastoTotal":993470,"totalProposicoes":725,"proposicoesAprovadas":4,"totalDiscursos":6,"fraudeScore":52.2,"fraudeIndicios":["129 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.4,"totalEmpenhadoEmendas":187903290,"top5FavorecidosEmendas":[{"nome":"G&E SERVICOS TERCEIRIZADOS LTDA","municipio":"BRASÍLIA","valor":0},{"nome":"INSTITUTO CALEIDOS","municipio":"SÃO PAULO","valor":0},{"nome":"INSTITUTO GLOBAL ATTITUDE","municipio":"SÃO PAULO","valor":0},{"nome":"REPREMIG REPRESENTACAO E COMERCIO DE MINAS GERAIS LTDA","municipio":"SERRA","valor":0},{"nome":"SEM INFORMACAO","municipio":"Sem informação","valor":0}],"emendaIndicios":[],"notaGeral":27.1},{"id":230957,"nome":"João Cury","partido":"MDB","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/230957.jpg","gastoTotal":841515,"totalProposicoes":19,"proposicoesAprovadas":0,"totalDiscursos":4,"fraudeScore":47.5,"fraudeIndicios":["188 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":56.5,"totalEmpenhadoEmendas":36237670,"top5FavorecidosEmendas":[{"nome":"CAIXA ECONOMICA FEDERAL","municipio":"BRASÍLIA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DA ESTANCIA TURISTICA DE IGARACU DO TIETE","municipio":"IGARAÇU DO TIETÊ","valor":0},{"nome":"MUNICIPIO DE SAO MANUEL","municipio":"SÃO MANUEL","valor":0},{"nome":"FUNDO MUNICIPAL DE ASSISTENCIA SOCIAL DE TABOAO DA SERRA","municipio":"TABOÃO DA SERRA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"DOBRADA","valor":0}],"emendaIndicios":[],"notaGeral":27.1},{"id":154700,"nome":"Paulo Soares","partido":"PODE","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/154700.jpg","gastoTotal":36363,"totalProposicoes":22,"proposicoesAprovadas":0,"totalDiscursos":12,"fraudeScore":47.8,"fraudeIndicios":["83% do gasto concentrado em 1 fornecedor (ENGAGE CRM - CONSULTORIA E SISTEMAS DA INFORMACAO LTDA.)","13 notas (30%) emitidas em fim de semana"],"fantasmaIndex":59.2,"totalEmpenhadoEmendas":0,"top5FavorecidosEmendas":[],"emendaIndicios":[],"notaGeral":26.6},{"id":220640,"nome":"Juliana Cardoso","partido":"PT","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/220640.jpg","gastoTotal":1305508,"totalProposicoes":461,"proposicoesAprovadas":0,"totalDiscursos":68,"fraudeScore":46.6,"fraudeIndicios":["360 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":100,"totalEmpenhadoEmendas":100894828,"top5FavorecidosEmendas":[{"nome":"BANCO DO BRASIL SA","municipio":"BRASÍLIA","valor":0},{"nome":"CENTRO DE ESTUDOS DA MIDIA ALTERNATIVA BARAO DE ITARARE","municipio":"SÃO PAULO","valor":0},{"nome":"FIOTEC - FUNDACAO PARA O DESENVOLVIMENTO CIENTIFICO E TECNOLOGICO EM SAUDE","municipio":"RIO DE JANEIRO","valor":0},{"nome":"G&E SERVICOS TERCEIRIZADOS LTDA","municipio":"BRASÍLIA","valor":0},{"nome":"INSTITUTO RAIZ ALVINEGRA","municipio":"OSASCO","valor":0}],"emendaIndicios":[],"notaGeral":26.5},{"id":204525,"nome":"Rosana Valle","partido":"PL","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/204525.jpg","gastoTotal":1109382,"totalProposicoes":439,"proposicoesAprovadas":4,"totalDiscursos":11,"fraudeScore":45.5,"fraudeIndicios":["445 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.1,"totalEmpenhadoEmendas":187675407,"top5FavorecidosEmendas":[{"nome":"ASSOCIACAO CULTURAL GRUPO RAIZES DE VILA NOVA","municipio":"SANTOS","valor":0},{"nome":"PRIME SYSTEM LTDA","municipio":"PRESIDENTE PRUDENTE","valor":0},{"nome":"COOPERATIVA DE AGRICULTORES FAMILIARES DE ITARARE - AGROINDUSTRIAL","municipio":"ITARARÉ","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DA ESTANCIA TURISTICA DE IGARACU DO TIETE","municipio":"IGARAÇU DO TIETÊ","valor":0},{"nome":"INSTITUTO REDE MULHERES QUE DECIDEM","municipio":"JUNDIAÍ","valor":0}],"emendaIndicios":[],"notaGeral":26},{"id":175765,"nome":"Ribamar Silva","partido":"PODE","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/175765.jpg","gastoTotal":743462,"totalProposicoes":48,"proposicoesAprovadas":0,"totalDiscursos":23,"fraudeScore":44.3,"fraudeIndicios":["143 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":73.5,"totalEmpenhadoEmendas":39847853,"top5FavorecidosEmendas":[{"nome":"FUNDO MUNICIPAL DE SAUDE DA ESTANCIA TURISTICA DE IGARACU DO TIETE","municipio":"IGARAÇU DO TIETÊ","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"ANALÂNDIA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DE ALVARES MACHADO","municipio":"ÁLVARES MACHADO","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DE AVAI","municipio":"AVAÍ","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DE ITAOCA - SP","municipio":"ITAÓCA","valor":0}],"emendaIndicios":[],"notaGeral":25.9},{"id":226837,"nome":"Saulo Pedroso","partido":"PSD","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/226837.jpg","gastoTotal":1314448,"totalProposicoes":161,"proposicoesAprovadas":0,"totalDiscursos":9,"fraudeScore":38.1,"fraudeIndicios":["144 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":96,"totalEmpenhadoEmendas":110546852,"top5FavorecidosEmendas":[{"nome":"ASSOCIACAO ATIBAIENSE DO DESPORTO EDUCACAO E CULTURA","municipio":"ATIBAIA","valor":0},{"nome":"ASSOCIACAO DE PAIS E AMIGOS DO JUDO DE ATIBAIA- APAJA","municipio":"ATIBAIA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DE LINDOIA","municipio":"LINDÓIA","valor":0},{"nome":"MUNICIPIO DE BOM JESUS DOS PERDOES","municipio":"BOM JESUS DOS PERDÕES","valor":0},{"nome":"MUNICIPIO DE BRAGANCA PAULISTA","municipio":"BRAGANÇA PAULISTA","valor":0}],"emendaIndicios":[],"notaGeral":25.8},{"id":220641,"nome":"Rodrigo Gambale","partido":"PODE","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/220641.jpg","gastoTotal":1181033,"totalProposicoes":523,"proposicoesAprovadas":1,"totalDiscursos":12,"fraudeScore":49.9,"fraudeIndicios":["184 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.8,"totalEmpenhadoEmendas":118014805,"top5FavorecidosEmendas":[{"nome":"FUNDO ESTADUAL DE SAUDE - FUNDES","municipio":"SÃO PAULO","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"BIRITIBA-MIRIM","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"CRUZEIRO","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"JACAREÍ","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"PIRACICABA","valor":0}],"emendaIndicios":[],"notaGeral":25.1},{"id":220647,"nome":"Mauricio Neves","partido":"PP","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/220647.jpg","gastoTotal":1180906,"totalProposicoes":114,"proposicoesAprovadas":0,"totalDiscursos":3,"fraudeScore":41.4,"fraudeIndicios":["116 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":89.6,"totalEmpenhadoEmendas":120747576,"top5FavorecidosEmendas":[{"nome":"FUNDO MUNICIPAL DE ASSISTENCIA SOCIAL","municipio":"BIRIGUI","valor":0},{"nome":"FUNDO MUNICIPAL DE ASSISTENCIA SOCIAL DE SOCORRO","municipio":"SOCORRO","valor":0},{"nome":"FUNDO MUNICIPAL DE ASSISTENCIA SOCIAL DE VALINHOS","municipio":"VALINHOS","valor":0},{"nome":"FUNDO MUNICIPAL DE ASSISTENCIA SOCIAL-F.M.A.S. - PREFEITURA MUNICIPAL DE BURI","municipio":"BURI","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE - FMS","municipio":"SUMARÉ","valor":0}],"emendaIndicios":[],"notaGeral":24.8},{"id":220649,"nome":"Delegado da Cunha","partido":"UNIÃO","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/220649.jpg","gastoTotal":1236417,"totalProposicoes":166,"proposicoesAprovadas":0,"totalDiscursos":25,"fraudeScore":40.6,"fraudeIndicios":["141 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":96.6,"totalEmpenhadoEmendas":121689601,"top5FavorecidosEmendas":[{"nome":"CENTRO DE DISTRIBUICAO E LOGISTICA MAYNARDES LTDA","municipio":"CURITIBA","valor":0},{"nome":"DELTA COMERCIO DE EQUIPAMENTOS LTDA","municipio":"FLORIANÓPOLIS","valor":0},{"nome":"G&E SERVICOS TERCEIRIZADOS LTDA","municipio":"BRASÍLIA","valor":0},{"nome":"GENERAL MOTORS DO BRASIL LTDA","municipio":"BRASÍLIA","valor":0},{"nome":"SEM INFORMACAO","municipio":"Sem informação","valor":0}],"emendaIndicios":[],"notaGeral":24.8},{"id":220633,"nome":"Ricardo Salles","partido":"NOVO","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/220633.jpg","gastoTotal":1396232,"totalProposicoes":363,"proposicoesAprovadas":0,"totalDiscursos":38,"fraudeScore":46.3,"fraudeIndicios":["239 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":100,"totalEmpenhadoEmendas":106728412,"top5FavorecidosEmendas":[{"nome":"GENERAL MOTORS DO BRASIL LTDA","municipio":"BRASÍLIA","valor":0},{"nome":"ASSOCIACAO LAR SAO FRANCISCO DE ASSIS NA PROVIDENCIA DE DEUS","municipio":"JACI","valor":0},{"nome":"CAIXA ECONOMICA FEDERAL","municipio":"BRASÍLIA","valor":0},{"nome":"FUNDO ESTADUAL DE SAUDE - FUNDES","municipio":"SÃO PAULO","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DE JAU","municipio":"JAÚ","valor":0}],"emendaIndicios":[],"notaGeral":24.7},{"id":178985,"nome":"Miguel Lombardi","partido":"PL","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/178985.jpg","gastoTotal":885216,"totalProposicoes":114,"proposicoesAprovadas":2,"totalDiscursos":3,"fraudeScore":44,"fraudeIndicios":["288 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":88,"totalEmpenhadoEmendas":254611594,"top5FavorecidosEmendas":[{"nome":"G&E SERVICOS TERCEIRIZADOS LTDA","municipio":"BRASÍLIA","valor":0},{"nome":"INSTITUTO DE ESPORTES","municipio":"RIBEIRÃO PRETO","valor":0},{"nome":"FUNDO MUNICIPAL DA ASSISTENCIA SOCIAL","municipio":"SÃO JOSÉ DO RIO PRETO","valor":0},{"nome":"FUNDO MUNICIPAL DE ASSISTENCIA SOCIAL","municipio":"MOGI MIRIM","valor":0},{"nome":"FUNDO MUNICIPAL DE ASSISTENCIA SOCIAL","municipio":"MIRASSOL","valor":0}],"emendaIndicios":[],"notaGeral":23.9},{"id":162067,"nome":"Kiko Celeguim","partido":"PT","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/162067.jpg","gastoTotal":1350142,"totalProposicoes":155,"proposicoesAprovadas":0,"totalDiscursos":30,"fraudeScore":43.2,"fraudeIndicios":["293 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":95.3,"totalEmpenhadoEmendas":108949482,"top5FavorecidosEmendas":[{"nome":"A PAGINA DISTRIBUIDORA DE LIVROS LTDA","municipio":"CURITIBA","valor":0},{"nome":"BANCO DO BRASIL SA","municipio":"BRASÍLIA","valor":0},{"nome":"CARLOS ROBERTO MENSATO 79802311804","municipio":"BAURU","valor":0},{"nome":"G NOVA COMERCIO DE PRODUTOS ALIMENTICIOS LTDA","municipio":"COTIA","valor":0},{"nome":"G&E SERVICOS TERCEIRIZADOS LTDA","municipio":"BRASÍLIA","valor":0}],"emendaIndicios":[],"notaGeral":23.8},{"id":220655,"nome":"Mario Frias","partido":"PL","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/220655.jpg","gastoTotal":1111264,"totalProposicoes":323,"proposicoesAprovadas":0,"totalDiscursos":19,"fraudeScore":46.4,"fraudeIndicios":["94 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":100,"totalEmpenhadoEmendas":110819096,"top5FavorecidosEmendas":[{"nome":"FNGTECH INFORMATICA LTDA","municipio":"CURITIBA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"ATIBAIA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"DRACENA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"AGUAÍ","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"HORTOLÂNDIA","valor":0}],"emendaIndicios":[],"notaGeral":23.8},{"id":221328,"nome":"Adilson Barroso","partido":"PL","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/221328.jpg","gastoTotal":1290374,"totalProposicoes":70,"proposicoesAprovadas":0,"totalDiscursos":13,"fraudeScore":46.8,"fraudeIndicios":["201 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":80.5,"totalEmpenhadoEmendas":78571077,"top5FavorecidosEmendas":[{"nome":"BANCO DO BRASIL SA","municipio":"BRASÍLIA","valor":0},{"nome":"BASIS TECNOLOGIA DA INFORMACAO S.A.","municipio":"BRASÍLIA","valor":0},{"nome":"R MORAES AGENCIA DE TURISMO LTDA","municipio":"BRASÍLIA","valor":0},{"nome":"LIDER NOTEBOOKS COMERCIO E SERVICOS LTDA","municipio":"SERRA","valor":0},{"nome":"LINK CARD ADMINISTRADORA DE BENEFICIOS LTDA","municipio":"BURI","valor":0}],"emendaIndicios":[],"notaGeral":23.6},{"id":160558,"nome":"Paulo Freire Costa","partido":"PL","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/160558.jpg","gastoTotal":1046944,"totalProposicoes":277,"proposicoesAprovadas":2,"totalDiscursos":1,"fraudeScore":45.5,"fraudeIndicios":["119 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.3,"totalEmpenhadoEmendas":186449050,"top5FavorecidosEmendas":[{"nome":"ASSOCIACAO CULTURAL ORY","municipio":"SÃO PAULO","valor":0},{"nome":"BASIS TECNOLOGIA DA INFORMACAO S.A.","municipio":"BRASÍLIA","valor":0},{"nome":"CAIXA ECONOMICA FEDERAL","municipio":"BRASÍLIA","valor":0},{"nome":"BANCO DO BRASIL SA","municipio":"BRASÍLIA","valor":0},{"nome":"CARAVAN EXPORTACAO & IMPORTACAO DO BRASIL LTDA","municipio":"BALNEÁRIO CAMBORIÚ","valor":0}],"emendaIndicios":[],"notaGeral":23.4},{"id":178975,"nome":"Baleia Rossi","partido":"MDB","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/178975.jpg","gastoTotal":948439,"totalProposicoes":251,"proposicoesAprovadas":5,"totalDiscursos":2,"fraudeScore":46,"fraudeIndicios":["310 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":98,"totalEmpenhadoEmendas":251434670,"top5FavorecidosEmendas":[{"nome":"G&E SERVICOS TERCEIRIZADOS LTDA","municipio":"BRASÍLIA","valor":0},{"nome":"SEM INFORMACAO","municipio":"Sem informação","valor":0},{"nome":"ASSOCIACAO DE ACOLHIMENTO PARA DEPENDENTES QUIMICOS CAMINHO DA PAZ","municipio":"JARDINÓPOLIS","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DE SANTO ANTONIO DE POSSE","municipio":"SANTO ANTÔNIO DE POSSE","valor":0},{"nome":"IRMANDADE DA SANTA CASA DE MISERICORDIA DE IGARAPAVA","municipio":"IGARAPAVA","valor":0}],"emendaIndicios":[],"notaGeral":23},{"id":154178,"nome":"Milton Vieira","partido":"REPUBLICANOS","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/154178.jpg","gastoTotal":86007,"totalProposicoes":99,"proposicoesAprovadas":1,"totalDiscursos":4,"fraudeScore":46.4,"fraudeIndicios":["65% do gasto concentrado em 1 fornecedor (NSF TRANSPORTES LTDA)","9 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":86,"totalEmpenhadoEmendas":81689633,"top5FavorecidosEmendas":[{"nome":"ASSOCIACAO PAULISTA","municipio":"SÃO PAULO","valor":0},{"nome":"FEDERACAO PAULISTA DE CICLISMO","municipio":"SÃO PAULO","valor":0},{"nome":"IS - INSTITUTO SIRIUS","municipio":"SÃO JOSÉ DOS CAMPOS","valor":0},{"nome":"MUNICIPIO DE CARAPICUIBA","municipio":"CARAPICUÍBA","valor":0},{"nome":"ASSOCIACAO DESPORTIVA FACEX - ADF","municipio":"GUARULHOS","valor":0}],"emendaIndicios":[],"notaGeral":22.9},{"id":204531,"nome":"Guilherme Derrite","partido":"PP","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/204531.jpg","gastoTotal":131492,"totalProposicoes":224,"proposicoesAprovadas":2,"totalDiscursos":11,"fraudeScore":45.3,"fraudeIndicios":["18 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.1,"totalEmpenhadoEmendas":88146989,"top5FavorecidosEmendas":[{"nome":"G&E SERVICOS TERCEIRIZADOS LTDA","municipio":"BRASÍLIA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DA ESTANCIA TURISTICA DE IGARACU DO TIETE","municipio":"IGARAÇU DO TIETÊ","valor":0},{"nome":"ASSOCIACAO MARCOS MERCADANTE DE JUDO","municipio":"ARARAS","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"PIRACICABA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE CAMPO LIMPO PAULISTA","municipio":"CAMPO LIMPO PAULISTA","valor":0}],"emendaIndicios":[],"notaGeral":22.8},{"id":220638,"nome":"Antonio Carlos Rodrigues","partido":"PODE","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/220638.jpg","gastoTotal":995469,"totalProposicoes":153,"proposicoesAprovadas":0,"totalDiscursos":11,"fraudeScore":45.3,"fraudeIndicios":["157 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":95.1,"totalEmpenhadoEmendas":122607023,"top5FavorecidosEmendas":[{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"PIRACICABA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"AMÉRICO DE CAMPOS","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"PARIQUERA-AÇU","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"ITAPEVA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"PILAR DO SUL","valor":0}],"emendaIndicios":[],"notaGeral":22.6},{"id":220646,"nome":"Felipe Becari","partido":"PODE","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/220646.jpg","gastoTotal":736420,"totalProposicoes":288,"proposicoesAprovadas":0,"totalDiscursos":3,"fraudeScore":47.8,"fraudeIndicios":["224 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":100,"totalEmpenhadoEmendas":129301431,"top5FavorecidosEmendas":[{"nome":"CAIXA ECONOMICA FEDERAL","municipio":"BRASÍLIA","valor":0},{"nome":"FUNDO MUNICIPAL DA SAUDE","municipio":"CAJAMAR","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"FERRAZ DE VASCONCELOS","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"CAIEIRAS","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"ITAPECERICA DA SERRA","valor":0}],"emendaIndicios":[],"notaGeral":22.4},{"id":220642,"nome":"Delegado Bruno Lima","partido":"PODE","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/220642.jpg","gastoTotal":993116,"totalProposicoes":261,"proposicoesAprovadas":0,"totalDiscursos":0,"fraudeScore":47.6,"fraudeIndicios":["75 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":100,"totalEmpenhadoEmendas":74712096,"top5FavorecidosEmendas":[{"nome":"ASSOCIACAO CATARINENSE DE GESTAO HOSPITALAR, CONHECIMENTO E ASSISTENCIA SOCIAL","municipio":"ITAJAÍ","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE - FUNSAU","municipio":"INDAIATUBA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DA ESTANCIA HIDROMINERAL DE POA","municipio":"POÁ","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DE SAO JOSE DOS CAMPOS","municipio":"SÃO JOSÉ DOS CAMPOS","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DE SAO ROQUE","municipio":"SÃO ROQUE","valor":0}],"emendaIndicios":[],"notaGeral":22},{"id":204485,"nome":"Luiz Carlos Motta","partido":"PL","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/204485.jpg","gastoTotal":904662,"totalProposicoes":261,"proposicoesAprovadas":0,"totalDiscursos":4,"fraudeScore":48.1,"fraudeIndicios":["162 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":100,"totalEmpenhadoEmendas":195567943,"top5FavorecidosEmendas":[{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"PIRASSUNUNGA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE","municipio":"TAQUARAL","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DE MARINOPOLIS","municipio":"MARINÓPOLIS","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DO MUNICIPIO DE IPIGUA","municipio":"IPIGUÁ","valor":0},{"nome":"MUNICIPIO DE ANDRADINA","municipio":"ANDRADINA","valor":0}],"emendaIndicios":[],"notaGeral":21.8},{"id":220653,"nome":"Fábio Teruel","partido":"MDB","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/220653.jpg","gastoTotal":811335,"totalProposicoes":100,"proposicoesAprovadas":0,"totalDiscursos":0,"fraudeScore":48.4,"fraudeIndicios":["257 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":87.1,"totalEmpenhadoEmendas":141299497,"top5FavorecidosEmendas":[{"nome":"TOYOTA DO BRASIL LTDA","municipio":"SOROCABA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DE ITAPEVI","municipio":"ITAPEVI","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DE OSASCO","municipio":"OSASCO","valor":0},{"nome":"MUNICIPIO DE PORTO FELIZ","municipio":"PORTO FELIZ","valor":0},{"nome":"MUNICIPIO DE SANTANA DE PARNAIBA","municipio":"SANTANA DE PARNAÍBA","valor":0}],"emendaIndicios":[],"notaGeral":21.8},{"id":220652,"nome":"Delegado Palumbo","partido":"PODE","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/220652.jpg","gastoTotal":1247747,"totalProposicoes":184,"proposicoesAprovadas":0,"totalDiscursos":30,"fraudeScore":47.4,"fraudeIndicios":["449 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":98.5,"totalEmpenhadoEmendas":113183442,"top5FavorecidosEmendas":[{"nome":"FUNDO MUNICIPAL DE SAUDE DE SANTO ANTONIO DE POSSE","municipio":"SANTO ANTÔNIO DE POSSE","valor":0},{"nome":"FUNDO MUNICIPAL DE ASSISTENCIA SOCIAL","municipio":"RIBEIRÃO PRETO","valor":0},{"nome":"FUNDO MUNICIPAL DE ASSISTENCIA SOCIAL - FMAS","municipio":"SÃO PAULO","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DA ESTANCIA TURISTICA DE PARAGUACU PAULISTA","municipio":"PARAGUAÇU PAULISTA","valor":0},{"nome":"GENERAL MOTORS DO BRASIL LTDA","municipio":"BRASÍLIA","valor":0}],"emendaIndicios":[],"notaGeral":21.7},{"id":160561,"nome":"Missionário José Olimpio","partido":"PL","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/160561.jpg","gastoTotal":533334,"totalProposicoes":96,"proposicoesAprovadas":0,"totalDiscursos":20,"fraudeScore":49.6,"fraudeIndicios":["22 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":86.3,"totalEmpenhadoEmendas":58596593,"top5FavorecidosEmendas":[{"nome":"INSTITUTO BRASILEIRO DE CONTROLE DO CANCER","municipio":"SÃO PAULO","valor":0},{"nome":"MUNICIPIO DE CABREUVA","municipio":"CABREÚVA","valor":0},{"nome":"CAIXA ECONOMICA FEDERAL","municipio":"BRASÍLIA","valor":0},{"nome":"MUNICIPIO DE SAO BERNARDO DO CAMPO","municipio":"SÃO BERNARDO DO CAMPO","valor":0},{"nome":"MUNICIPIO DE EMBU DAS ARTES","municipio":"EMBU","valor":0}],"emendaIndicios":[],"notaGeral":21.6},{"id":221148,"nome":"Alfredinho","partido":"PT","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/221148.jpg","gastoTotal":1242890,"totalProposicoes":178,"proposicoesAprovadas":0,"totalDiscursos":63,"fraudeScore":48.8,"fraudeIndicios":["150 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":97.9,"totalEmpenhadoEmendas":103153733,"top5FavorecidosEmendas":[{"nome":"ASSOCIACAO NOSSA SENHORA APARECIDA E VO SEBASTIANA","municipio":"SÃO PAULO","valor":0},{"nome":"COOPERATIVA PAULISTA DE TEATRO","municipio":"SÃO PAULO","valor":0},{"nome":"INSTITUTO MODERNISTA","municipio":"SÃO BERNARDO DO CAMPO","valor":0},{"nome":"ASSOCIACAO CULTURAL CENTRAL DO ROCK","municipio":"CAMPINAS","valor":0},{"nome":"INSTITUTO CONEXAO EM GESTAO SOCIAL","municipio":"MAUÁ","valor":0}],"emendaIndicios":[],"notaGeral":21.6},{"id":220650,"nome":"Paulo Alexandre Barbosa","partido":"PSD","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/220650.jpg","gastoTotal":478782,"totalProposicoes":196,"proposicoesAprovadas":0,"totalDiscursos":4,"fraudeScore":48.8,"fraudeIndicios":["97 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":99.7,"totalEmpenhadoEmendas":114810859,"top5FavorecidosEmendas":[{"nome":"FONTHORA DISTRIBUIDORA LTDA","municipio":"CLÁUDIO","valor":0},{"nome":"G&E SERVICOS TERCEIRIZADOS LTDA","municipio":"BRASÍLIA","valor":0},{"nome":"POSITIVO TECNOLOGIA S.A.","municipio":"ILHÉUS","valor":0},{"nome":"SEM INFORMACAO","municipio":"Sem informação","valor":0},{"nome":"ASSOCIACAO FABRICA DE SOLIDARIEDADE","municipio":"SANTOS","valor":0}],"emendaIndicios":[],"notaGeral":20.6},{"id":178983,"nome":"Marcio Alvino","partido":"PL","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/178983.jpg","gastoTotal":132697,"totalProposicoes":120,"proposicoesAprovadas":4,"totalDiscursos":54,"fraudeScore":53.9,"fraudeIndicios":["49% do gasto concentrado em 1 fornecedor (TAM)","152 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":87.5,"totalEmpenhadoEmendas":250247382,"top5FavorecidosEmendas":[{"nome":"AURIA SOLUCOES INTELIGENTES LTDA","municipio":"BRASÍLIA","valor":0},{"nome":"DUCTBUSTERS ENGENHARIA LIMITADA","municipio":"POÁ","valor":0},{"nome":"ADVANTA SISTEMAS DE TELECOMUNICACOES E SERVICOS DE INFORMATICA LTDA.","municipio":"SANTANA DE PARNAÍBA","valor":0},{"nome":"FUNDO MUNICIPAL DE ASSISTENCIA SOCIAL","municipio":"TAQUARITUBA","valor":0},{"nome":"FUNDO MUNICIPAL DE ASSISTENCIA SOCIAL","municipio":"MIRACATU","valor":0}],"emendaIndicios":[],"notaGeral":20.3},{"id":220651,"nome":"Simone Marquetto","partido":"PP","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/220651.jpg","gastoTotal":1299005,"totalProposicoes":173,"proposicoesAprovadas":4,"totalDiscursos":13,"fraudeScore":53.6,"fraudeIndicios":["41% do gasto concentrado em 1 fornecedor (Vitória Terra Comunicações LTDA)","234 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":95.1,"totalEmpenhadoEmendas":109209899,"top5FavorecidosEmendas":[{"nome":"BMW MANUFACTURING INDUSTRIA DE MOTOS DA AMAZONIA LTDA","municipio":"MANAUS","valor":0},{"nome":"EQUILIBRIO EQUIPAMENTOS DE PROTECAO AMBIENTAL LTDA","municipio":"PIRACICABA","valor":0},{"nome":"MUNICIPIO DE JUMIRIM","municipio":"JUMIRIM","valor":0},{"nome":"SEM INFORMACAO","municipio":"Sem informação","valor":0},{"nome":"CAIXA ECONOMICA FEDERAL","municipio":"BRASÍLIA","valor":0}],"emendaIndicios":[],"notaGeral":19.1},{"id":160976,"nome":"Tiririca","partido":"PSD","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/160976.jpg","gastoTotal":982830,"totalProposicoes":173,"proposicoesAprovadas":1,"totalDiscursos":0,"fraudeScore":54.9,"fraudeIndicios":["46% do gasto concentrado em 1 fornecedor (Strike Media)","125 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":96.8,"totalEmpenhadoEmendas":275328799,"top5FavorecidosEmendas":[{"nome":"CAIXA ECONOMICA FEDERAL","municipio":"BRASÍLIA","valor":0},{"nome":"FUNDO MUNICIPAL DA SAUDE","municipio":"CAJAMAR","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DE CARDOSO","municipio":"CARDOSO","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DE JALES","municipio":"JALES","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DE JOSE BONIFACIO","municipio":"JOSÉ BONIFÁCIO","valor":0}],"emendaIndicios":[],"notaGeral":17.9},{"id":220635,"nome":"Bruno Ganem","partido":"PODE","urlFoto":"https://www.camara.leg.br/internet/deputado/bandep/220635.jpg","gastoTotal":1098608,"totalProposicoes":365,"proposicoesAprovadas":0,"totalDiscursos":0,"fraudeScore":65,"fraudeIndicios":["67% do gasto concentrado em 1 fornecedor (Facebook Serviços Online do Brasil)","155 notas com valor idêntico repetido (mesmo fornecedor, ≥4x)"],"fantasmaIndex":100,"totalEmpenhadoEmendas":120480636,"top5FavorecidosEmendas":[{"nome":"BASIS TECNOLOGIA DA INFORMACAO S.A.","municipio":"BRASÍLIA","valor":0},{"nome":"DELL COMPUTADORES DO BRASIL LTDA","municipio":"HORTOLÂNDIA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DE BRAGANCA PAULISTA","municipio":"BRAGANÇA PAULISTA","valor":0},{"nome":"FUNDO MUNICIPAL DE SAUDE DE MOGI GUACU","municipio":"MOGI GUAÇU","valor":0},{"nome":"GRAFICA E EDITORA QUALIDADE LTDA","municipio":"BRASÍLIA","valor":0}],"emendaIndicios":[],"notaGeral":15.5}],"clas":[{"sobrenome":"TATTO","membros":[{"id":141456,"nome":"Jilmar Tatto","partido":"PT"},{"id":178986,"nome":"Nilto Tatto","partido":"PT"}]},{"sobrenome":"SOARES","membros":[{"id":154700,"nome":"Paulo Soares","partido":"PODE"},{"id":204511,"nome":"David Soares","partido":"PODE"}]}],"geradoEm":"2026-08-31T13:25:25.009Z","candidatos":{"fonte":"Gazeta do Povo e InfoMoney (checado em 31/08/2026) — TSE bloqueia coleta automática do registro oficial neste ambiente, ver README","atualizadoEm":"2026-08-31","presidente":[{"nome":"Luiz Inácio Lula da Silva","partido":"PT","numero":"13","vice":"Geraldo Alckmin (PSB)","bio":"Presidente em exercício, 80 anos. Tenta a quarta eleição à Presidência, sétima candidatura ao cargo."},{"nome":"Flávio Bolsonaro","partido":"PL","numero":"22","vice":"Alfredo Gaspar","bio":"Senador, 45 anos, quatro vezes deputado estadual. Principal opositor de Lula, representa o legado bolsonarista."},{"nome":"Ronaldo Caiado","partido":"PSD","numero":"55","vice":"Gilberto Kassab","bio":"76 anos, governador de Goiás, ex-deputado e ex-senador. Já foi candidato em 1989."},{"nome":"Romeu Zema","partido":"NOVO","numero":"30","vice":"Eduardo Girão","bio":"61 anos, governador de Minas Gerais desde 2018 (reeleito em 2022)."},{"nome":"Renan Santos","partido":"MISSÃO","numero":"14","vice":"Aroldo Medina","bio":"42 anos, cofundador do Movimento Brasil Livre e do partido Missão. Primeira candidatura ao cargo."},{"nome":"Pablo Marçal","partido":"PRTB","numero":"28","vice":"Leonardo Avalanche","bio":"39 anos, quase foi ao 2º turno na prefeitura de SP em 2024. Elegibilidade contestada no TRE-SP."},{"nome":"Hertz Dias","partido":"PSTU","numero":"16","vice":"Vanessa Portugal","bio":"55 anos, segunda candidatura à Presidência — foi vice na chapa de 2018."},{"nome":"Rui Costa Pimenta","partido":"PCO","numero":"29","vice":"Antônio Carlos Silva","bio":"69 anos, quarta candidatura presidencial, representa a esquerda mais radical."},{"nome":"Edmilson Costa","partido":"PCB","numero":"21","vice":"Cleusa Santos","bio":"Militante desde os anos 1970, já disputou prefeitura e vice-presidência."},{"nome":"Samara Martins","partido":"UP","numero":"80","vice":"Raquel Bricio","bio":"38 anos, foi candidata a vice em 2022, agora encabeça a própria chapa."},{"nome":"Augusto Cury","partido":"AVANTE","numero":"70","vice":"Júlio Delgado","bio":"67 anos, escritor com livros publicados em mais de 70 países, estreia na política."},{"nome":"Clariana Barão","partido":"DC","numero":"27","vice":"Fabiana Torquato","bio":"39 anos, primeira candidatura a cargo público."},{"nome":"Wilson Grassi","partido":"DEMOCRATA","numero":"35","vice":"Suêd Haidar","bio":"55 anos, defensor da causa animal, já tentou eleições locais sem sucesso."}],"governadorSP":[{"nome":"Tarcísio de Freitas","partido":"REPUBLICANOS","numero":"10","vice":"Felício Ramuth (MDB)","bio":"51 anos, engenheiro civil, ex-Ministro da Infraestrutura (2019-2022). Governador atual, busca reeleição."},{"nome":"Fernando Haddad","partido":"PT","numero":"13","vice":"Márcio França (PSB)","bio":"63 anos, ex-Ministro da Fazenda e da Educação, ex-prefeito de SP. Segunda tentativa ao governo estadual."},{"nome":"Vera Lúcia","partido":"PSTU","numero":"16","vice":"Renata França","bio":"58 anos, sindicalista, 11ª candidatura — já disputou a Presidência em 2018 e 2022."},{"nome":"Carlos Machado","partido":"PCB","numero":"21","vice":"Felipe de Oliveira Queiroz","bio":"41 anos, historiador e professor de Franca-SP, estreia como candidato a governador."},{"nome":"Izadora Dias","partido":"PCO","numero":"29","vice":"Nivaldo Orlandi","bio":"31 anos, estudante de Letras da USP, militante desde 2018."},{"nome":"Policial Edjane","partido":"AGIR","numero":"36","vice":"Renata Bolsonaro","bio":"49 anos, cabo da PM, terceira tentativa eleitoral (municipal em 2020/2024, federal em 2022)."},{"nome":"Vivian Mendes","partido":"UP","numero":"80","vice":"Marcelo Pereira","bio":"45 anos, fundadora da Unidade Popular, candidata ao Senado em 2022 (280.460 votos)."}]}};
+
+const fmtMoeda = (v) => "R$ " + Math.round(v).toLocaleString("pt-BR");
+const faixa = (v, limites) => v >= limites[1] ? "bad" : v >= limites[0] ? "warn" : "good";
+
+function renderGeradoEm() {
+  const d = new Date(DADOS.geradoEm);
+  document.getElementById("geradoEm").textContent = "gerado em " + d.toLocaleString("pt-BR", { dateStyle: "medium", timeStyle: "short" });
+}
+
+function renderRanking(lista) {
+  const body = document.getElementById("rankingBody");
+  body.innerHTML = "";
+  lista.forEach((d, i) => {
+    const notaFaixa = d.notaGeral >= 60 ? "good" : d.notaGeral >= 40 ? "warn" : "bad";
+    const fraudeFaixa = faixa(d.fraudeScore, [15, 35]);
+    const fantasmaFaixa = faixa(d.fantasmaIndex, [15, 35]);
+
+    const row = document.createElement("tr");
+    row.className = "row";
+    row.innerHTML = `
+      <td class="pos">${i + 1}</td>
+      <td><div class="dep-cell">
+        <img src="${d.urlFoto || ""}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+        <div><div class="nome">${d.nome}</div><div class="partido">${d.partido}</div></div>
+      </div></td>
+      <td class="num"><span class="pill ${notaFaixa}">${d.notaGeral.toFixed(1)}</span></td>
+      <td class="num mono">${d.proposicoesAprovadas}/${d.totalProposicoes}</td>
+      <td class="num mono">${d.totalDiscursos}</td>
+      <td class="num mono">${fmtMoeda(d.gastoTotal)}</td>
+      <td class="num"><span class="pill ${fraudeFaixa}">${d.fraudeScore.toFixed(0)}</span></td>
+      <td class="num"><span class="pill ${fantasmaFaixa}">${d.fantasmaIndex.toFixed(0)}</span></td>
+    `;
+    const detail = document.createElement("tr");
+    detail.className = "detail-row";
+    detail.hidden = true;
+    const indiciosHtml = d.fraudeIndicios.length
+      ? `<ul>${d.fraudeIndicios.map((x) => `<li>${x}</li>`).join("")}</ul>`
+      : `<p class="none">Nenhum indício estatístico relevante encontrado na base coletada.</p>`;
+    const emendaIndiciosHtml = d.emendaIndicios.length
+      ? `<ul>${d.emendaIndicios.map((x) => `<li>${x}</li>`).join("")}</ul>`
+      : `<p class="none">Sem concentração relevante de favorecido.</p>`;
+    const top5Html = d.top5FavorecidosEmendas.length
+      ? `<ul>${d.top5FavorecidosEmendas.map((f) => `<li>${f.nome} (${f.municipio}) — ${fmtMoeda(f.valor)}</li>`).join("")}</ul>`
+      : `<p class="none">Nenhuma emenda registrada na base coletada.</p>`;
+    detail.innerHTML = `<td colspan="8"><div class="detail-grid">
+      <div><div class="stat-label">Taxa de aprovação</div><div class="stat-value">${d.totalProposicoes ? Math.round((d.proposicoesAprovadas / d.totalProposicoes) * 100) : 0}%</div></div>
+      <div><div class="stat-label">Gasto total cota</div><div class="stat-value">${fmtMoeda(d.gastoTotal)}</div></div>
+      <div><div class="stat-label">Score fraude (0-100)</div><div class="stat-value">${d.fraudeScore.toFixed(1)}</div></div>
+      <div><div class="stat-label">Total empenhado em emendas</div><div class="stat-value">${fmtMoeda(d.totalEmpenhadoEmendas)}</div></div>
+      <div class="indicios"><div class="stat-label">Indícios — cota parlamentar</div>${indiciosHtml}</div>
+      <div class="indicios"><div class="stat-label">Indícios — emendas</div>${emendaIndiciosHtml}</div>
+      <div class="indicios"><div class="stat-label">Top 5 favorecidos de emenda</div>${top5Html}</div>
+    </div></td>`;
+
+    row.addEventListener("click", () => { detail.hidden = !detail.hidden; });
+    body.appendChild(row);
+    body.appendChild(detail);
+  });
+  document.getElementById("contagem").textContent = lista.length + " deputados";
+}
+
+function renderAlertas() {
+  const wrap = document.getElementById("alertasWrap");
+  const top = [...DADOS.ranking].filter((d) => d.fraudeIndicios.length > 0).sort((a, b) => b.fraudeScore - a.fraudeScore).slice(0, 6);
+  if (top.length === 0) {
+    wrap.innerHTML = `<div class="empty-note">Nenhum indício relevante encontrado na base coletada até agora.</div>`;
+    return;
+  }
+  wrap.innerHTML = `<div class="alert-grid">${top.map((d) => `
+    <div class="alert-card">
+      <div class="top-row"><span class="nome">${d.nome}</span><span class="score">${d.fraudeScore.toFixed(0)}</span></div>
+      <ul>${d.fraudeIndicios.map((x) => `<li>${x}</li>`).join("")}</ul>
+    </div>`).join("")}</div>`;
+}
+
+function renderClas() {
+  const wrap = document.getElementById("clasWrap");
+  if (!DADOS.clas || DADOS.clas.length === 0) {
+    wrap.innerHTML = `<div class="empty-note">Nenhum sobrenome incomum compartilhado encontrado na bancada coletada.</div>`;
+    return;
+  }
+  wrap.innerHTML = `<div class="clas-grid">${DADOS.clas.map((c) => `
+    <div class="cla-card">
+      <div class="sobrenome">${c.sobrenome}</div>
+      <ul>${c.membros.map((m) => `<li>${m.nome}<span class="p">${m.partido}</span></li>`).join("")}</ul>
+    </div>`).join("")}</div>`;
+}
+
+function renderCandidatos() {
+  const wrap = document.getElementById("candidatosWrap");
+  const cand = DADOS.candidatos || { presidente: [], governadorSP: [] };
+  const grupos = [
+    { titulo: "Presidente", lista: cand.presidente || [] },
+    { titulo: "Governador de São Paulo", lista: cand.governadorSP || [] },
+  ];
+
+  if (cand.atualizadoEm) {
+    document.getElementById("candidatosDesc").textContent =
+      `Candidaturas oficializadas nas convenções de agosto/2026 — checado em ${cand.atualizadoEm}.`;
+  }
+
+  const cardHtml = (c) => `
+    <div class="cand-card">
+      <div class="top-row">
+        <span class="nome">${c.nome}</span>
+        <span class="numero">${c.numero}</span>
+      </div>
+      <span class="partido-tag">${c.partido}</span>
+      ${c.vice ? `<div class="vice">Vice: <b>${c.vice}</b></div>` : ""}
+      <div class="bio">${c.bio || ""}</div>
+    </div>`;
+
+  wrap.innerHTML = grupos
+    .filter((g) => g.lista.length > 0)
+    .map((g) => `
+      <div class="cand-uf-group">
+        <h3>${g.titulo} <span style="font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--ink-dim);font-weight:400">(${g.lista.length})</span></h3>
+        <div class="cand-grid">${g.lista.map(cardHtml).join("")}</div>
+      </div>`)
+    .join("") +
+    (cand.fonte ? `<p class="fonte-nota">Fonte: ${cand.fonte}</p>` : "");
+
+  if (grupos.every((g) => g.lista.length === 0)) {
+    wrap.innerHTML = `<div class="empty-note">Nenhum candidato carregado — falta <code>data/candidatos-2026-curado.json</code>.</div>`;
+  }
+}
+
+function aplicarFiltro() {
+  const termo = document.getElementById("filtroNome").value.toLowerCase();
+  const campo = document.getElementById("ordenar").value;
+  let lista = DADOS.ranking.filter((d) => d.nome.toLowerCase().includes(termo) || d.partido.toLowerCase().includes(termo));
+  lista.sort((a, b) => b[campo] - a[campo]);
+  renderRanking(lista);
+}
+
+document.getElementById("filtroNome").addEventListener("input", aplicarFiltro);
+document.getElementById("ordenar").addEventListener("change", aplicarFiltro);
+
+renderGeradoEm();
+renderRanking(DADOS.ranking);
+renderAlertas();
+renderClas();
+renderCandidatos();
+</script>

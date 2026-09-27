@@ -1,0 +1,28 @@
+{
+  "fonte": "Gazeta do Povo e InfoMoney (checado em 31/08/2026) — TSE bloqueia coleta automática do registro oficial neste ambiente, ver README",
+  "atualizadoEm": "2026-08-31",
+  "presidente": [
+    { "nome": "Luiz Inácio Lula da Silva", "partido": "PT", "numero": "13", "vice": "Geraldo Alckmin (PSB)", "bio": "Presidente em exercício, 80 anos. Tenta a quarta eleição à Presidência, sétima candidatura ao cargo." },
+    { "nome": "Flávio Bolsonaro", "partido": "PL", "numero": "22", "vice": "Alfredo Gaspar", "bio": "Senador, 45 anos, quatro vezes deputado estadual. Principal opositor de Lula, representa o legado bolsonarista." },
+    { "nome": "Ronaldo Caiado", "partido": "PSD", "numero": "55", "vice": "Gilberto Kassab", "bio": "76 anos, governador de Goiás, ex-deputado e ex-senador. Já foi candidato em 1989." },
+    { "nome": "Romeu Zema", "partido": "NOVO", "numero": "30", "vice": "Eduardo Girão", "bio": "61 anos, governador de Minas Gerais desde 2018 (reeleito em 2022)." },
+    { "nome": "Renan Santos", "partido": "MISSÃO", "numero": "14", "vice": "Aroldo Medina", "bio": "42 anos, cofundador do Movimento Brasil Livre e do partido Missão. Primeira candidatura ao cargo." },
+    { "nome": "Pablo Marçal", "partido": "PRTB", "numero": "28", "vice": "Leonardo Avalanche", "bio": "39 anos, quase foi ao 2º turno na prefeitura de SP em 2024. Elegibilidade contestada no TRE-SP." },
+    { "nome": "Hertz Dias", "partido": "PSTU", "numero": "16", "vice": "Vanessa Portugal", "bio": "55 anos, segunda candidatura à Presidência — foi vice na chapa de 2018." },
+    { "nome": "Rui Costa Pimenta", "partido": "PCO", "numero": "29", "vice": "Antônio Carlos Silva", "bio": "69 anos, quarta candidatura presidencial, representa a esquerda mais radical." },
+    { "nome": "Edmilson Costa", "partido": "PCB", "numero": "21", "vice": "Cleusa Santos", "bio": "Militante desde os anos 1970, já disputou prefeitura e vice-presidência." },
+    { "nome": "Samara Martins", "partido": "UP", "numero": "80", "vice": "Raquel Bricio", "bio": "38 anos, foi candidata a vice em 2022, agora encabeça a própria chapa." },
+    { "nome": "Augusto Cury", "partido": "AVANTE", "numero": "70", "vice": "Júlio Delgado", "bio": "67 anos, escritor com livros publicados em mais de 70 países, estreia na política." },
+    { "nome": "Clariana Barão", "partido": "DC", "numero": "27", "vice": "Fabiana Torquato", "bio": "39 anos, primeira candidatura a cargo público." },
+    { "nome": "Wilson Grassi", "partido": "DEMOCRATA", "numero": "35", "vice": "Suêd Haidar", "bio": "55 anos, defensor da causa animal, já tentou eleições locais sem sucesso." }
+  ],
+  "governadorSP": [
+    { "nome": "Tarcísio de Freitas", "partido": "REPUBLICANOS", "numero": "10", "vice": "Felício Ramuth (MDB)", "bio": "51 anos, engenheiro civil, ex-Ministro da Infraestrutura (2019-2022). Governador atual, busca reeleição." },
+    { "nome": "Fernando Haddad", "partido": "PT", "numero": "13", "vice": "Márcio França (PSB)", "bio": "63 anos, ex-Ministro da Fazenda e da Educação, ex-prefeito de SP. Segunda tentativa ao governo estadual." },
+    { "nome": "Vera Lúcia", "partido": "PSTU", "numero": "16", "vice": "Renata França", "bio": "58 anos, sindicalista, 11ª candidatura — já disputou a Presidência em 2018 e 2022." },
+    { "nome": "Carlos Machado", "partido": "PCB", "numero": "21", "vice": "Felipe de Oliveira Queiroz", "bio": "41 anos, historiador e professor de Franca-SP, estreia como candidato a governador." },
+    { "nome": "Izadora Dias", "partido": "PCO", "numero": "29", "vice": "Nivaldo Orlandi", "bio": "31 anos, estudante de Letras da USP, militante desde 2018." },
+    { "nome": "Policial Edjane", "partido": "AGIR", "numero": "36", "vice": "Renata Bolsonaro", "bio": "49 anos, cabo da PM, terceira tentativa eleitoral (municipal em 2020/2024, federal em 2022)." },
+    { "nome": "Vivian Mendes", "partido": "UP", "numero": "80", "vice": "Marcelo Pereira", "bio": "45 anos, fundadora da Unidade Popular, candidata ao Senado em 2022 (280.460 votos)." }
+  ]
+}

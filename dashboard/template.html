@@ -1,0 +1,425 @@
+<title>Radar Eleitoral</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #EEF0EA;
+    --surface: #F8F8F3;
+    --surface-raised: #FFFFFF;
+    --ink: #23231F;
+    --ink-dim: #6B6A5E;
+    --line: #DAD8CC;
+    --accent: #8A6E3D;
+    --accent-ink: #FFFFFF;
+    --good: #2F6B4F;
+    --good-bg: #E3EEE6;
+    --warn: #9A6D14;
+    --warn-bg: #F4E9D2;
+    --bad: #9C3B2E;
+    --bad-bg: #F3E1DD;
+    --shadow: 0 1px 2px rgba(35,35,31,0.06), 0 4px 16px rgba(35,35,31,0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14181A;
+      --surface: #1B2023;
+      --surface-raised: #21272A;
+      --ink: #ECE7DD;
+      --ink-dim: #9A968A;
+      --line: #333A3D;
+      --accent: #C9A24B;
+      --accent-ink: #14181A;
+      --good: #5FA184;
+      --good-bg: #1E2C27;
+      --warn: #D6A94B;
+      --warn-bg: #2E2818;
+      --bad: #D08072;
+      --bad-bg: #2E1E1B;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14181A;
+    --surface: #1B2023;
+    --surface-raised: #21272A;
+    --ink: #ECE7DD;
+    --ink-dim: #9A968A;
+    --line: #333A3D;
+    --accent: #C9A24B;
+    --accent-ink: #14181A;
+    --good: #5FA184;
+    --good-bg: #1E2C27;
+    --warn: #D6A94B;
+    --warn-bg: #2E2818;
+    --bad: #D08072;
+    --bad-bg: #2E1E1B;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    line-height: 1.5;
+    padding: 0 0 5rem;
+  }
+  h1, h2, h3 { font-family: "Fraunces", Georgia, serif; text-wrap: balance; margin: 0; }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  a { color: inherit; }
+
+  header.top {
+    border-bottom: 1px solid var(--line);
+    padding: 2.25rem 2rem 1.75rem;
+    background: var(--surface);
+  }
+  header.top .wrap { max-width: 74rem; margin: 0 auto; }
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin-bottom: 0.6rem;
+  }
+  .eyebrow .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+  }
+  header.top h1 { font-size: clamp(1.9rem, 3.2vw, 2.6rem); font-weight: 600; }
+  header.top p.sub { color: var(--ink-dim); max-width: 46rem; margin-top: 0.6rem; font-size: 0.98rem; }
+  .privado {
+    display: inline-flex; align-items: center; gap: 0.4em;
+    margin-top: 1rem; font-size: 0.78rem; color: var(--ink-dim);
+    border: 1px solid var(--line); border-radius: 100px; padding: 0.3em 0.85em;
+    font-family: "IBM Plex Mono", monospace;
+  }
+
+  main { max-width: 74rem; margin: 0 auto; padding: 2rem; display: flex; flex-direction: column; gap: 2.75rem; }
+
+  section h2 {
+    font-size: 1.3rem; font-weight: 600; margin-bottom: 0.25rem;
+  }
+  section .desc { color: var(--ink-dim); font-size: 0.9rem; max-width: 50rem; margin-bottom: 1.1rem; }
+
+  .toolbar {
+    display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center;
+    margin-bottom: 1rem;
+  }
+  .toolbar input, .toolbar select {
+    font: inherit; font-size: 0.85rem;
+    background: var(--surface-raised); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 8px;
+    padding: 0.5em 0.8em;
+  }
+  .toolbar input { flex: 1; min-width: 12rem; }
+  .toolbar .count { font-family: "IBM Plex Mono", monospace; font-size: 0.78rem; color: var(--ink-dim); margin-left: auto; }
+
+  table { width: 100%; border-collapse: collapse; }
+  .table-wrap {
+    background: var(--surface-raised); border: 1px solid var(--line);
+    border-radius: 12px; overflow: hidden; box-shadow: var(--shadow);
+  }
+  .table-scroll { overflow-x: auto; }
+  thead th {
+    text-align: left; font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--ink-dim); font-weight: 500; font-family: "IBM Plex Mono", monospace;
+    padding: 0.75rem 1rem; border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  tbody tr.row { border-bottom: 1px solid var(--line); cursor: pointer; }
+  tbody tr.row:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+  tbody tr.row:last-child { border-bottom: none; }
+  tbody td { padding: 0.7rem 1rem; font-size: 0.88rem; vertical-align: middle; }
+  td.num { text-align: right; }
+  .dep-cell { display: flex; align-items: center; gap: 0.6rem; }
+  .dep-cell img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: var(--line); flex-shrink: 0; }
+  .dep-cell .nome { font-weight: 500; }
+  .dep-cell .partido { color: var(--ink-dim); font-size: 0.78rem; }
+  .pos { font-family: "IBM Plex Mono", monospace; color: var(--ink-dim); }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 0.35em;
+    font-family: "IBM Plex Mono", monospace; font-size: 0.8rem; font-weight: 500;
+    padding: 0.22em 0.6em; border-radius: 100px;
+  }
+  .pill.good { background: var(--good-bg); color: var(--good); }
+  .pill.warn { background: var(--warn-bg); color: var(--warn); }
+  .pill.bad { background: var(--bad-bg); color: var(--bad); }
+
+  .detail-row td { padding: 0 1rem 1.1rem; background: color-mix(in srgb, var(--accent) 4%, transparent); }
+  .detail-row[hidden] { display: none; }
+  .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1rem; padding-top: 0.9rem; border-top: 1px dashed var(--line); }
+  .detail-grid .stat-label { font-family: "IBM Plex Mono", monospace; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-dim); }
+  .detail-grid .stat-value { font-family: "IBM Plex Mono", monospace; font-size: 1.05rem; margin-top: 0.15rem; }
+  .indicios { grid-column: 1 / -1; }
+  .indicios ul { margin: 0.4rem 0 0; padding-left: 1.1rem; font-size: 0.85rem; color: var(--ink); }
+  .indicios li { margin-bottom: 0.25rem; }
+  .indicios .none { color: var(--ink-dim); font-style: italic; font-size: 0.85rem; }
+
+  .alert-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr)); gap: 0.9rem; }
+  .alert-card {
+    background: var(--surface-raised); border: 1px solid var(--line); border-left: 3px solid var(--bad);
+    border-radius: 10px; padding: 1rem 1.1rem; box-shadow: var(--shadow);
+  }
+  .alert-card .top-row { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
+  .alert-card .nome { font-weight: 600; }
+  .alert-card .score { font-family: "IBM Plex Mono", monospace; color: var(--bad); font-size: 0.9rem; }
+  .alert-card ul { margin: 0.5rem 0 0; padding-left: 1.05rem; font-size: 0.82rem; color: var(--ink-dim); }
+
+  .clas-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: 0.8rem; }
+  .cla-card { background: var(--surface-raised); border: 1px solid var(--line); border-radius: 10px; padding: 0.85rem 1rem; }
+  .cla-card .sobrenome { font-family: "IBM Plex Mono", monospace; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); }
+  .cla-card ul { margin: 0.4rem 0 0; padding: 0; list-style: none; font-size: 0.85rem; }
+  .cla-card li { display: flex; justify-content: space-between; padding: 0.15rem 0; }
+  .cla-card li span.p { color: var(--ink-dim); font-size: 0.78rem; }
+
+  .empty-note {
+    border: 1px dashed var(--line); border-radius: 10px; padding: 1.2rem;
+    color: var(--ink-dim); font-size: 0.88rem; background: var(--surface);
+  }
+  .empty-note code { font-family: "IBM Plex Mono", monospace; background: var(--surface-raised); padding: 0.1em 0.4em; border-radius: 4px; }
+
+  .cand-uf-group { margin-bottom: 1.6rem; }
+  .cand-uf-group h3 { font-size: 1.02rem; font-weight: 600; margin-bottom: 0.7rem; }
+  .cand-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(17.5rem, 1fr)); gap: 0.9rem; }
+  .cand-card {
+    background: var(--surface-raised); border: 1px solid var(--line); border-left: 3px solid var(--accent);
+    border-radius: 10px; padding: 0.95rem 1.1rem; box-shadow: var(--shadow);
+    display: flex; flex-direction: column; gap: 0.4rem;
+  }
+  .cand-card .top-row { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
+  .cand-card .nome { font-weight: 600; font-size: 0.95rem; }
+  .cand-card .numero { font-family: "IBM Plex Mono", monospace; font-size: 0.78rem; color: var(--accent); }
+  .cand-card .partido-tag {
+    font-family: "IBM Plex Mono", monospace; font-size: 0.68rem; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--ink-dim);
+  }
+  .cand-card .vice { font-size: 0.8rem; color: var(--ink-dim); }
+  .cand-card .vice b { color: var(--ink); font-weight: 500; }
+  .cand-card .bio { font-size: 0.83rem; color: var(--ink); line-height: 1.45; }
+  .fonte-nota { font-size: 0.76rem; color: var(--ink-dim); margin-top: 0.6rem; }
+
+  footer.foot {
+    max-width: 74rem; margin: 0 auto; padding: 0 2rem; color: var(--ink-dim); font-size: 0.8rem;
+    border-top: 1px solid var(--line); padding-top: 1.5rem;
+  }
+  footer.foot p { margin: 0.4rem 0; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    tbody tr.row { transition: background 0.12s ease; }
+  }
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="eyebrow"><span class="dot"></span> Uso privado — não indexado, não publicado</div>
+    <h1>Radar Eleitoral</h1>
+    <p class="sub">Ranking de deputados federais de SP cruzando presença legislativa, produção real (proposições que viram norma) e indícios de anomalia na cota parlamentar — dado oficial aberto da Câmara dos Deputados, sem opinião partidária embutida.</p>
+    <div class="privado" id="geradoEm">gerado em —</div>
+  </div>
+</header>
+
+<main>
+  <section id="sec-ranking">
+    <h2>Ranking geral</h2>
+    <p class="desc">Nota 0–100: soma de atividade real, subtraída de indícios de fraude na cota e do índice de "parlamentar fantasma" (autoria em massa sem aprovação). Clique numa linha para ver o detalhe.</p>
+    <div class="toolbar">
+      <input id="filtroNome" type="text" placeholder="Filtrar por nome ou partido...">
+      <select id="ordenar">
+        <option value="notaGeral">Ordenar: nota geral</option>
+        <option value="fraudeScore">Ordenar: score de fraude</option>
+        <option value="fantasmaIndex">Ordenar: índice fantasma</option>
+        <option value="gastoTotal">Ordenar: gasto total</option>
+      </select>
+      <span class="count" id="contagem"></span>
+    </div>
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Deputado</th><th class="num">Nota</th><th class="num">Proposições</th>
+              <th class="num">Discursos</th><th class="num">Gasto cota</th><th class="num">Fraude</th><th class="num">Fantasma</th>
+            </tr>
+          </thead>
+          <tbody id="rankingBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="sec-alertas">
+    <h2>Alertas de fraude na cota</h2>
+    <p class="desc">Indícios estatísticos (concentração de fornecedor, valores repetidos, padrão de data) — não é prova de irregularidade, é ponto de partida pra checar as notas fiscais originais (link em cada linha do ranking).</p>
+    <div id="alertasWrap"></div>
+  </section>
+
+  <section id="sec-clas">
+    <h2>Clãs políticos</h2>
+    <p class="desc">Deputados atuais de SP que compartilham sobrenome incomum — sinal fraco, não confirma parentesco.</p>
+    <div id="clasWrap"></div>
+  </section>
+
+  <section id="sec-candidatos">
+    <h2>Candidatos 2026 — Presidente e Governador de SP</h2>
+    <p class="desc" id="candidatosDesc">Candidaturas oficializadas nas convenções de agosto/2026.</p>
+    <div id="candidatosWrap"></div>
+  </section>
+</main>
+
+<footer class="foot">
+  <p><strong>Metodologia:</strong> score de fraude é heurística sobre a cota CEAP (concentração de fornecedor, repetição de valor idêntico, notas em fim de semana) — não calibrada estatisticamente, tratar como triagem. Índice fantasma pondera volume de proposições de autoria própria pela taxa real de aprovação/sanção.</p>
+  <p>Fontes: dadosabertos.camara.leg.br (API + CSV bulk da cota parlamentar), dadosabertos.tse.jus.br (candidaturas). Projeto privado, sem afiliação partidária.</p>
+</footer>
+
+<script>
+/*__DADOS__*/
+
+const fmtMoeda = (v) => "R$ " + Math.round(v).toLocaleString("pt-BR");
+const faixa = (v, limites) => v >= limites[1] ? "bad" : v >= limites[0] ? "warn" : "good";
+
+function renderGeradoEm() {
+  const d = new Date(DADOS.geradoEm);
+  document.getElementById("geradoEm").textContent = "gerado em " + d.toLocaleString("pt-BR", { dateStyle: "medium", timeStyle: "short" });
+}
+
+function renderRanking(lista) {
+  const body = document.getElementById("rankingBody");
+  body.innerHTML = "";
+  lista.forEach((d, i) => {
+    const notaFaixa = d.notaGeral >= 60 ? "good" : d.notaGeral >= 40 ? "warn" : "bad";
+    const fraudeFaixa = faixa(d.fraudeScore, [15, 35]);
+    const fantasmaFaixa = faixa(d.fantasmaIndex, [15, 35]);
+
+    const row = document.createElement("tr");
+    row.className = "row";
+    row.innerHTML = `
+      <td class="pos">${i + 1}</td>
+      <td><div class="dep-cell">
+        <img src="${d.urlFoto || ""}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+        <div><div class="nome">${d.nome}</div><div class="partido">${d.partido}</div></div>
+      </div></td>
+      <td class="num"><span class="pill ${notaFaixa}">${d.notaGeral.toFixed(1)}</span></td>
+      <td class="num mono">${d.proposicoesAprovadas}/${d.totalProposicoes}</td>
+      <td class="num mono">${d.totalDiscursos}</td>
+      <td class="num mono">${fmtMoeda(d.gastoTotal)}</td>
+      <td class="num"><span class="pill ${fraudeFaixa}">${d.fraudeScore.toFixed(0)}</span></td>
+      <td class="num"><span class="pill ${fantasmaFaixa}">${d.fantasmaIndex.toFixed(0)}</span></td>
+    `;
+    const detail = document.createElement("tr");
+    detail.className = "detail-row";
+    detail.hidden = true;
+    const indiciosHtml = d.fraudeIndicios.length
+      ? `<ul>${d.fraudeIndicios.map((x) => `<li>${x}</li>`).join("")}</ul>`
+      : `<p class="none">Nenhum indício estatístico relevante encontrado na base coletada.</p>`;
+    const emendaIndiciosHtml = d.emendaIndicios.length
+      ? `<ul>${d.emendaIndicios.map((x) => `<li>${x}</li>`).join("")}</ul>`
+      : `<p class="none">Sem concentração relevante de favorecido.</p>`;
+    const top5Html = d.top5FavorecidosEmendas.length
+      ? `<ul>${d.top5FavorecidosEmendas.map((f) => `<li>${f.nome} (${f.municipio}) — ${fmtMoeda(f.valor)}</li>`).join("")}</ul>`
+      : `<p class="none">Nenhuma emenda registrada na base coletada.</p>`;
+    detail.innerHTML = `<td colspan="8"><div class="detail-grid">
+      <div><div class="stat-label">Taxa de aprovação</div><div class="stat-value">${d.totalProposicoes ? Math.round((d.proposicoesAprovadas / d.totalProposicoes) * 100) : 0}%</div></div>
+      <div><div class="stat-label">Gasto total cota</div><div class="stat-value">${fmtMoeda(d.gastoTotal)}</div></div>
+      <div><div class="stat-label">Score fraude (0-100)</div><div class="stat-value">${d.fraudeScore.toFixed(1)}</div></div>
+      <div><div class="stat-label">Total empenhado em emendas</div><div class="stat-value">${fmtMoeda(d.totalEmpenhadoEmendas)}</div></div>
+      <div class="indicios"><div class="stat-label">Indícios — cota parlamentar</div>${indiciosHtml}</div>
+      <div class="indicios"><div class="stat-label">Indícios — emendas</div>${emendaIndiciosHtml}</div>
+      <div class="indicios"><div class="stat-label">Top 5 favorecidos de emenda</div>${top5Html}</div>
+    </div></td>`;
+
+    row.addEventListener("click", () => { detail.hidden = !detail.hidden; });
+    body.appendChild(row);
+    body.appendChild(detail);
+  });
+  document.getElementById("contagem").textContent = lista.length + " deputados";
+}
+
+function renderAlertas() {
+  const wrap = document.getElementById("alertasWrap");
+  const top = [...DADOS.ranking].filter((d) => d.fraudeIndicios.length > 0).sort((a, b) => b.fraudeScore - a.fraudeScore).slice(0, 6);
+  if (top.length === 0) {
+    wrap.innerHTML = `<div class="empty-note">Nenhum indício relevante encontrado na base coletada até agora.</div>`;
+    return;
+  }
+  wrap.innerHTML = `<div class="alert-grid">${top.map((d) => `
+    <div class="alert-card">
+      <div class="top-row"><span class="nome">${d.nome}</span><span class="score">${d.fraudeScore.toFixed(0)}</span></div>
+      <ul>${d.fraudeIndicios.map((x) => `<li>${x}</li>`).join("")}</ul>
+    </div>`).join("")}</div>`;
+}
+
+function renderClas() {
+  const wrap = document.getElementById("clasWrap");
+  if (!DADOS.clas || DADOS.clas.length === 0) {
+    wrap.innerHTML = `<div class="empty-note">Nenhum sobrenome incomum compartilhado encontrado na bancada coletada.</div>`;
+    return;
+  }
+  wrap.innerHTML = `<div class="clas-grid">${DADOS.clas.map((c) => `
+    <div class="cla-card">
+      <div class="sobrenome">${c.sobrenome}</div>
+      <ul>${c.membros.map((m) => `<li>${m.nome}<span class="p">${m.partido}</span></li>`).join("")}</ul>
+    </div>`).join("")}</div>`;
+}
+
+function renderCandidatos() {
+  const wrap = document.getElementById("candidatosWrap");
+  const cand = DADOS.candidatos || { presidente: [], governadorSP: [] };
+  const grupos = [
+    { titulo: "Presidente", lista: cand.presidente || [] },
+    { titulo: "Governador de São Paulo", lista: cand.governadorSP || [] },
+  ];
+
+  if (cand.atualizadoEm) {
+    document.getElementById("candidatosDesc").textContent =
+      `Candidaturas oficializadas nas convenções de agosto/2026 — checado em ${cand.atualizadoEm}.`;
+  }
+
+  const cardHtml = (c) => `
+    <div class="cand-card">
+      <div class="top-row">
+        <span class="nome">${c.nome}</span>
+        <span class="numero">${c.numero}</span>
+      </div>
+      <span class="partido-tag">${c.partido}</span>
+      ${c.vice ? `<div class="vice">Vice: <b>${c.vice}</b></div>` : ""}
+      <div class="bio">${c.bio || ""}</div>
+    </div>`;
+
+  wrap.innerHTML = grupos
+    .filter((g) => g.lista.length > 0)
+    .map((g) => `
+      <div class="cand-uf-group">
+        <h3>${g.titulo} <span style="font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--ink-dim);font-weight:400">(${g.lista.length})</span></h3>
+        <div class="cand-grid">${g.lista.map(cardHtml).join("")}</div>
+      </div>`)
+    .join("") +
+    (cand.fonte ? `<p class="fonte-nota">Fonte: ${cand.fonte}</p>` : "");
+
+  if (grupos.every((g) => g.lista.length === 0)) {
+    wrap.innerHTML = `<div class="empty-note">Nenhum candidato carregado — falta <code>data/candidatos-2026-curado.json</code>.</div>`;
+  }
+}
+
+function aplicarFiltro() {
+  const termo = document.getElementById("filtroNome").value.toLowerCase();
+  const campo = document.getElementById("ordenar").value;
+  let lista = DADOS.ranking.filter((d) => d.nome.toLowerCase().includes(termo) || d.partido.toLowerCase().includes(termo));
+  lista.sort((a, b) => b[campo] - a[campo]);
+  renderRanking(lista);
+}
+
+document.getElementById("filtroNome").addEventListener("input", aplicarFiltro);
+document.getElementById("ordenar").addEventListener("change", aplicarFiltro);
+
+renderGeradoEm();
+renderRanking(DADOS.ranking);
+renderAlertas();
+renderClas();
+renderCandidatos();
+</script>

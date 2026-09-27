@@ -1,0 +1,325 @@
+<title>Radar do Voto 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Public+Sans:ital,wght@0,400;0,600;0,700;1,400&family=Spline+Sans+Mono:wght@500;700&display=swap">
+<style>
+:root {
+  --ground: #e4e7e3; --surface: #f8f9f6; --sunk: #eef0ec; --line: #cbd0ca;
+  --ink: #14171a; --ink-2: #454c52; --muted: #687076;
+  --panel: #23272a; --panel-2: #2f3438; --panel-ink: #e8ebe5; --panel-muted: #a3aaa6;
+  --confirma: #17804a; --confirma-ink: #ffffff; --corrige: #c85a17; --focus: #1d63c9;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4;
+  --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --body: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "Spline Sans Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ground: #111315; --surface: #1a1d20; --sunk: #15181a; --line: #30363a;
+    --ink: #e9ece7; --ink-2: #c0c6c2; --muted: #8e9692;
+    --panel: #0b0c0d; --panel-2: #22272a; --panel-ink: #e9ece7; --panel-muted: #8e9692;
+    --confirma: #2fa866; --confirma-ink: #06150c; --corrige: #e57a36; --focus: #6aa4ff;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #111315; --surface: #1a1d20; --sunk: #15181a; --line: #30363a;
+  --ink: #e9ece7; --ink-2: #c0c6c2; --muted: #8e9692;
+  --panel: #0b0c0d; --panel-2: #22272a; --panel-ink: #e9ece7; --panel-muted: #8e9692;
+  --confirma: #2fa866; --confirma-ink: #06150c; --corrige: #e57a36; --focus: #6aa4ff;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+body { background: var(--ground); color: var(--ink); font: 15px/1.5 var(--body); padding-inline: 16px; padding-block: 0 48px; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+h1, h2, h3 { text-wrap: balance; }
+.muted { color: var(--muted); }
+.wrap { max-width: 1320px; margin-inline: auto; }
+
+/* Masthead: the urna's dark screen bezel */
+.mast { background: var(--panel); color: var(--panel-ink); margin-inline: -16px; padding-block: 28px 24px; padding-inline: 16px; }
+.mast .wrap { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px 40px; align-items: end; }
+.mast h1 { font: 900 clamp(44px, 7vw, 88px)/0.86 var(--display); letter-spacing: 0.01em; margin: 0; text-transform: uppercase; }
+.mast h1 span { color: var(--confirma); }
+.mast p { margin: 12px 0 0; max-width: 62ch; color: var(--panel-muted); font-size: 16px; }
+.mast p b { color: var(--panel-ink); }
+.mast .when { font: 700 13px/1.3 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; text-align: right; color: var(--panel-muted); }
+.mast .when b { display: block; font-size: 30px; color: var(--panel-ink); letter-spacing: 0; }
+#retrato { grid-column: 1 / -1; margin: 0; font: 500 12px/1.4 var(--mono); color: var(--panel-muted); }
+
+.layout { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 24px; margin-top: 24px; align-items: start; }
+body.has-dossie .layout { grid-template-columns: 290px minmax(0, 1fr) minmax(0, 440px); }
+
+/* Left rail: keypad-like controls */
+.rail { display: flex; flex-direction: column; gap: 16px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
+.box { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.box h2 { font: 700 13px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.1em; margin: 0; color: var(--ink-2); }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--ink-2); }
+select, input[type="search"] { font: inherit; color: var(--ink); background: var(--sunk); border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; width: 100%; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+.peso { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; font-size: 13px; cursor: help; }
+.peso small { color: var(--muted); font: 500 10px var(--mono); text-transform: uppercase; letter-spacing: 0.06em; }
+.peso input { grid-column: 1 / -1; accent-color: var(--confirma); width: 100%; }
+.grupo { margin: 6px 0 -4px; font: 700 11px var(--mono); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+.grupo:first-child { margin-top: 0; }
+#pesos { display: flex; flex-direction: column; gap: 10px; }
+.scroll { overflow-x: auto; }
+.agenda { border-collapse: collapse; font-size: 13px; width: 100%; }
+.agenda th { text-align: left; font: 700 11px var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 4px 6px; border-bottom: 1px solid var(--line); }
+.agenda td { padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.agenda .voto { font: 700 13px var(--mono); white-space: nowrap; }
+.pill { font: 700 11px var(--mono); text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 6px; border-radius: 3px; white-space: nowrap; }
+.pill.ok { background: var(--confirma); color: var(--confirma-ink); }
+.pill.no { background: var(--corrige); color: #fff; }
+.pill.nd { border: 1px solid var(--line); color: var(--muted); }
+.peso output { font: 500 12px var(--mono); color: var(--muted); grid-row: 1; grid-column: 2; }
+#presets { display: flex; flex-wrap: wrap; gap: 6px; }
+#presets button, #mais, .ghost { font: 600 13px var(--body); background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 6px 10px; cursor: pointer; }
+#presets button:hover, #mais:hover, .ghost:hover { border-color: var(--ink-2); }
+
+/* The cola: a paper slip */
+.cola { background: var(--panel); color: var(--panel-ink); border-color: var(--panel); }
+.cola h2 { color: var(--panel-muted); }
+#cola-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+#cola-lista li { display: grid; grid-template-columns: auto 1fr auto; column-gap: 8px; align-items: center; font-size: 12px; color: var(--panel-muted); }
+#cola-lista li > .av { grid-row: span 2; }
+#cola-lista .num { font: 700 20px/1 var(--mono); color: var(--panel-ink); letter-spacing: 0.2em; }
+#cola-lista small { grid-column: 2 / -1; color: var(--panel-ink); font-size: 12px; }
+.cola .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.btn-confirma { font: 700 13px var(--body); text-transform: uppercase; letter-spacing: 0.06em; background: var(--confirma); color: var(--confirma-ink); border: 0; border-radius: 4px; padding: 9px 14px; cursor: pointer; }
+.cola .ghost { color: var(--panel-ink); border-color: var(--panel-2); }
+#cola-texto { width: 100%; min-height: 120px; font: 12px var(--mono); }
+#copiar-status { font-size: 12px; color: var(--panel-muted); }
+
+/* Ballot tabs with urna digit boxes */
+#cedulas { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+#cedulas button { display: grid; gap: 6px; text-align: left; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; cursor: pointer; font: inherit; }
+#cedulas button[aria-selected="true"] { background: var(--panel); color: var(--panel-ink); border-color: var(--panel); }
+.tname { font: 700 18px/1 var(--display); text-transform: uppercase; letter-spacing: 0.02em; }
+.digits { display: flex; gap: 3px; }
+.digits i { width: 12px; height: 16px; border: 1.5px solid currentColor; border-radius: 2px; opacity: 0.55; }
+.tcount { font: 500 12px var(--mono); opacity: 0.75; }
+
+#achados { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; margin-block: 16px; }
+#achados div { background: var(--surface); padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; }
+#achados b { font: 700 26px/1.1 var(--mono); font-variant-numeric: tabular-nums; }
+#achados span { font-size: 12px; color: var(--ink-2); }
+
+.toolbar { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; margin-bottom: 8px; }
+.toolbar .field { flex: 1 1 200px; }
+.legend { font-size: 12px; color: var(--muted); margin: 0 0 8px; }
+
+#lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.cand { width: 100%; display: grid; grid-template-columns: 28px 76px 36px minmax(0, 1fr) 96px 70px; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 10px 12px; text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+.cand:hover { border-color: var(--ink-2); }
+.cand.open { border-color: var(--confirma); box-shadow: inset 4px 0 0 var(--confirma); }
+.cand .pos { font: 500 12px var(--mono); color: var(--muted); text-align: right; }
+.cand .num { font: 700 22px/1 var(--mono); letter-spacing: 0.12em; white-space: pre; }
+.cand .who { display: flex; flex-direction: column; min-width: 0; }
+.cand .who b { overflow-wrap: anywhere; }
+.cand .who small { color: var(--muted); font-size: 12px; }
+.tag { font-style: normal; font-weight: 600; color: var(--ink-2); }
+.tag.ok { color: var(--confirma); }
+.tag.st-reeleicao { color: var(--corrige); }
+.tag.st-novo { color: var(--s1); }
+.dhead .civil { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+.dhead .status { font-weight: 600; color: var(--ink); }
+.cand .money { font: 500 13px var(--mono); color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.score { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.score b { font: 900 28px/1 var(--display); font-variant-numeric: tabular-nums; }
+.ev { display: flex; gap: 3px; }
+.ev i { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--muted); }
+.ev i.on { background: var(--confirma); border-color: var(--confirma); }
+.empty { padding: 24px; color: var(--muted); background: var(--surface); border-radius: 4px; }
+#mais { margin-top: 12px; }
+
+/* Dossier */
+#dossie { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 20px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 24px); overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+.dhead { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; gap: 14px; align-items: center; }
+.av { display: block; object-fit: cover; border-radius: 3px; background: var(--sunk); }
+.av.sm { width: 36px; height: 45px; }
+.av.lg { width: 72px; height: 90px; }
+.av.xs { width: 28px; height: 35px; }
+.av.ini { display: grid; place-items: center; font: 700 13px var(--mono); color: var(--muted); border: 1px solid var(--line); }
+.av.lg.ini { font-size: 20px; }
+.dfoto { margin: 0; display: flex; flex-direction: column; gap: 4px; max-width: 110px; }
+.dfoto figcaption { font-size: 10px; line-height: 1.25; color: var(--muted); overflow-wrap: anywhere; }
+.traj { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.traj li { display: grid; grid-template-columns: 88px minmax(0, 1fr) auto; gap: 10px; align-items: baseline; }
+.traj .anos { font: 500 12px var(--mono); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.traj .fonte { font: 500 10px var(--mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.small { font-size: 12px !important; }
+.dhead .num { background: var(--panel); color: var(--panel-ink); font: 700 26px/1 var(--mono); letter-spacing: 0.14em; padding: 10px 12px; border-radius: 4px; }
+.dhead h2 { font: 900 30px/0.95 var(--display); text-transform: uppercase; margin: 0; }
+.dhead p { margin: 4px 0 0; color: var(--ink-2); font-size: 13px; }
+.close { font: 400 26px/1 var(--body); background: none; border: 0; color: var(--ink-2); cursor: pointer; padding: 4px 8px; }
+.scoreline { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; border-block: 1px solid var(--line); padding-block: 12px; }
+.scoreline > div { display: flex; flex-direction: column; }
+.nota { font: 900 44px/1 var(--display); }
+.nota.small { font-size: 28px; }
+.scoreline .muted { font-size: 12px; }
+.scoreline .btn-confirma { margin-left: auto; }
+#dossie section { display: flex; flex-direction: column; gap: 10px; }
+#dossie h3 { font: 700 13px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.1em; margin: 0; color: var(--ink-2); display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+#dossie h3 small { text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--muted); }
+#dossie h4 { margin: 4px 0 0; font-size: 14px; }
+#dossie p { margin: 0; font-size: 14px; }
+.ext { font: 600 12px var(--body); text-transform: none; letter-spacing: 0; color: var(--focus); margin-left: auto; }
+.inds { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.inds li { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 12px; align-items: center; }
+.inds strong { display: block; font-size: 14px; }
+.inds small { display: block; color: var(--muted); font-size: 12px; line-height: 1.35; }
+.ival { display: flex; align-items: center; gap: 8px; font: 700 14px var(--mono); }
+.meter { flex: 1; height: 8px; background: var(--sunk); border-radius: 4px; overflow: hidden; }
+.meter span { display: block; height: 100%; background: var(--ink-2); border-radius: 0 4px 4px 0; }
+.nd { font: 500 12px var(--mono); color: var(--muted); }
+.stack { display: flex; gap: 2px; height: 16px; }
+.seg { min-width: 3px; }
+.seg:first-child { border-radius: 4px 0 0 4px; }
+.seg:last-child { border-radius: 0 4px 4px 0; }
+.seg:only-child { border-radius: 4px; }
+.s1 { background: var(--s1); } .s2 { background: var(--s2); } .s3 { background: var(--s3); } .s4 { background: var(--s4); } .s5 { background: var(--s5); }
+.kv { border-collapse: collapse; font-size: 13px; width: 100%; font-variant-numeric: tabular-nums; }
+.kv th { text-align: left; font-weight: 400; padding: 3px 0; }
+.kv td { text-align: right; padding: 3px 0 3px 12px; font-family: var(--mono); }
+.key { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 8px; }
+.facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.facts div { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--ink-2); }
+.big { font: 700 24px/1.1 var(--mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+.flag { border-left: 3px solid var(--corrige); padding-left: 10px; }
+.bills { margin: 0; padding-left: 18px; font-size: 13px; display: flex; flex-direction: column; gap: 6px; }
+.bills em { color: var(--muted); font-size: 12px; }
+
+.metodo { margin-top: 40px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; font-size: 14px; color: var(--ink-2); }
+.metodo h2 { font: 900 26px/1 var(--display); text-transform: uppercase; color: var(--ink); margin: 0 0 8px; grid-column: 1 / -1; }
+.metodo h3 { font-size: 15px; color: var(--ink); margin: 0 0 6px; }
+.metodo p, .metodo ul { margin: 0 0 8px; max-width: 62ch; }
+.metodo ul { padding-left: 18px; }
+
+@media (max-width: 1180px) {
+  body.has-dossie .layout { grid-template-columns: 290px minmax(0, 1fr); }
+  #dossie { position: fixed; inset: 0 0 0 auto; width: min(480px, 100%); max-height: none; border-radius: 0; z-index: 10; padding-top: calc(env(safe-area-inset-top, 0px) + 20px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); box-shadow: -12px 0 40px rgba(0, 0, 0, 0.25); }
+}
+@media (max-width: 860px) {
+  .layout, body.has-dossie .layout { grid-template-columns: minmax(0, 1fr); }
+  .rail { position: static; order: 2; }
+  #cedulas { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+  #achados { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .metodo { grid-template-columns: minmax(0, 1fr); }
+  .mast .wrap { grid-template-columns: minmax(0, 1fr); }
+  .mast .when { text-align: left; }
+}
+@media (max-width: 520px) {
+  .cand { grid-template-columns: 56px 36px minmax(0, 1fr) 52px; }
+  .dhead { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .dhead .num { display: none; }
+  .cand .pos, .cand .money { display: none; }
+  .cand .num { font-size: 17px; }
+  .inds li { grid-template-columns: minmax(0, 1fr); }
+  .facts { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cand, #cedulas button { transition: border-color 0.12s, background-color 0.12s; }
+}
+</style>
+
+<header class="mast">
+  <div class="wrap">
+    <div>
+      <h1>Radar do Voto <span>2026</span></h1>
+      <p>Quem já trabalhou, quanto custa e quem banca. <b>O Radar não diz em quem votar.</b> Ele cruza os dados oficiais do TSE e da Câmara, e você decide o que pesa mais. A nota olha para o que cada candidato fez; as fotos podem ser escondidas para uma avaliação às cegas.</p>
+    </div>
+    <div class="when">1º turno<b>04/10</b>domingo</div>
+    <p id="retrato">Carregando dados…</p>
+  </div>
+</header>
+
+<div class="wrap layout">
+  <aside class="rail" aria-label="Controles">
+    <div class="box">
+      <h2>Seu estado</h2>
+      <label class="field" for="uf">UF do seu título<select id="uf"></select></label>
+      <label class="check" for="mostrarFotos"><input type="checkbox" id="mostrarFotos" checked> Mostrar fotos</label>
+      <label class="field" for="situacao">Situação do candidato<select id="situacao">
+        <option value="todas">Todas</option>
+        <option value="reeleicao">Tenta a reeleição</option>
+        <option value="novo">Estreante no cargo</option>
+        <option value="outro-cargo">Tem mandato, disputa outro cargo</option>
+        <option value="ja-exerceu">Ex-suplente</option>
+        <option value="camara">Com histórico na Câmara</option>
+      </select></label>
+    </div>
+    <div class="box">
+      <h2>O que pesa no seu voto</h2>
+      <p class="muted" style="font-size:12px;margin:0">Padrão: <b>Economia e liberdade</b>. Os indicadores de agenda usam votos reais em plenário; quem não tem mandato na Câmara fica no meio da escala.</p>
+      <div id="presets" aria-label="Combinações prontas"></div>
+      <div id="pesos"></div>
+    </div>
+    <div class="box cola" aria-labelledby="cola-titulo">
+      <h2 id="cola-titulo">Minha cola</h2>
+      <ol id="cola-lista"></ol>
+      <div class="row">
+        <button type="button" class="btn-confirma" id="copiar">Copiar cola</button>
+        <button type="button" class="ghost" id="limpar">Corrige</button>
+        <span id="copiar-status" role="status"></span>
+      </div>
+      <textarea id="cola-texto" hidden readonly aria-label="Texto da cola"></textarea>
+      <p class="muted" style="font-size:12px;margin:0">Levar a cola em papel é permitido. Celular na cabine, não.</p>
+    </div>
+  </aside>
+
+  <main>
+    <div id="cedulas" role="tablist" aria-label="Cédulas na ordem da urna"></div>
+    <div id="achados" aria-live="polite"></div>
+    <div class="toolbar">
+      <label class="field" for="busca">Buscar por nome, número ou partido<input type="search" id="busca" placeholder="ex.: 1234, PSOL, Maria"></label>
+      <label class="field" for="ordem">Ordenar por<select id="ordem">
+        <option value="nota">Nota técnica</option>
+        <option value="evidencia">Mais evidência</option>
+        <option value="dinheiro">Arrecadação</option>
+        <option value="numero">Número</option>
+      </select></label>
+    </div>
+    <p class="legend">Nota de 0 a 100 com os seus pesos. Os pontos mostram quanto do peso tem dado real (●●● = todos os indicadores escolhidos). Indicador sem dado conta como mediano (50).</p>
+    <ol id="lista" aria-label="Candidaturas"></ol>
+    <button type="button" id="mais" hidden>Mostrar mais</button>
+  </main>
+
+  <aside id="dossie" hidden aria-label="Dossiê do candidato"></aside>
+</div>
+
+<section class="wrap metodo" aria-labelledby="metodo-t">
+  <h2 id="metodo-t">Como a nota é feita</h2>
+  <div>
+    <h3>Fontes</h3>
+    <ul>
+      <li>TSE: prestação de contas de campanha 2026 (receitas e despesas contratadas).</li>
+      <li>Câmara dos Deputados: votações nominais do plenário, orientações de bancada, proposições, cota parlamentar e histórico de exercício (2023–2026).</li>
+      <li>Portal da Transparência: emendas parlamentares.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Cálculo</h3>
+    <p>Cada indicador vira uma posição relativa de 0 a 100. Dinheiro de campanha é comparado dentro da mesma disputa (cargo e estado). O trabalho na Câmara é comparado entre deputados que concorrem, e a cota só entre colegas do mesmo estado.</p>
+    <p>Os indicadores de agenda (impostos, liberdade econômica, liberdade de expressão) são a parcela de votos alinhados em votações nominais escolhidas e listadas no dossiê, com o motivo de cada sentido. A lista fica em <code>src/radar/agenda.json</code> e pode ser editada.</p>
+    <p>A nota é a média ponderada dos indicadores. Quando falta um dado, ele conta como mediano (50): falta de evidência não premia nem pune. Por isso quem só tem dados de campanha fica perto do meio da escala.</p>
+  </div>
+  <div>
+    <h3>Limites</h3>
+    <ul>
+      <li>Todas as candidaturas registradas no TSE aparecem; quem ainda não prestou contas fica sem os indicadores de campanha. Fotos oficiais do TSE só para os estados cujo pacote foi baixado (hoje: SP e presidente).</li>
+      <li>Senado e assembleias estaduais ainda não estão no cruzamento.</li>
+      <li>Fotos e trajetória só aparecem para quem tem registro na Câmara, no Senado ou no Wikidata (este último só para presidente, governador e senador). As fotos do TSE estão bloqueadas para download automático.</li>
+      <li>Reeleição e estreia só são verificáveis para mandatos federais (Câmara e Senado). Para governador, presidente e deputado estadual, quem não tem mandato federal aparece como "não verificado".</li>
+      <li>A agenda usa 6 votações (1 sobre liberdade de expressão). É pouca evidência por tema: trate como sinal, não veredito.</li>
+      <li>Líderes partidários às vezes orientam em vez de votar, o que reduz a presença medida.</li>
+      <li>O cruzamento TSE × Câmara é por nome civil completo. Homônimos ambíguos ficam sem vínculo.</li>
+    </ul>
+  </div>
+</section>
+
+<script type="module" src="app.js"></script>

@@ -1,0 +1,68 @@
+{
+  "descricao": "Votações nominais do plenário (2023-2026) usadas para medir alinhamento com a agenda: redução de impostos, liberdade econômica e liberdade de expressão. 'posicao' é o voto alinhado à agenda. Edite para auditar ou mudar; rode 'bun run radar:build' depois.",
+  "temas": {
+    "impostos": {
+      "nome": "Redução de impostos",
+      "votos": [
+        {
+          "id": "2383287-43",
+          "proposicao": "PL 4173/2023",
+          "data": "2023-10-25",
+          "resumo": "Tributação de fundos exclusivos e aplicações no exterior (offshores)",
+          "posicao": "Não",
+          "porque": "O texto cria tributação nova sobre fundos exclusivos e offshores."
+        },
+        {
+          "id": "2525870-8",
+          "proposicao": "PDL 314/2025",
+          "data": "2025-06-16",
+          "resumo": "Urgência para sustar o Decreto 12.499/2025, que aumentou o IOF",
+          "posicao": "Sim",
+          "porque": "Sustar o decreto derruba o aumento do IOF."
+        }
+      ]
+    },
+    "liberdadeEconomica": {
+      "nome": "Liberdade econômica",
+      "votos": [
+        {
+          "id": "2357871-9",
+          "proposicao": "PDL 111/2023",
+          "data": "2023-05-03",
+          "resumo": "Urgência para sustar trechos do Decreto 11.467/2023 que mudaram a regulação do Marco do Saneamento",
+          "posicao": "Sim",
+          "porque": "Sustar mantém as regras de concorrência do Marco do Saneamento para contratar operadoras."
+        },
+        {
+          "id": "575585-92",
+          "proposicao": "PL 5228/2019 (apensado ao PL 5496/2013)",
+          "data": "2023-11-21",
+          "resumo": "Contrato de primeiro emprego por prazo determinado na CLT",
+          "posicao": "Sim",
+          "porque": "Flexibiliza a contratação formal de jovens."
+        },
+        {
+          "id": "2349493-82",
+          "proposicao": "PL 709/2023",
+          "data": "2024-05-21",
+          "resumo": "Sanções a ocupantes e invasores de propriedades",
+          "posicao": "Sim",
+          "porque": "Reforça o direito de propriedade, pilar dos índices de liberdade econômica."
+        }
+      ]
+    },
+    "expressao": {
+      "nome": "Liberdade de expressão",
+      "votos": [
+        {
+          "id": "2310837-8",
+          "proposicao": "PL 2630/2020",
+          "data": "2023-04-25",
+          "resumo": "Urgência do PL das Fake News (regulação e moderação de conteúdo em plataformas)",
+          "posicao": "Não",
+          "porque": "O projeto amplia deveres de moderação de conteúdo e sanções às plataformas."
+        }
+      ]
+    }
+  }
+}
