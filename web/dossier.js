@@ -92,7 +92,9 @@ function trajetoriaBlock(c) {
     age && `${age} anos no dia da eleição`,
     f?.ocupacao && `Ocupação declarada: ${h(titleName(f.ocupacao))}`,
     f?.instrucao && h(titleName(f.instrucao)),
+    f?.estadoCivil && h(titleName(f.estadoCivil)),
     f?.federacao && `Federação: ${h(titleName(f.federacao))}`,
+    f?.coligacao && `Coligação: ${h(titleName(f.coligacao))}`,
   ].filter(Boolean).join(" · ");
   if (!bio) return `<section><h3>Ficha e trajetória</h3>${ficha ? `<p>${ficha}</p>` : ""}<p class="muted">Sem cargos públicos registrados nas fontes consultadas (Câmara, Senado, Wikidata).</p></section>`;
   const itens = bio.trajetoria.map((t) => `<li><span class="anos">${h(ano(t.inicio) || "?")}–${h(ano(t.fim) || (t.fim === null && t.inicio ? "" : "?"))}</span><span>${h(t.cargo)}</span><span class="fonte">${h(t.fonte)}</span></li>`).join("");
@@ -101,6 +103,50 @@ function trajetoriaBlock(c) {
     ${itens ? `<ul class="traj">${itens}</ul>` : `<p class="muted">Nenhum cargo público registrado nas fontes consultadas.</p>`}
     ${bio.trajetoria.some((t) => t.fonte === "Wikidata") ? `<p class="muted small">Itens marcados Wikidata vêm de base colaborativa; confira no link.</p>` : ""}
   </section>`;
+}
+
+function patrimonioBlock(p) {
+  if (!p) return "";
+  const antes = p.total2022;
+  const delta = antes !== null && antes > 0 ? (p.total - antes) / antes : null;
+  const cmp = antes === null ? "" : `<p class="muted">Em 2022 declarou ${money(antes)}${delta !== null ? `: variação nominal de ${delta >= 0 ? "+" : "−"}${pct(Math.abs(delta))}, sem descontar inflação` : ""}.</p>`;
+  return `<section><h3>Patrimônio declarado <small>ao TSE</small></h3>
+    <div class="facts"><div><span class="big">${moneyShort(p.total)}</span><span>em ${int(p.n)} ${p.n === 1 ? "bem" : "bens"} declarados</span></div></div>
+    ${p.tipos.length ? `<p class="muted">Maiores grupos: ${p.tipos.map((t) => `${h(t.tipo)} ${moneyShort(t.valor)}`).join(" · ")}</p>` : ""}${cmp}
+    <p class="muted small">Valores autodeclarados, em reais nominais; não passam por auditoria.</p></section>`;
+}
+
+function registroBlock(motivos) {
+  if (!motivos) return "";
+  return `<section><h3>Situação do registro <small>Justiça Eleitoral</small></h3>
+    <p class="flag"><b>Para conferir:</b> a candidatura tem fundamento de indeferimento ou impugnação registrado no TSE: ${motivos.map(h).join("; ")}.</p>
+    <p class="muted small">Não é condenação nem decisão final: pode haver recurso ou regularização. Confirme o andamento no DivulgaCandContas.</p></section>`;
+}
+
+function atuacaoBlock(bio) {
+  const a = bio?.atuacao;
+  if (!a) return "";
+  const com = a.comissoes.map((c) => `<li><span>${h(c.nome)} <small class="muted">(${h(c.sigla)})</small></span><span class="fonte">${h(c.titulo)}</span></li>`).join("");
+  return `<section><h3>Atuação parlamentar <small>legislatura 2023–2026</small></h3>
+    <p class="muted">${a.discursos !== null ? `${int(a.discursos)} discursos em plenário · ` : ""}${a.frentes ? `${int(a.frentes)} frentes parlamentares` : ""}</p>
+    ${com ? `<h4>Comissões</h4><ul class="traj">${com}</ul>` : ""}
+    ${a.frentesDestaque?.length ? `<p class="muted small">Frentes (amostra): ${a.frentesDestaque.map(h).join(" · ")}</p>` : ""}</section>`;
+}
+
+const REDE = { "twitter.com": "X/Twitter", "x.com": "X/Twitter", "facebook.com": "Facebook", "instagram.com": "Instagram", "youtube.com": "YouTube", "tiktok.com": "TikTok", "kwai.com": "Kwai", "threads.net": "Threads" };
+function contatoBlock(bio) {
+  const links = [...(bio?.redes ?? [])].map((u) => {
+    const host = new URL(u).hostname.replace(/^www\./, "");
+    return `<a class="ext" href="${h(u)}" target="_blank" rel="noopener noreferrer">${h(REDE[host] ?? host)} ↗</a>`;
+  });
+  if (bio?.site) links.unshift(`<a class="ext" href="${h(bio.site)}" target="_blank" rel="noopener noreferrer">Site ↗</a>`);
+  if (!links.length && !bio?.escolaridade) return "";
+  return `<section><h3>Contato público</h3><p>${links.join(" · ")}</p>${bio.escolaridade ? `<p class="muted">Escolaridade (Câmara): ${h(bio.escolaridade)}</p>` : ""}</section>`;
+}
+
+function resumoBlock(bio) {
+  const r = bio?.resumo;
+  return r ? `<section><h3>Resumo <a class="ext" href="${h(r.url)}" target="_blank" rel="noopener noreferrer">Wikipédia ↗</a></h3><p>${h(r.texto)}</p><p class="muted small">Texto de enciclopédia colaborativa; confira no link.</p></section>` : "";
 }
 
 // Poll average (majoritarian) or 2022-calibrated model (deputies); see the Expectativa tab.
@@ -135,7 +181,11 @@ export function renderDossier(c, s, inCola, agenda, foto) {
       <button type="button" class="btn-confirma" data-cola="${h(c.id)}">${inCola ? "Tirar da cola" : "Pôr na cola"}</button>
     </div>
     ${prevBlock(c.prev)}
+    ${resumoBlock(c.bio)}
+    ${registroBlock(c.motivos)}
     ${trajetoriaBlock(c)}
+    ${atuacaoBlock(c.bio)}
+    ${patrimonioBlock(c.patrimonio)}
     ${agendaBlock(c.mandato, agenda)}
     <section><h3>Indicadores <small>(0 a 100)</small></h3><ul class="inds">${indicatorRows(c)}</ul></section>
     <section>
@@ -143,5 +193,6 @@ export function renderDossier(c, s, inCola, agenda, foto) {
       ${c.temContas === false ? `<p class="muted">Ainda sem prestação de contas no retrato do TSE.</p>` : ""}<p class="muted">${money(f.total)} arrecadados · ${int(f.doadoresPF)} doadores pessoa física · maior fonte única: ${pct(f.maiorDoador)} · ${money(f.gastos)} em gastos contratados</p>
       ${moneyBar(f)}
     </section>
-    ${mandateBlock(c.mandato)}`;
+    ${mandateBlock(c.mandato)}
+    ${contatoBlock(c.bio)}`;
 }

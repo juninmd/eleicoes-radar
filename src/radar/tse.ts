@@ -22,6 +22,8 @@ export interface Candidate {
   ufNascimento?: string;
   ocupacao?: string;
   instrucao?: string;
+  estadoCivil?: string;
+  coligacao?: string;
   cpf?: string; // join key only — never serialised
 }
 
