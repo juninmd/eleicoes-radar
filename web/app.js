@@ -2,6 +2,7 @@ import { DEFAULT_PRESET, INDICATORS, PRESETS, score } from "./score.js";
 import { displayName, h, int, moneyShort, pct, slug, STATUS, titleName } from "./format.js";
 import { renderDossier } from "./dossier.js";
 import { renderExpectativa } from "./expectativa.js";
+import { renderRede } from "./rede.js";
 
 // Ballot order and digit count exactly as on the urna.
 const BALLOTS = [
@@ -35,6 +36,9 @@ const state = {
   cola: store.get("cola", {}),
   modo: store.get("modo", "radar"), // "radar" | "expectativa"
   exp: null,
+  rede: null,
+  redeFoco: null, // candidate id, or null for the overview
+  redeSel: null,
 };
 const $ = (s) => document.querySelector(s);
 const cache = new Map();
@@ -165,6 +169,12 @@ function renderModo() {
   for (const b of document.querySelectorAll("[data-modo]")) b.setAttribute("aria-selected", String(b.dataset.modo === state.modo));
   $("#radar-view").hidden = state.modo !== "radar";
   $("#exp-view").hidden = state.modo !== "expectativa";
+  $("#rede-view").hidden = state.modo !== "rede";
+  if (state.modo === "rede") {
+    const cand = state.redeFoco && state.cands.find((x) => x.id === state.redeFoco);
+    $("#rede-view").innerHTML = renderRede({ rede: state.rede, cand: cand || null, sel: state.redeSel });
+    return;
+  }
   if (state.modo !== "expectativa") return;
   const b = BALLOTS[state.ballot];
   const cargo = state.uf === "DF" && b.alt ? b.alt : b.cargo;
@@ -214,9 +224,12 @@ function bind() {
     render();
   });
   document.addEventListener("click", (e) => {
-    const t = e.target.closest("[data-ballot],[data-open],[data-close],[data-cola],[data-modo],#exp-mais");
+    const t = e.target.closest("[data-ballot],[data-open],[data-close],[data-cola],[data-modo],#exp-mais,[data-rede],[data-rede-geral],[data-rede-foco]");
     if (!t) return;
     if (t.dataset.modo) { state.modo = t.dataset.modo; state.limit = PAGE; store.set("modo", state.modo); renderModo(); return; }
+    if (t.dataset.redeFoco !== undefined) { state.redeFoco = t.dataset.redeFoco; state.redeSel = null; state.modo = "rede"; renderModo(); return; }
+    if ("redeGeral" in t.dataset) { state.redeFoco = null; state.redeSel = null; renderModo(); return; }
+    if (t.dataset.rede) { state.redeSel = state.redeSel === t.dataset.rede ? null : t.dataset.rede; renderModo(); return; }
     if (t.id === "exp-mais") { state.limit += PAGE; renderModo(); return; }
     if (t.dataset.ballot) { state.ballot = Number(t.dataset.ballot); state.limit = PAGE; state.open = null; render(); loadFotos(); }
     else if (t.dataset.open) { state.open = state.open === t.dataset.open ? null : t.dataset.open; renderList(); renderDossierPanel(); renderModo(); }
@@ -240,7 +253,8 @@ function bind() {
 }
 
 async function main() {
-  const [meta, agenda, exp] = await Promise.all([loadJson("data/meta.json"), loadJson("data/agenda.json"), loadJson("data/expectativa.json").catch(() => null)]);
+  const [meta, agenda, exp, rede] = await Promise.all([loadJson("data/meta.json"), loadJson("data/agenda.json"), loadJson("data/expectativa.json").catch(() => null), loadJson("data/rede.json").catch(() => null)]);
+  state.rede = rede;
   state.agenda = agenda;
   state.exp = exp;
   $("#uf").innerHTML = meta.ufs.filter((u) => u.uf !== "BR").map((u) => `<option value="${u.uf}">${u.uf}</option>`).join("");

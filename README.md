@@ -11,6 +11,7 @@ bun run radar:fetch     # baixa os arquivos da Câmara (idempotente; --force atu
 bun run radar:polls     # pesquisas da Wikipédia -> data/pesquisas.json (cache diário; --force atualiza)
 bun run radar:model     # treina o modelo de deputados em 2022 -> data/modelo-deputados.json
 bun run radar:profiles  # trajetória e fotos de reserva (Câmara, Senado, Wikidata)
+bun run radar:suppliers # CNPJ dos fornecedores na Receita (BrasilAPI + minhareceita, sem chave; retomável)
 bun run radar:build     # gera web/data/ (uf/<UF>.json, fotos/, expectativa.json, meta.json)
 bun run radar:serve     # http://127.0.0.1:4173  (health: /health)
 bun test src/radar web
@@ -40,6 +41,8 @@ Não entram na nota; aparecem no dossiê de cada candidatura.
 | Estado civil, coligação | TSE `consulta_cand` |
 | Comissões, frentes, discursos, redes sociais, escolaridade | API de dados abertos da Câmara (`radar:profiles`) |
 | Comissões no Senado | API de dados abertos do Senado (`radar:profiles`) |
+| Principais fornecedores (CNPJ, situação, endereço, outros políticos atendidos, sinais "para conferir") | TSE despesas de campanha + CEAP + Receita Federal |
+| Aba Rede (grafo partidos ↔ fornecedores; rede de um candidato) | mesmas fontes de fornecedores |
 | Resumo biográfico | Wikipédia (via link do Wikidata já validado por nome) |
 
 Links de redes sociais só entram se forem https de hosts conhecidos. Caches em `data/extra/`.

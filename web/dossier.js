@@ -1,4 +1,5 @@
 import { INDICATORS } from "./score.js";
+import { fornecedoresBlock } from "./fornecedores.js";
 import { displayName, h, int, money, moneyShort, pct, STATUS, titleName } from "./format.js";
 
 // Fixed categorical order: identity never depends on rank.
@@ -193,6 +194,7 @@ export function renderDossier(c, s, inCola, agenda, foto) {
       ${c.temContas === false ? `<p class="muted">Ainda sem prestação de contas no retrato do TSE.</p>` : ""}<p class="muted">${money(f.total)} arrecadados · ${int(f.doadoresPF)} doadores pessoa física · maior fonte única: ${pct(f.maiorDoador)} · ${money(f.gastos)} em gastos contratados</p>
       ${moneyBar(f)}
     </section>
+    ${fornecedoresBlock(c.fornecedores, c.id)}
     ${mandateBlock(c.mandato)}
     ${contatoBlock(c.bio)}`;
 }
