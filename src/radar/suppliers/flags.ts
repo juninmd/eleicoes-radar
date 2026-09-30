@@ -12,6 +12,13 @@ export interface FlagInput {
 }
 
 const DAY = 86_400_000;
+export const NEW_DAYS = 365;
+
+// Days between the company's opening and the first payment a politician made to it.
+export function ageAtFirstPayment(abertura: string | undefined, primeiroPagamento: string): number | null {
+  if (!abertura || primeiroPagamento >= "9999") return null;
+  return Math.round((Date.parse(primeiroPagamento) - Date.parse(abertura)) / DAY);
+}
 const brl = (v: number) => `R$ ${Math.round(v).toLocaleString("pt-BR")}`;
 const br = (iso: string) => iso.split("-").reverse().join("/");
 

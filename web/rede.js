@@ -108,6 +108,8 @@ export function renderRede({ rede, cand, sel }) {
       <circle cx="${n.x}" cy="${n.y}" r="${r.toFixed(1)}"/>${labelIds.has(n.id) ? `<text x="${n.x}" y="${(n.y - r - 4).toFixed(1)}" text-anchor="middle">${h(n.label.length > 26 ? `${n.label.slice(0, 25)}…` : n.label)}</text>` : ""}
       <title>${h(n.label)}${n.total ? ` · ${moneyShort(n.total)}` : ""}</title></g>`;
   }).join("");
+  const dataBr = (iso) => iso.split("-").reverse().join("/");
+  const novas = (rede.novas ?? []).map((f) => `<tr><td>${h(titleName(f.nome))}<br><small class="muted">${h(f.cnpj)} · ${h(f.endereco)}</small></td><td>${dataBr(f.abertura)}<br><small class="muted">${f.diasAntes} dias antes do 1º pagamento</small></td><td>${int(f.politicos)}</td><td>${moneyShort(f.total)}</td></tr>`).join("");
   const top = rede.fornecedores.slice(0, 10).map((f) => `<tr><td>${h(titleName(f.nome))}<br><small class="muted">${h(f.cnpj)}</small></td><td>${int(f.politicos)}</td><td>${moneyShort(f.total)}</td><td>${f.flags.length ? `<span class="pill no">${f.flags.length} sinal(is)</span>` : ""}</td></tr>`).join("");
   return `<section class="exp-card rede">
     <h2>${cand ? `Rede de ${h(displayName(cand))}` : "Rede de fornecedores"}</h2>
@@ -116,6 +118,7 @@ export function renderRede({ rede, cand, sel }) {
     <svg viewBox="0 0 ${W} ${H}" role="group" aria-label="Grafo de partidos, fornecedores e políticos">${edges}${dots}</svg>
     <div class="rede-detail" aria-live="polite">${detail(selNode, rede)}</div>
     ${cand ? "" : `<h3>Fornecedores mais compartilhados</h3><div class="scroll"><table class="agenda"><thead><tr><th>Empresa</th><th>Políticos</th><th>Recebido</th><th></th></tr></thead><tbody>${top}</tbody></table></div>`}
+    ${cand || !novas ? "" : `<h3>Empresas novas que mais receberam <small>abertas menos de 1 ano antes do 1º pagamento, mín. R$ 50 mil</small></h3><div class="scroll"><table class="agenda"><thead><tr><th>Empresa</th><th>Abertura</th><th>Políticos</th><th>Recebido</th></tr></thead><tbody>${novas}</tbody></table></div>`}
     <p class="muted small">Dados do TSE, da cota parlamentar e da Receita Federal. Uma empresa atender vários políticos, ou aparecer com sinal, não indica irregularidade por si só.</p>
   </section>`;
 }

@@ -23,7 +23,7 @@ function outros(f) {
 export function fornecedoresBlock(list, id) {
   if (!list) return "";
   const rows = list.map((f) => `<li class="forn">
-      <div><strong>${h(titleName(f.nome))}</strong> <span class="muted">CNPJ ${h(f.cnpj)}</span><span class="fonte">${moneyShort(f.valor)} · ${f.via.map((v) => VIA[v] ?? v).join(" + ")}</span></div>
+      <div><strong>${h(titleName(f.nome))}</strong>${f.nova ? ` <span class="pill no" title="Aberta menos de um ano antes do primeiro pagamento">empresa nova</span>` : ""} <span class="muted">CNPJ ${h(f.cnpj)}</span><span class="fonte">${moneyShort(f.valor)} · ${f.via.map((v) => VIA[v] ?? v).join(" + ")}</span></div>
       ${f.cnae ? `<small class="muted">${h(f.cnae)}</small>` : ""}
       <p class="small">${empresaLine(f.empresa)}</p>
       <p class="small">${outros(f)}</p>

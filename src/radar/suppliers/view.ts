@@ -1,6 +1,6 @@
 // Public per-candidate supplier list: top payees, what the registry says about them,
 // and which other politicians they served. Individuals (CPF) are never listed.
-import { supplierFlags } from "./flags";
+import { ageAtFirstPayment, NEW_DAYS, supplierFlags } from "./flags";
 import { formatCnpj } from "./cnpj";
 import type { Empresa } from "./receita";
 import type { Directory, Suppliers, Supplier } from "./collect";
@@ -15,6 +15,7 @@ export interface FornecedorView {
   via: string[];
   cnae: string;
   empresa: { situacao: string; abertura: string; capital: number | null; porte: string; endereco: string } | null;
+  nova: boolean; // opened less than a year before its first payment from a politician
   outros: number;
   outrosTop: { id: string; nome: string; cargo: string; uf: string; partido: string; valor: number }[];
   flags: string[];
@@ -56,6 +57,10 @@ export function supplierView(id: string, list: Supplier[], dir: Directory, empre
       via: [...s.pagos.get(id)!.via],
       cnae: e?.cnae || s.cnae,
       empresa: e?.encontrada ? { situacao: e.situacao ?? "", abertura: e.abertura ?? "", capital: e.capital ?? null, porte: e.porte ?? "", endereco: addr(e) } : null,
+      nova: (() => {
+        const d = ageAtFirstPayment(e?.abertura, s.primeiroPagamento);
+        return d !== null && d >= 0 && d < NEW_DAYS;
+      })(),
       outros: others.length,
       outrosTop: others.slice(0, OTHERS).flatMap(([pid, p]) => {
         const d = dir.get(pid);

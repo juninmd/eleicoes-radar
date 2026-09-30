@@ -90,3 +90,21 @@ describe("graph", () => {
     expect(r.arestas.map((e) => e.p).sort()).toEqual(["P1", "P2"]);
   });
 });
+
+describe("new companies", () => {
+  test("ranks only valid-CNPJ suppliers opened <1 year before the first payment, above the minimum total", async () => {
+    const { buildRede } = await import("./graph");
+    const all: Suppliers = new Map();
+    const dir: Directory = new Map([["10", { id: "10", nome: "A", cargo: "X", uf: "SP", partido: "P1" }]]);
+    const other = "53721430000169";
+    addCampaign(all, camp({ SQ_CANDIDATO: "10", VR_DESPESA_CONTRATADA: "80.000,00", DT_DESPESA: "01/09/2026" })); // OK: young
+    addCampaign(all, camp({ SQ_CANDIDATO: "10", NR_CPF_CNPJ_FORNECEDOR: other, VR_DESPESA_CONTRATADA: "80.000,00", DT_DESPESA: "01/09/2026" })); // old
+    const emp = (cnpj: string, abertura: string): Empresa => ({ cnpj, encontrada: true, situacao: "ATIVA", abertura, capital: 1e6 });
+    const r = buildRede(all, dir, new Map([[OK, emp(OK, "2026-03-01")], [other, emp(other, "2010-01-01")]]), new Map());
+    expect(r.novas.map((n) => n.id)).toEqual([OK]);
+    expect(r.novas[0]!.diasAntes).toBe(184);
+    const v = supplierView("10", byPolitician(all).get("10")!, dir, new Map([[OK, emp(OK, "2026-03-01")], [other, emp(other, "2010-01-01")]]), new Map());
+    expect(v.find((f) => f.cnpj === "11.222.333/0001-81")!.nova).toBe(true);
+    expect(v.find((f) => f.cnpj !== "11.222.333/0001-81")!.nova).toBe(false);
+  });
+});

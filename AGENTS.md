@@ -76,6 +76,7 @@ Base: `https://cdn.tse.jus.br/estatistica/sead/odsele/<pasta>/<arquivo>.zip`. Os
 - Fonte sem chave: `brasilapi.com.br/api/cnpj/v1/{cnpj}` e `minhareceita.org/{cnpj}` (mesmo esquema). Um espelho sozinho fica em ~2 req/s; **alternando os dois por worker chegou a ~27 req/s** (24 mil CNPJs em ~15 min). 404/400 = CNPJ não encontrado (cacheado); 429/5xx = tenta o outro espelho, não cacheia falha.
 - Priorização: CNPJs no top 5 de fornecedores de cada candidatura, titulares primeiro. Cache JSONL `data/receita/cnpj.jsonl`, linha truncada é ignorada e refeita.
 - Sinais "para conferir" (`suppliers/flags.ts`): dígito verificador inválido, CNPJ não localizado, situação ≠ ATIVA, aberta ≤180 dias antes do 1º pagamento (ou depois dele), capital social < 1/50 do recebido (total ≥ R$100 mil), endereço compartilhado por ≥4 fornecedores. Cerca de 20% dos fornecedores acendem algum: por isso o texto insiste que não é irregularidade.
+- Data de criação = `data_inicio_atividade` (campo `abertura` no cache; presente em 100% dos 24.111 CNPJs achados). "Empresa nova" = aberta <365 dias antes do 1º pagamento (`flags.ts#ageAtFirstPayment`); a aba Rede lista as 25 novas que mais receberam (mín. R$ 50 mil, CNPJ válido). ~2.050 dos consultados abriram nos últimos 12 meses.
 - Não puxamos quadro societário (QSA) de propósito: escopo e privacidade. Se for cruzar sócios com políticos, decidir isso antes e com revisão de SecOps.
 - Alternativa offline se as APIs caírem: dump da Receita (`arquivos.receitafederal.gov.br`, dezenas de GB); não foi necessário.
 
