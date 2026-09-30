@@ -11,7 +11,8 @@
     "test": "bun test src/radar web",
     "radar:polls": "bun run src/radar/polls/fetch-polls.ts",
     "radar:model": "bun run src/radar/model/train.ts",
-    "radar:profiles": "bun run src/radar/profiles/fetch-profiles.ts"
+    "radar:profiles": "bun run src/radar/profiles/fetch-profiles.ts",
+    "radar:suppliers": "bun run src/radar/suppliers/fetch-suppliers.ts"
   },
   "dependencies": {
     "fflate": "0.8.3",

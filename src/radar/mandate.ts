@@ -39,7 +39,7 @@ function* rowsOf(paths: string[]): Generator<Row> {
   }
 }
 
-function* ceapRows(): Generator<Row> {
+export function* ceapRows(): Generator<Row> {
   for (const y of YEARS) {
     const zip = `${CAMARA}/Ano-${y}.csv.zip`;
     if (!existsSync(zip)) {

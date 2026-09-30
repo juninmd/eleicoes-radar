@@ -15,10 +15,15 @@ import { classify, RENOVACAO, type Senator } from "./incumbency";
 import { buildExpectativa, type Prev } from "./expectativa";
 import { loadBens, personKey, type Bens } from "./enrich/bens";
 import { loadMotivos } from "./enrich/cassacao";
+import { loadSuppliers } from "./suppliers/load";
+import { buildRede } from "./suppliers/graph";
+import { addressCounts, byPolitician, supplierView, type FornecedorView } from "./suppliers/view";
+import { loadCache } from "./suppliers/receita";
 
 export interface Enrich {
   bens?: Bens;
   motivos?: string[];
+  fornecedores?: FornecedorView[];
 }
 
 export function loadSenators(path = "data/senado/senadores-atual.json"): Map<string, Senator[]> {
@@ -67,6 +72,7 @@ export function toPublic({ c, m, ind, perfil }: Scored, bio: Profile | null = nu
     ficha: c.nascimento !== undefined ? { nascimento: c.nascimento, ufNascimento: c.ufNascimento, ocupacao: c.ocupacao, instrucao: c.instrucao, federacao: c.federacao, estadoCivil: c.estadoCivil ?? null, coligacao: c.coligacao ?? null } : null,
     patrimonio: extra.bens ?? null,
     motivos: extra.motivos?.length ? extra.motivos : null,
+    fornecedores: extra.fornecedores?.length ? extra.fornecedores : null,
     temContas: c.finance.dataRetrato !== "",
     num: c.numero,
     cargo: c.cargo,
@@ -139,12 +145,18 @@ async function main() {
   const bens = await loadBens(new Map(cands.map((c) => [c.sq, personKey(c.cpf, c.nome, c.nascimento)])));
   const motivos = await loadMotivos();
   console.log(`[enrich] ${bens.size} com bens declarados, ${[...bens.values()].filter((b) => b.total2022 !== null).length} com 2022 vinculado, ${motivos.size} com motivo de indeferimento`);
+  const deputyBySq = new Map(items.flatMap((s) => (s.m ? [[s.c.sq, s.m.deputadoId] as const] : [])));
+  const { all: suppliers, dir } = await loadSuppliers(cands, (c) => deputyBySq.get(c.sq) ?? null);
+  const empresas = loadCache();
+  const addrN = addressCounts(suppliers, empresas);
+  const paidBy = byPolitician(suppliers);
+  console.log(`[fornecedores] ${suppliers.size} fornecedores PJ, ${empresas.size} com registro da Receita em cache`);
   const { porCandidato, resumo } = buildExpectativa(cands);
   const byUf = new Map<string, ReturnType<typeof toPublic>[]>();
   for (const s of items) {
     const list = byUf.get(s.c.uf) ?? [];
     const foto = photoOf(s.c.sq);
-    list.push(toPublic(s, profiles[s.c.sq] ?? null, foto?.credito ?? null, porCandidato.get(s.c.sq) ?? null, { bens: bens.get(s.c.sq), motivos: motivos.get(s.c.sq) }));
+    list.push(toPublic(s, profiles[s.c.sq] ?? null, foto?.credito ?? null, porCandidato.get(s.c.sq) ?? null, { bens: bens.get(s.c.sq), motivos: motivos.get(s.c.sq), fornecedores: supplierView(s.c.sq, paidBy.get(s.c.sq) ?? [], dir, empresas, addrN) }));
     byUf.set(s.c.uf, list);
   }
 
@@ -173,6 +185,7 @@ async function main() {
     ufs: ufs.map((uf) => ({ uf, n: byUf.get(uf)!.length })),
   };
   writeFileSync(`${OUT}/agenda.json`, JSON.stringify(agenda));
+  writeFileSync(`${OUT}/rede.json`, JSON.stringify(buildRede(suppliers, dir, empresas, addrN)));
   writeFileSync(`${OUT}/expectativa.json`, JSON.stringify(resumo));
   writeFileSync(`${OUT}/meta.json`, JSON.stringify(meta, null, 2));
   console.log(`[build] ${meta.total} candidatos, ${meta.comMandato} com mandato na Câmara, ${ufs.length} arquivos em ${OUT}/uf (${((performance.now() - t0) / 1000).toFixed(1)}s)`);
