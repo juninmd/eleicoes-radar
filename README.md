@@ -18,14 +18,31 @@ bun test src/radar web
 
 ### Passo manual: TSE
 
-O TSE bloqueia downloads automáticos (403 do WAF). Baixe no navegador (URLs em
+O TSE bloqueia alguns clientes automáticos (403 do WAF); `curl -A "Mozilla/5.0" -O <url>` funcionou em 2026-09-29. Se falhar, baixe no navegador (URLs em
 `https://cdn.tse.jus.br/estatistica/sead/odsele/...`) e salve em `data/tse/`:
 
-- `consulta_cand_2026.zip` (cadastro), `prestacao_de_contas_eleitorais_candidatos_2026.zip` (contas),
+- `bem_candidato_2026.zip` (patrimônio declarado), `motivo_cassacao_2026.zip` (fundamentos de indeferimento),
+  `consulta_cand_2026.zip` (cadastro), `prestacao_de_contas_eleitorais_candidatos_2026.zip` (contas),
   `consulta_vagas_2026.zip` (vagas por cargo), `foto_cand2026_<UF>_div.zip` (fotos, uma por UF + `BR`)
+- Para a variação de patrimônio: `bem_candidato_2022.zip`
 - Para o modelo de deputados: `consulta_cand_2022.zip` e `prestacao_de_contas_eleitorais_candidatos_2022.zip`
 
 Depois rode `bun run radar:build` de novo. Outro caminho: `TSE_ZIP=caminho.zip bun run radar:build`.
+
+## Fontes de enriquecimento (sem API key)
+
+Não entram na nota; aparecem no dossiê de cada candidatura.
+
+| Bloco do dossiê | Fonte |
+|---|---|
+| Patrimônio declarado e variação vs 2022 (nominal) | TSE `bem_candidato` 2026 e 2022 (2022 ligado por CPF, ou nome civil + nascimento) |
+| Situação do registro (fundamentos de indeferimento/impugnação, "para conferir") | TSE `motivo_cassacao` |
+| Estado civil, coligação | TSE `consulta_cand` |
+| Comissões, frentes, discursos, redes sociais, escolaridade | API de dados abertos da Câmara (`radar:profiles`) |
+| Comissões no Senado | API de dados abertos do Senado (`radar:profiles`) |
+| Resumo biográfico | Wikipédia (via link do Wikidata já validado por nome) |
+
+Links de redes sociais só entram se forem https de hosts conhecidos. Caches em `data/extra/`.
 
 ## Indicadores
 

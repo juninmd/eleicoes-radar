@@ -13,6 +13,13 @@ import type { Candidate } from "./tse";
 import type { AgendaConfig } from "./camara/agenda";
 import { classify, RENOVACAO, type Senator } from "./incumbency";
 import { buildExpectativa, type Prev } from "./expectativa";
+import { loadBens, personKey, type Bens } from "./enrich/bens";
+import { loadMotivos } from "./enrich/cassacao";
+
+export interface Enrich {
+  bens?: Bens;
+  motivos?: string[];
+}
 
 export function loadSenators(path = "data/senado/senadores-atual.json"): Map<string, Senator[]> {
   const out = new Map<string, Senator[]>();
@@ -39,6 +46,8 @@ const OUT = "web/data";
 const AGENDA = process.env.AGENDA ?? "src/radar/agenda.json";
 
 const r0 = (v: number) => Math.round(v);
+// CEAP supplier names of individuals sometimes embed the supplier's CPF; never ship it.
+export const maskCpf = (s: string) => s.replace(/\d{3}\.\d{3}\.\d{3}-\d{2}/g, "(CPF omitido)");
 export const slug = (s: string) => normalizeName(s).toLowerCase().replace(/ /g, "-");
 
 export function linkMandate(c: Candidate, { byName, byCpf }: MandateIndex): Mandate | null {
@@ -49,13 +58,15 @@ export function linkMandate(c: Candidate, { byName, byCpf }: MandateIndex): Mand
   return sameUf.length === 1 ? sameUf[0]! : null;
 }
 
-export function toPublic({ c, m, ind, perfil }: Scored, bio: Profile | null = null, fotoCredito: string | null = null, prev: Prev | null = null) {
+export function toPublic({ c, m, ind, perfil }: Scored, bio: Profile | null = null, fotoCredito: string | null = null, prev: Prev | null = null, extra: Enrich = {}) {
   const f = c.finance;
   return {
     id: c.sq,
     nome: c.nome,
     urna: c.nomeUrna || null,
-    ficha: c.nascimento !== undefined ? { nascimento: c.nascimento, ufNascimento: c.ufNascimento, ocupacao: c.ocupacao, instrucao: c.instrucao, federacao: c.federacao } : null,
+    ficha: c.nascimento !== undefined ? { nascimento: c.nascimento, ufNascimento: c.ufNascimento, ocupacao: c.ocupacao, instrucao: c.instrucao, federacao: c.federacao, estadoCivil: c.estadoCivil ?? null, coligacao: c.coligacao ?? null } : null,
+    patrimonio: extra.bens ?? null,
+    motivos: extra.motivos?.length ? extra.motivos : null,
     temContas: c.finance.dataRetrato !== "",
     num: c.numero,
     cargo: c.cargo,
@@ -77,7 +88,7 @@ export function toPublic({ c, m, ind, perfil }: Scored, bio: Profile | null = nu
       projetos: m.bills,
       cota: m.ceap && {
         total: r0(m.ceap.total), meses: m.ceap.meses, mediaMensal: r0(m.ceap.mediaMensal),
-        maiorFornecedor: m.ceap.maiorFornecedor, maiorFornecedorShare: round(m.ceap.maiorFornecedorShare),
+        maiorFornecedor: maskCpf(m.ceap.maiorFornecedor), maiorFornecedorShare: round(m.ceap.maiorFornecedorShare),
       },
       agenda: m.agenda,
       emendas: m.emendas && { empenhado: r0(m.emendas.empenhado), pago: r0(m.emendas.pago), areas: m.emendas.areas.map((a) => ({ nome: a.nome, valor: r0(a.valor) })) },
@@ -89,6 +100,11 @@ export function toPublic({ c, m, ind, perfil }: Scored, bio: Profile | null = nu
       nascimento: bio.nascimento,
       trajetoria: bio.trajetoria,
       wikidata: bio.wikidata,
+      escolaridade: bio.escolaridade ?? null,
+      redes: bio.redes?.length ? bio.redes : null,
+      site: bio.site ?? null,
+      atuacao: bio.atuacao ?? null,
+      resumo: bio.resumo ?? null,
     },
     ind,
     prev,
@@ -120,12 +136,15 @@ async function main() {
     const p = profiles[sq]?.foto;
     return p && existsSync(p.file) ? p : null;
   };
+  const bens = await loadBens(new Map(cands.map((c) => [c.sq, personKey(c.cpf, c.nome, c.nascimento)])));
+  const motivos = await loadMotivos();
+  console.log(`[enrich] ${bens.size} com bens declarados, ${[...bens.values()].filter((b) => b.total2022 !== null).length} com 2022 vinculado, ${motivos.size} com motivo de indeferimento`);
   const { porCandidato, resumo } = buildExpectativa(cands);
   const byUf = new Map<string, ReturnType<typeof toPublic>[]>();
   for (const s of items) {
     const list = byUf.get(s.c.uf) ?? [];
     const foto = photoOf(s.c.sq);
-    list.push(toPublic(s, profiles[s.c.sq] ?? null, foto?.credito ?? null, porCandidato.get(s.c.sq) ?? null));
+    list.push(toPublic(s, profiles[s.c.sq] ?? null, foto?.credito ?? null, porCandidato.get(s.c.sq) ?? null, { bens: bens.get(s.c.sq), motivos: motivos.get(s.c.sq) }));
     byUf.set(s.c.uf, list);
   }
 

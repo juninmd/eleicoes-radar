@@ -21,6 +21,8 @@ export interface Registry {
   ufNascimento: string;
   ocupacao: string;
   instrucao: string;
+  estadoCivil: string;
+  coligacao: string; // name + member parties, empty for a solo party
   cpf: string; // join key only
 }
 
@@ -29,6 +31,11 @@ const clean = (s: string | undefined) => (s && !NULLS.has(s.trim()) ? s.trim() :
 // "DEPUTADO FEDERAL" -> "Deputado Federal", matching the finance files' labels.
 const cargoLabel = (s: string) => s.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
 const isoDate = (s: string) => (/^\d{2}\/\d{2}\/\d{4}$/.test(s) ? `${s.slice(6)}-${s.slice(3, 5)}-${s.slice(0, 2)}` : null);
+
+const coalition = (r: Row) => {
+  const nome = clean(r.NM_COLIGACAO), comp = clean(r.DS_COMPOSICAO_COLIGACAO);
+  return nome && comp && nome !== r.NM_PARTIDO && !/^partido isolado$/i.test(nome) ? `${nome}: ${comp}` : "";
+};
 
 export function parseRegistry(rows: Iterable<Row>): Map<string, Registry> {
   const out = new Map<string, Registry>();
@@ -50,6 +57,8 @@ export function parseRegistry(rows: Iterable<Row>): Map<string, Registry> {
       ufNascimento: clean(r.SG_UF_NASCIMENTO),
       ocupacao: clean(r.DS_OCUPACAO),
       instrucao: clean(r.DS_GRAU_INSTRUCAO),
+      estadoCivil: clean(r.DS_ESTADO_CIVIL),
+      coligacao: coalition(r),
       cpf: onlyDigits(r.NR_CPF_CANDIDATO).length === 11 ? onlyDigits(r.NR_CPF_CANDIDATO) : "",
     });
   }

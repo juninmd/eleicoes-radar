@@ -14,3 +14,4 @@ data/tse/
 *.log
 data/polls/
 data/pesquisas.json
+data/extra/

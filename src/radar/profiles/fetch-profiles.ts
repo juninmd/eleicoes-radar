@@ -10,10 +10,11 @@ import { legislatureStartYear } from "../incumbency";
 import { senatorProfile } from "./senado";
 import { findPerson, toProfile, type Position } from "./wikidata";
 import { commonsPhoto, thumbnail } from "./photos";
+import { camaraExtra, senadoExtra, wikipediaResumo, type Extra } from "./extra";
 
 const WIKI_RACES = new Set(["Presidente", "Governador", "Senador"]);
 
-export interface Profile {
+export interface Profile extends Partial<Extra> {
   naturalidade: string | null;
   nascimento: string | null;
   trajetoria: (Position & { fonte: string })[];
@@ -29,6 +30,15 @@ const senByName = new Map(senRaw.map((p) => [normalizeName(p.IdentificacaoParlam
 const deps = new Map<number, Record<string, string>>();
 for (const r of parseCsv(readFileSync("data/camara/deputados.csv", "utf8"))) deps.set(Number(r.uri?.split("/").pop()), r);
 
+// One failing keyless endpoint must not sink a 20k-candidate run; it is logged and skipped.
+async function safe<T>(f: () => Promise<T>): Promise<T | undefined> {
+  try {
+    return await f();
+  } catch (e) {
+    console.warn(String(e));
+  }
+}
+
 const out: Record<string, Profile> = {};
 let n = 0;
 for (const c of cands) {
@@ -41,6 +51,7 @@ for (const c of cands) {
     if (d?.idLegislaturaInicial) {
       p.trajetoria.push({ cargo: `Deputado federal por ${m.uf}`, inicio: `${legislatureStartYear(Number(d.idLegislaturaInicial))}`, fim: null, fonte: "Câmara" });
     }
+    Object.assign(p, await safe(() => camaraExtra(m.deputadoId)));
     const file = await thumbnail(`camara-${m.deputadoId}`, `https://www.camara.leg.br/internet/deputado/bandep/${m.deputadoId}.jpg`);
     if (file) p.foto = { file, credito: "Câmara dos Deputados" };
   }
@@ -50,6 +61,7 @@ for (const c of cands) {
     const s = await senatorProfile(sen.CodigoParlamentar, sen.UrlFotoParlamentar);
     p.naturalidade ??= s.naturalidade;
     p.nascimento ??= s.nascimento;
+    Object.assign(p, await safe(() => senadoExtra(s.codigo)));
     p.trajetoria.push(...s.mandatos.map((x) => ({ ...x, fonte: "Senado" })));
     const file = await thumbnail(`senado-${s.codigo}`, s.foto);
     if (file) p.foto = { file, credito: "Agência Senado" };
@@ -59,6 +71,7 @@ for (const c of cands) {
     if (e) {
       const w = await toProfile(e);
       p.wikidata = w.qid;
+      p.resumo = await safe(() => wikipediaResumo(w.qid)) ?? null;
       p.naturalidade ??= w.naturalidade;
       p.nascimento ??= w.nascimento;
       // Official Chamber/Senate records win for legislative seats; Wikidata adds the rest.
@@ -71,7 +84,7 @@ for (const c of cands) {
       }
     }
   }
-  if (p.naturalidade || p.trajetoria.length || p.foto) out[c.sq] = p;
+  if (p.naturalidade || p.trajetoria.length || p.foto || p.atuacao || p.resumo) out[c.sq] = p;
   if (++n % 500 === 0) console.log(`[perfis] ${n}/${cands.length}`);
 }
 writeFileSync("data/perfis.json", JSON.stringify(out));
