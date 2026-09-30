@@ -8,11 +8,20 @@ const W = 900, H = 620;
 const KIND = { party: "partido", sup: "fornecedor", cand: "candidato", pol: "político" };
 const memo = new Map();
 
+// Log scale between the smallest and largest supplier, so one R$ 200 mi supplier neither
+// shrinks the rest to dots nor makes every mid-sized one look alike.
+const sizeOf = (total, max, min = 1) => {
+  const lo = Math.log10(1 + Math.max(0, min)), hi = Math.log10(1 + Math.max(1, max));
+  const t = hi > lo ? (Math.log10(1 + Math.max(0, total)) - lo) / (hi - lo) : 0.5;
+  return 3.5 + 11 * Math.pow(Math.max(0, Math.min(1, t)), 1.6);
+};
+
 function overview(rede) {
   const max = Math.max(1, ...rede.fornecedores.map((f) => f.total));
+  const min = Math.min(max, ...rede.fornecedores.map((f) => f.total));
   const nodes = [
     ...rede.partidos.map((p) => ({ id: `p:${p.id}`, kind: "party", label: p.id, total: p.total })),
-    ...rede.fornecedores.map((f) => ({ id: `s:${f.id}`, kind: "sup", label: titleName(f.nome), total: f.total, f, r: 5 + 8 * Math.sqrt(f.total / max) })),
+    ...rede.fornecedores.map((f) => ({ id: `s:${f.id}`, kind: "sup", label: titleName(f.nome), total: f.total, f, r: sizeOf(f.total, max, min) })),
   ];
   const all = rede.arestas.map((e) => ({ a: `p:${e.p}`, b: `s:${e.f}`, w: Math.log10(e.valor + 10) / 4, valor: e.valor }));
   // Drawing every edge is a hairball: keep each supplier's three biggest payers.
@@ -43,7 +52,7 @@ function focus(c) {
   return { nodes, links };
 }
 
-const radius = (n, max) => (n.kind === "cand" ? 15 : n.kind === "party" ? 9 + 9 * Math.sqrt((n.total || 0) / (max || 1)) : 5 + 8 * Math.sqrt((n.total || 0) / (max || 1)));
+const radius = (n, max, pmax) => (n.r ?? (n.kind === "cand" ? 15 : n.kind === "party" ? 9 + 9 * Math.sqrt((n.total || 0) / (pmax || 1)) : sizeOf(n.total, max)));
 
 function detail(n, rede) {
   if (!n) return `<p class="muted">Clique num nó para ver os detalhes. Azul: partidos · laranja: fornecedores (CNPJ) · verde: candidato em foco · rosa: outros políticos atendidos.</p>`;
@@ -76,7 +85,8 @@ export function renderRede({ rede, cand, sel }) {
   }
   const { g, pos } = memo.get(key);
   const byId = new Map(pos.map((n) => [n.id, n]));
-  const max = Math.max(1, ...pos.map((n) => n.total || 0));
+  const max = Math.max(1, ...pos.filter((n) => n.kind === "sup" || n.kind === "pol").map((n) => n.total || 0));
+  const pmax = Math.max(1, ...pos.filter((n) => n.kind === "party").map((n) => n.total || 0));
   const selNode = sel ? byId.get(sel) : null;
   const shown = selNode && g.all ? g.all.filter((l) => l.a === sel || l.b === sel) : g.links; // overview draws all edges of the selected node only
   const lit = selNode ? new Set(egoOf(selNode.id, pos, g.all ?? g.links).nodes.map((n) => n.id)) : null;
@@ -93,7 +103,7 @@ export function renderRede({ rede, cand, sel }) {
   const dots = pos.map((n) => {
     const on = !lit || lit.has(n.id);
     const flag = n.kind === "sup" && n.f?.flags?.length;
-    const r = radius(n, max);
+    const r = radius(n, max, pmax);
     return `<g class="rede-node ${n.kind}${on ? "" : " dim"}${n.id === sel ? " sel" : ""}${flag ? " flagged" : ""}" data-rede="${h(n.id)}" tabindex="0" role="button" aria-label="${h(KIND[n.kind])}: ${h(n.label)}">
       <circle cx="${n.x}" cy="${n.y}" r="${r.toFixed(1)}"/>${labelIds.has(n.id) ? `<text x="${n.x}" y="${(n.y - r - 4).toFixed(1)}" text-anchor="middle">${h(n.label.length > 26 ? `${n.label.slice(0, 25)}…` : n.label)}</text>` : ""}
       <title>${h(n.label)}${n.total ? ` · ${moneyShort(n.total)}` : ""}</title></g>`;
@@ -101,7 +111,7 @@ export function renderRede({ rede, cand, sel }) {
   const top = rede.fornecedores.slice(0, 10).map((f) => `<tr><td>${h(titleName(f.nome))}<br><small class="muted">${h(f.cnpj)}</small></td><td>${int(f.politicos)}</td><td>${moneyShort(f.total)}</td><td>${f.flags.length ? `<span class="pill no">${f.flags.length} sinal(is)</span>` : ""}</td></tr>`).join("");
   return `<section class="exp-card rede">
     <h2>${cand ? `Rede de ${h(displayName(cand))}` : "Rede de fornecedores"}</h2>
-    <p class="muted">${cand ? "Fornecedores (CNPJ) deste candidato e os outros políticos que eles atenderam." : `Os ${rede.fornecedores.length} fornecedores que atenderam mais políticos e os partidos que os pagaram. Tamanho = dinheiro.`}
+    <p class="muted">${cand ? "Fornecedores (CNPJ) deste candidato e os outros políticos que eles atenderam." : `Os ${rede.fornecedores.length} fornecedores que atenderam mais políticos e os partidos que os pagaram. O tamanho do círculo laranja é o valor total recebido de políticos (escala logarítmica); o azul, o total pago pelo partido a esses fornecedores.`}
       ${cand ? `<button type="button" class="btn-confirma" data-rede-geral>Voltar à visão geral</button>` : ""}</p>
     <svg viewBox="0 0 ${W} ${H}" role="group" aria-label="Grafo de partidos, fornecedores e políticos">${edges}${dots}</svg>
     <div class="rede-detail" aria-live="polite">${detail(selNode, rede)}</div>
