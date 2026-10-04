@@ -1,6 +1,8 @@
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 const compact = new Intl.NumberFormat("pt-BR", { notation: "compact", maximumFractionDigits: 1 });
 
+export const ELEICAO = new Date("2026-10-04T00:00:00"); // 1st round
+
 export const money = (v) => brl.format(v ?? 0);
 export const moneyShort = (v) => `R$ ${compact.format(v ?? 0)}`;
 export const pct = (v, d = 0) => `${((v ?? 0) * 100).toFixed(d).replace(".", ",")}%`;

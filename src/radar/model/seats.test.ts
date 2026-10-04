@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { createCsvParser, parseCsv } from "../csv";
-import { features, fitIsotonic, fitLogistic, predictGroups, recalibrate, type SeatCand } from "./seats";
+import { explain, features, fitIsotonic, fitLogistic, predictGroups, recalibrate, type SeatCand } from "./seats";
 
 const cand = (sq: string, lista: string, receita: number, ocupacao = "EMPRESÁRIO", grupo = "SP|DEPUTADO FEDERAL"): SeatCand => ({ sq, grupo, lista, receita, ocupacao });
 
@@ -15,6 +15,28 @@ describe("seat model", () => {
     expect(X.get("c")![5]).toBe(1);
     // "b" is second on the richest list: its rank feature is better than "d", last on a poor list.
     expect(X.get("b")![3]).toBeLessThan(X.get("d")![3]!);
+  });
+
+  test("features match the vectors the stored coefficients were trained on (captured before place() was extracted)", () => {
+    const golden: Record<string, number[]> = {
+      a: [1, 0.593327, 0.667829, -1.064711, 0, 0, 0],
+      b: [1, -2.207275, 0.667829, -0.371564, 0, 0, 0],
+      c: [1, -2.407946, -1.89712, -0.09531, 0, 1, 0],
+      d: [1, -3.506558, -1.89712, 0.597837, 0, 0, 0],
+      e: [1, -4.60517, -2.995732, 0, 1, 0, 0],
+      f: [1, 0.00995, 0.04879, -0.693147, 0, 0, 0],
+    };
+    const X = features(cs, vagas);
+    for (const [sq, want] of Object.entries(golden)) want.forEach((w, i) => expect(X.get(sq)![i]).toBeCloseTo(w, 5));
+  });
+
+  test("explain reports the same ranks and list weight the features use", () => {
+    const why = explain(cs, vagas);
+    expect(why.get("a")).toEqual({ r: 1, g: 5, lr: 1, ln: 2, vl: 1.9, dep: false }); // list X holds 950 of 1000 in money × 2 seats
+    expect(why.get("b")).toMatchObject({ r: 2, lr: 2, ln: 2 });
+    expect(why.get("c")).toMatchObject({ r: 3, lr: 1, dep: true });
+    expect(why.get("e")).toMatchObject({ r: 5, ln: 1, vl: 0 }); // no money: no expected seats
+    expect(why.get("f")).toMatchObject({ r: 1, g: 1 }); // groups are independent
   });
 
   test("group probabilities add up to the seats before recalibration", () => {

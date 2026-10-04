@@ -16,23 +16,43 @@ export const FEATURES = [
   "ocupação: deputado", "ocupação: vereador",
 ];
 
-export function features(cands: SeatCand[], vagas: Map<string, number>): Map<string, number[]> {
-  const out = new Map<string, number[]>();
-  const groups = Map.groupBy(cands, (c) => c.grupo);
-  for (const [grupo, cs] of groups) {
+// One row per candidate with its place in the group (state + cargo) and in its list.
+interface Placed { c: SeatCand; share: number; expected: number; listRank: number; listN: number; groupRank: number; groupN: number }
+
+function* place(cands: SeatCand[], vagas: Map<string, number>): Generator<Placed> {
+  for (const [grupo, cs] of Map.groupBy(cands, (c) => c.grupo)) {
     const seats = vagas.get(grupo) ?? 0;
     const total = cs.reduce((a, c) => a + c.receita, 0);
-    const lists = Map.groupBy(cs, (c) => c.lista);
-    for (const members of lists.values()) {
+    const groupRank = new Map([...cs].sort((a, b) => b.receita - a.receita).map((c, i) => [c.sq, i + 1]));
+    for (const members of Map.groupBy(cs, (c) => c.lista).values()) {
       const listMoney = members.reduce((a, c) => a + c.receita, 0);
       const expected = total > 0 ? (listMoney / total) * seats : 0;
       const ranked = [...members].sort((a, b) => b.receita - a.receita);
-      ranked.forEach((c, i) => {
-        const share = total > 0 ? c.receita / total : 0;
-        out.set(c.sq, [1, Math.log(share * seats + 0.01), Math.log(expected + 0.05), Math.log((i + 1) / (expected + 1)), c.receita > 0 ? 0 : 1,
-          c.ocupacao === "DEPUTADO" ? 1 : 0, c.ocupacao === "VEREADOR" ? 1 : 0]);
-      });
+      for (const [i, c] of ranked.entries()) {
+        yield { c, share: total > 0 ? c.receita / total : 0, expected, listRank: i + 1, listN: members.length, groupRank: groupRank.get(c.sq)!, groupN: cs.length };
+      }
     }
+  }
+}
+
+export function features(cands: SeatCand[], vagas: Map<string, number>): Map<string, number[]> {
+  const out = new Map<string, number[]>();
+  const seatsOf = (c: SeatCand) => vagas.get(c.grupo) ?? 0;
+  for (const { c, share, expected, listRank } of place(cands, vagas)) {
+    out.set(c.sq, [1, Math.log(share * seatsOf(c) + 0.01), Math.log(expected + 0.05), Math.log(listRank / (expected + 1)), c.receita > 0 ? 0 : 1,
+      c.ocupacao === "DEPUTADO" ? 1 : 0, c.ocupacao === "VEREADOR" ? 1 : 0]);
+  }
+  return out;
+}
+
+// What the model looks at, in words a voter can check: money rank in the state, the
+// list's expected seats and the candidate's place on it, and sitting-deputy status.
+export interface SeatWhy { r: number; g: number; lr: number; ln: number; vl: number; dep: boolean }
+
+export function explain(cands: SeatCand[], vagas: Map<string, number>): Map<string, SeatWhy> {
+  const out = new Map<string, SeatWhy>();
+  for (const p of place(cands, vagas)) {
+    out.set(p.c.sq, { r: p.groupRank, g: p.groupN, lr: p.listRank, ln: p.listN, vl: Math.round(p.expected * 10) / 10, dep: p.c.ocupacao === "DEPUTADO" });
   }
   return out;
 }

@@ -1,6 +1,7 @@
 import { INDICATORS } from "./score.js";
 import { fornecedoresBlock } from "./fornecedores.js";
-import { displayName, h, int, money, moneyShort, pct, STATUS, titleName } from "./format.js";
+import { prevBlock } from "./prev.js";
+import { displayName, ELEICAO, h, int, money, moneyShort, pct, STATUS, titleName } from "./format.js";
 
 // Fixed categorical order: identity never depends on rank.
 const SOURCES = [
@@ -73,7 +74,6 @@ function agendaBlock(m, agenda) {
     <div class="scroll"><table class="agenda"><thead><tr><th>Votação</th><th>Votou</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }
 
-const ELEICAO = new Date("2026-10-04T00:00:00");
 function idade(nasc) {
   const d = new Date(`${nasc}T00:00:00`);
   if (isNaN(d)) return null;
@@ -150,19 +150,7 @@ function resumoBlock(bio) {
   return r ? `<section><h3>Resumo <a class="ext" href="${h(r.url)}" target="_blank" rel="noopener noreferrer">Wikipédia ↗</a></h3><p>${h(r.texto)}</p><p class="muted small">Texto de enciclopédia colaborativa; confira no link.</p></section>` : "";
 }
 
-// Poll average (majoritarian) or 2022-calibrated model (deputies); see the Expectativa tab.
-function prevBlock(p) {
-  if (!p) return "";
-  const chance = p.p >= 0.995 ? ">99%" : p.p > 0 && p.p < 0.005 ? "<1%" : pct(p.p);
-  const detalhe = p.fonte === "pesquisas"
-    ? `${pct(p.media, 1)} dos votos válidos na média das pesquisas (faixa de 90%: ${pct(p.lo, 1)}–${pct(p.hi, 1)})${p.p2t !== null && p.p2t !== undefined ? ` · chance de ir ao 2º turno: ${pct(p.p2t)}` : ""}`
-    : "Modelo calibrado na eleição de 2022 (arrecadação, força da lista e mandato atual). Sem pesquisa pública por candidato.";
-  return `<section><h3>Expectativa <small>não é pesquisa eleitoral</small></h3>
-    <div class="prevline"><span class="big">${chance}</span><span class="muted">de chance de ser eleito</span></div>
-    <p class="muted small">${h(detalhe)}</p></section>`;
-}
-
-export function renderDossier(c, s, inCola, agenda, foto) {
+export function renderDossier(c, s, inCola, agenda, foto, exp) {
   const f = c.fin;
   return `
     <header class="dhead">
@@ -181,7 +169,7 @@ export function renderDossier(c, s, inCola, agenda, foto) {
       <div><span class="nota small">${pct(s.cobertura)}</span><span class="muted">do peso com evidência</span></div>
       <button type="button" class="btn-confirma" data-cola="${h(c.id)}">${inCola ? "Tirar da cola" : "Pôr na cola"}</button>
     </div>
-    ${prevBlock(c.prev)}
+    ${prevBlock(c, exp)}
     ${resumoBlock(c.bio)}
     ${registroBlock(c.motivos)}
     ${trajetoriaBlock(c)}
