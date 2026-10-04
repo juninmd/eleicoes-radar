@@ -59,15 +59,13 @@ describe("allocate", () => {
     expect(names(r.elected)).toEqual(["A1", "A2", "B1"]);
   });
 
-  test("2022 vs the unrestricted rule: the barrier changes who gets a leftover seat", () => {
-    // N=2, V=9400, QE=4700. A: 4000 legend-free votes (a1=4000) -> 0 QP; B: 5400 -> 1 QP (b1=5400).
-    // Leftover 1. 80% of QE = 3760: A (4000) qualifies, C (1000) does not. A 4000/1 beats C anyway.
-    const base = [list("A", 0, 4000), list("B", 0, 5400), list("C", 0, 1000)];
-    expect(names(allocate(base, 2, RULES["2022"]!).elected)).toEqual(["A1", "B1"]);
-    // Now A falls to 3000: under 80% (3760). 2022 rules keep A out of phase one; C is out too; B has no second
-    // candidate, so phase two opens and A (3000) beats C (1000) - same winner here, but through phase two.
-    const weak = [list("A", 0, 3000), list("B", 0, 5400), list("C", 0, 1000)];
-    expect(names(allocate(weak, 2, RULES["2022"]!).elected)).toEqual(["A1", "B1"]);
+  test("2022 vs the unrestricted rule: the 80% list barrier decides who gets the leftover", () => {
+    // N=4, V=10000, QE=2500. QP: A 4900 -> 1, B 3200 -> 1, C 1900 -> 0. Two leftovers. 80% of QE = 2000, so C (1900) is out of phase one
+    // and A takes both (4900/2 = 2450, then 4900/3 = 1633 against B's 1600).
+    const barrier = [list("A", 0, 2000, 1500, 1000, 400), list("B", 0, 3200), list("C", 0, 1900)];
+    expect(names(allocate(barrier, 4, RULES["2022"]!).elected)).toEqual(["A1", "A2", "A3", "B1"]);
+    // Same votes with the barrier removed: C's 1900 average beats A's third seat (4900/3 = 1633).
+    expect(names(allocate(barrier, 4, { ...RULES["2022"]!, sobrasListMin: 0 }).elected)).toEqual(["A1", "A2", "B1", "C1"]);
   });
 
   test("a leftover goes to the best average that still has an eligible candidate", () => {
@@ -89,10 +87,10 @@ describe("allocate", () => {
     expect(allocate([], 5, RULES["2022"]!).qe).toBe(0);
   });
 
-  test("ties between lists go to the one with more votes, then the input order is irrelevant", () => {
+  test("a tie between equal lists is settled by id, whatever the order of the input", () => {
     const a = allocate([list("A", 0, 1000), list("B", 0, 1000)], 1, RULES["2018"]!);
     const b = allocate([list("B", 0, 1000), list("A", 0, 1000)], 1, RULES["2018"]!);
-    expect(names(a.elected)).toEqual(names(b.elected).length ? names(a.elected) : []);
-    expect(a.elected.size).toBe(1);
+    expect(names(a.elected)).toEqual(["A1"]);
+    expect(names(b.elected)).toEqual(["A1"]);
   });
 });

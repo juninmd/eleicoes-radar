@@ -220,6 +220,6 @@ export function evaluate(cands: SeatCand[], vagas: Map<string, number>, elected:
       n: bin.length,
     };
   });
-  const brier = cands.reduce((a, c) => a + (p.get(c.sq)! - (elected.has(c.sq) ? 1 : 0)) ** 2, 0) / cands.length;
-  return { acerto: hits / seatsTotal, acertoBaseline: base / seatsTotal, brier, calibracao, candidatos: cands.length, vagas: seatsTotal };
+  const brier = cands.reduce((a, c) => a + (p.get(c.sq)! - (elected.has(c.sq) ? 1 : 0)) ** 2, 0) / (cands.length || 1);
+  return { acerto: hits / (seatsTotal || 1), acertoBaseline: base / (seatsTotal || 1), brier, calibracao, candidatos: cands.length, vagas: seatsTotal };
 }

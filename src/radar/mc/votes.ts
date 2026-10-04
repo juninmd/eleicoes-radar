@@ -64,6 +64,7 @@ export function fitVoteModel(trainings: Training[], stage1: number[] | null = nu
     return t.cands.filter((c) => c.votos > 0).map((c) => ({ x: design(stage1, feats[i]!.get(c.sq)!), y: Math.log(c.votos / tot.get(c.grupo)!), cand: c, fit: 0 }));
   });
   const flat = rows.flat();
+  if (!flat.length) throw new Error("fitVoteModel: nenhum candidato com votos para ajustar");
   const coef = ols(flat.map((r) => r.x), flat.map((r) => r.y));
   for (const r of flat) r.fit = dotp(coef, r.x);
 

@@ -15,7 +15,7 @@ export function score(cands: SeatCand[], vagas: Map<string, number>, elected: Se
   const logloss = cands.reduce((a, c) => {
     const q = Math.min(1 - 1e-4, Math.max(1e-4, p.get(c.sq)!));
     return a - (elected.has(c.sq) ? Math.log(q) : Math.log(1 - q));
-  }, 0) / cands.length;
+  }, 0) / (cands.length || 1);
   let seatErr = 0;
   let races = 0;
   const real = new Map<string, number>();
@@ -26,8 +26,8 @@ export function score(cands: SeatCand[], vagas: Map<string, number>, elected: Se
     for (const c of cs) if (elected.has(c.sq)) real.set(`${grupo}|${c.lista}`, (real.get(`${grupo}|${c.lista}`) ?? 0) + 1);
   }
   const keys = new Set([...listSeats.keys(), ...real.keys()]);
-  const listMae = [...keys].reduce((a, k) => a + Math.abs((listSeats.get(k) ?? 0) - (real.get(k) ?? 0)), 0) / keys.size;
-  return { acerto: ev.acerto, brier: ev.brier, logloss, seatErr: seatErr / races, listMae, calibracao: ev.calibracao };
+  const listMae = [...keys].reduce((a, k) => a + Math.abs((listSeats.get(k) ?? 0) - (real.get(k) ?? 0)), 0) / (keys.size || 1);
+  return { acerto: ev.acerto, brier: ev.brier, logloss, seatErr: seatErr / (races || 1), listMae, calibracao: ev.calibracao };
 }
 
 // Expected seats of a list from per-candidate probabilities (what the logistic offers in place of a seat count).

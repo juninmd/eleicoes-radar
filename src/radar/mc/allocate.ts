@@ -67,12 +67,18 @@ export function allocate(lists: ListVotes[], seats: number, rules: Rules): Alloc
 
   // 2) Leftovers by highest average (D'Hondt). Phase one honours the thresholds; if it cannot fill every seat,
   // phase two lets every list and any candidate with votes compete.
+  // Equal averages: the list with more votes, then the lower id, so the order of the input never decides a seat.
+  const beats = (r: Row, best: Row) => {
+    const a = r.total / (r.taken + 1);
+    const b = best.total / (best.taken + 1);
+    return a !== b ? a > b : r.total !== best.total ? r.total > best.total : r.id < best.id;
+  };
   for (const [listMin, candMin] of [[rules.sobrasListMin, rules.sobrasCandMin], [0, 0]] as const) {
     while (left > 0) {
       let best: Row | null = null;
       for (const r of rows) {
         if (r.total < listMin * qe || !nextOk(r, candMin)) continue;
-        if (!best || r.total / (r.taken + 1) > best.total / (best.taken + 1) || (r.total / (r.taken + 1) === best.total / (best.taken + 1) && r.total > best.total)) best = r;
+        if (!best || beats(r, best)) best = r;
       }
       if (!best) break;
       best.taken++;
