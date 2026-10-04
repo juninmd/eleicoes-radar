@@ -1,0 +1,123 @@
+/* Apuração view: reuses the Expectativa card and the urna tokens */
+.apu h2 .rot { margin: 0 0 0 8px; vertical-align: middle; font-size: 11px; }
+.apu-prog { width: 100%; height: 10px; accent-color: var(--confirma); }
+.apu-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 12px; }
+.apu-stats div { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; background: var(--sunk); border-radius: 6px; }
+.apu-stats b { font: 700 18px var(--mono); font-variant-numeric: tabular-nums; }
+.apu-stats small { font: 500 12px var(--mono); color: var(--muted); }
+.apu-stats span { font-size: 12px; color: var(--ink-2); }
+.apu-bar { flex: 1; min-width: 0; height: 12px; background: var(--sunk); border-radius: 4px; overflow: hidden; }
+.apu-bar span { display: block; height: 100%; background: var(--s1); }
+.apu .empty { margin: 0; }
+.apu .row-inline { display: none; }
+.apu .pq-col small { display: block; margin-top: 1px; font: 500 11px var(--mono); color: var(--muted); }
+.apu .dif { font: 700 12px var(--mono); white-space: nowrap; color: var(--ink-2); } /* neutral: above or below the polls is not good or bad */
+.apu .cmp-inline { display: block; margin-top: 2px; font-size: 12px; font-weight: 400; color: var(--muted); }
+.apu .cmp-inline b { color: var(--ink); }
+/* The Expectativa table gives column 2 the width; here column 2 is a number and the bar is column 3 */
+.apu .exp-bars td:nth-child(2) { width: auto; min-width: 0; }
+.apu .exp-bars td:nth-child(3) { width: 42%; min-width: 150px; }
+@media (max-width: 520px) {
+  /* The bar is decorative (aria-hidden); on a phone the number and the status text matter more */
+  .apu .apu-bar { display: none; }
+  .apu .exp-bars td:nth-child(3) { width: auto; min-width: 0; }
+  .apu .exp-bars tbody th { min-width: 100px; }
+  .apu .exp-bars .rv { min-width: 0; }
+  .apu .st-col, .apu .pq-col { display: none; }
+  .apu .row-inline { display: block; margin-top: 2px; }
+}
+
+/* Sub-navigation and map modes: segmented buttons in the urna look */
+.apu-vistas, .apu-modos { display: flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; width: fit-content; max-width: 100%; }
+.apu-vistas button, .apu-modos button { font: 600 13px var(--body); background: transparent; color: var(--ink); border: 0; padding: 8px 14px; cursor: pointer; }
+.apu-vistas button + button, .apu-modos button + button { border-left: 1px solid var(--line); }
+.apu-vistas button[aria-pressed="true"], .apu-modos button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.apu-vistas button:focus-visible, .apu-modos button:focus-visible, .apu-chips .chip:focus-visible, .apu-mapa .uf:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
+
+/* National view: the map and the detail panel side by side, stacked on phones */
+.apu-nac { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(260px, 1fr); gap: 16px; align-items: start; }
+.apu-nac-mapa { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.apu-mapa { width: 100%; height: auto; max-height: 620px; background: var(--sunk); border-radius: 6px; overflow: visible; } /* visible: the focus ring of a state at the edge (Fernando de Noronha) is not clipped */
+.apu-mapa .uf { stroke: var(--surface); stroke-width: 1; cursor: pointer; transition: stroke-width 0.12s; }
+.apu-mapa .uf:hover { stroke: var(--ink); stroke-width: 2; }
+.apu-mapa .uf.feito { stroke: var(--ink-2); stroke-width: 1.6; }
+.apu-mapa .uf:focus-visible { stroke: var(--focus); stroke-width: 2.5; }
+.apu-mapa .uf-anel { stroke: var(--ink); stroke-width: 3; stroke-linejoin: round; } /* the selection, drawn on top of every neighbour */
+.apu .vel { font-style: italic; }
+.apu-mapa .uf-rot { font: 700 9px var(--mono); fill: var(--ink); text-anchor: middle; dominant-baseline: middle; paint-order: stroke; stroke: var(--surface); stroke-width: 2.5px; pointer-events: none; }
+.apu-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.apu-chips .chip { display: inline-flex; align-items: center; gap: 6px; font: 700 12px var(--mono); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; cursor: pointer; }
+.apu-chips .chip[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.apu-legenda { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; }
+.apu-legenda li { display: inline-flex; align-items: center; gap: 6px; }
+.apu-legenda b { font: 700 12px var(--mono); }
+.apu .key { display: inline-block; width: 12px; height: 12px; border-radius: 3px; flex: none; border: 1px solid color-mix(in srgb, var(--ink) 25%, transparent); }
+.apu .key.sd { background: var(--sunk); }
+.apu .key.igual { background: #0072B2; }
+.apu .key.dif { background: repeating-linear-gradient(45deg, #0072B2 0 3px, var(--sunk) 3px 6px); }
+.apu-grad { display: flex; align-items: center; gap: 8px; font: 500 12px var(--mono); color: var(--ink-2); }
+.apu-grad i { flex: 1; height: 12px; border-radius: 4px; background: linear-gradient(90deg, color-mix(in srgb, #0072B2 15%, var(--surface)), #0072B2); border: 1px solid var(--line); }
+
+/* Selected state panel */
+.apu-uf { background: var(--sunk); border-radius: 6px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.apu-uf h3 { margin: 0; }
+.apu-uf .rot { margin: 0; }
+.apu-top { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.apu-top li { display: grid; grid-template-columns: 12px minmax(0, 1fr) 70px 58px 62px; gap: 8px; align-items: center; font-size: 14px; }
+.apu-top li > span:nth-child(2) small { display: block; font: 500 11px var(--mono); color: var(--muted); }
+.apu-top .bar { height: 10px; background: var(--surface); border-radius: 4px; overflow: hidden; }
+.apu-top .bar span { display: block; height: 100%; }
+.apu-top b { font: 700 13px var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
+.apu-top li > small { font: 500 11px var(--mono); color: var(--muted); text-align: right; }
+.apu-ufs td:nth-child(3) { width: auto !important; }
+.apu-ufs td:nth-child(2) { min-width: 130px; }
+
+/* Charts */
+.apu-comp { display: flex; height: 24px; border-radius: 6px; overflow: hidden; background: var(--sunk); }
+.apu-comp .seg { min-width: 2px; }
+.apu .c1 { background: var(--s1); }
+.apu .c2 { background: var(--s4); }
+.apu .c3 { background: var(--s2); }
+.apu .c4 { background: color-mix(in srgb, var(--ink) 30%, var(--surface)); }
+.apu-comp-leg small { font: 500 11px var(--mono); color: var(--muted); }
+.apu-dumb { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.apu-dumb-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 4px 12px; align-items: center; }
+.apu-nm small { font: 500 11px var(--mono); color: var(--muted); }
+.apu-dumb-track { position: relative; height: 22px; background: var(--sunk); border-radius: 4px; }
+.apu-dumb-track .band { position: absolute; top: 5px; height: 12px; background: color-mix(in srgb, var(--s1) 35%, transparent); border-radius: 4px; }
+.apu-dumb-track .mean { position: absolute; top: 2px; width: 3px; height: 18px; margin-left: -1px; background: var(--s1); border-radius: 2px; }
+.apu-dumb-track .dot { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: var(--ink); border: 2px solid var(--surface); box-sizing: border-box; box-shadow: 0 0 0 1px var(--ink); }
+.apu-dumb-txt { grid-column: 2; font-size: 13px; color: var(--ink-2); }
+.apu-dumb-txt small { color: var(--muted); }
+.apu .key.band-k { background: color-mix(in srgb, var(--s1) 35%, transparent); }
+.apu .key.mean-k { background: var(--s1); width: 4px; }
+.apu .key.dot-k { background: var(--ink); border-radius: 50%; }
+.apu-evo { width: 100%; height: auto; max-height: 300px; }
+.apu-evo .grade { stroke: var(--line); stroke-width: 1; }
+.apu-evo .eixo { font: 500 11px var(--mono); fill: var(--muted); }
+.apu-evo-txt b { font: 700 12px var(--mono); }
+
+@media (max-width: 820px) {
+  .apu-nac { grid-template-columns: minmax(0, 1fr); }
+  .apu-dumb-row { grid-template-columns: minmax(0, 1fr); }
+  .apu-dumb-txt { grid-column: 1; }
+}
+@media (max-width: 520px) {
+  .apu-vistas { width: 100%; }
+  .apu-vistas button { flex: 1 1 auto; }
+  .apu-modos { width: 100%; }
+  .apu-modos button { flex: 1 1 auto; padding: 8px 6px; font-size: 12px; }
+  .apu-top li { grid-template-columns: 12px minmax(0, 1fr) 56px; }
+  .apu-top li > small { display: none; }
+  .apu-top .bar { display: none; }
+}
+.apu .mg-inline { display: none; }
+@media (max-width: 520px) {
+  /* The margin moves under the leader's name, so the table fits the screen without sideways scrolling */
+  .apu .mg-col { display: none; }
+  .apu .mg-inline { display: block; margin-top: 1px; }
+  .apu-ufs { font-size: 13px; }
+  .apu-ufs th, .apu-ufs td { padding: 6px 6px; }
+}
+.apu-camara { width: 100%; max-width: 640px; height: auto; margin: 0 auto; }
+.apu-listas th .key { margin-right: 8px; vertical-align: -1px; }
