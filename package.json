@@ -12,7 +12,9 @@
     "radar:polls": "bun run src/radar/polls/fetch-polls.ts",
     "radar:model": "bun run src/radar/model/train.ts",
     "radar:profiles": "bun run src/radar/profiles/fetch-profiles.ts",
-    "radar:suppliers": "bun run src/radar/suppliers/fetch-suppliers.ts"
+    "radar:suppliers": "bun run src/radar/suppliers/fetch-suppliers.ts",
+    "radar:panorama": "bun run src/radar/panorama.ts",
+    "radar:geo": "bun run src/radar/geo/uf-map.ts"
   },
   "dependencies": {
     "fflate": "0.8.3",
