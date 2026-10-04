@@ -107,14 +107,33 @@ describe("forecast", () => {
     expect(mean.get("1")).toBeCloseTo(0.5, 5);
   });
 
-  test("a 60-35 race is decided in the first round; a tie is a coin flip", () => {
-    const clear = forecast("Governador", "SP", [poll("A", "2026-09-20", { "1": 60, "2": 35, "3": 5 })], 1)!;
+  test("a 70-20 race is decided in the first round; a tie is a coin flip", () => {
+    const clear = forecast("Governador", "SP", [poll("A", "2026-09-20", { "1": 70, "2": 20, "3": 10 })], 1)!;
     expect(clear.candidatos[0]!.sq).toBe("1");
     expect(clear.candidatos[0]!.pVitoria).toBeGreaterThan(0.95);
     expect(clear.p1turno).toBeGreaterThan(0.9);
     const tie = forecast("Governador", "SP", [poll("A", "2026-09-20", { "1": 40, "2": 40, "3": 20 }), poll("B", "2026-09-21", { "1": 40, "2": 40, "3": 20 })], 1)!;
     expect(tie.candidatos[0]!.pVitoria).toBeGreaterThan(0.35);
     expect(tie.candidatos[0]!.pVitoria).toBeLessThan(0.65);
+  });
+
+  // Backtest on 126 races (2014-2022): with a 3.5 p.p. systematic error the 90-100% band won only 78% of the time,
+  // and the gap between the two poll leaders missed by 12.6 p.p. (sd). A 10-point lead in one poll is not a lock.
+  test("a 10-point lead in a single poll is not near-certain (plurality race, so no runoff softens it)", () => {
+    const f = forecast("Senador", "SP", [poll("A", "2026-09-20", { "1": 45, "2": 35, "3": 20 })], 1)!;
+    expect(f.candidatos[0]!.sq).toBe("1");
+    expect(f.candidatos[0]!.pVitoria).toBeGreaterThan(0.6);
+    expect(f.candidatos[0]!.pVitoria).toBeLessThan(0.9);
+  });
+
+  test("the share band is the fitted 90% band around the average, inside 0-100%, wider for bigger shares", () => {
+    const f = forecast("Governador", "SP", [poll("A", "2026-09-20", { "1": 50, "2": 49, "3": 1 })], 1)!;
+    const [a, c] = [f.candidatos.find((x) => x.sq === "1")!, f.candidatos.find((x) => x.sq === "3")!];
+    expect(a.hi - a.media).toBeCloseTo(a.media - a.lo, 9);
+    expect(a.hi - a.lo).toBeGreaterThan(0.2); // about ±14 p.p. at 50%: polls this size are not that precise
+    expect(a.hi - a.lo).toBeGreaterThan(c.hi - c.lo);
+    expect(c.lo).toBeGreaterThanOrEqual(0);
+    expect(a.hi).toBeLessThanOrEqual(1);
   });
 
   test("runoff uses head-to-head polls when they exist", () => {

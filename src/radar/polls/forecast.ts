@@ -1,14 +1,15 @@
 // Poll average + Monte Carlo for majoritarian races. Assumptions (stated in the UI):
 // latest poll per institute inside a 21-day window, recency half-life of 10 days,
-// sqrt(sample) weights, and a systematic error of 3.5 p.p. on top of sampling error,
-// because Brazilian polls have missed by more than their stated margins.
+// sqrt(sample) weights, and a systematic error on top of sampling error, because Brazilian polls
+// have missed by more than their stated margins. Both error sizes were fitted on the 2014, 2018 and
+// 2022 races (126 races, 785 candidate shares; polls as of the day before the vote vs the official result).
 import type { Poll, Race } from "./extract";
 
 export interface CandidateForecast {
   sq: string;
   media: number; // share of valid votes, 0-1
-  lo: number; // 5th percentile
-  hi: number; // 95th percentile
+  lo: number; // 5th percentile of the share
+  hi: number; // 95th percentile of the share
   pVitoria: number; // P(elected)
   p2turno: number | null; // P(reaching a runoff), majoritarian 2-round races only
   tendencia: number | null; // change in the poll average (share of valid votes) vs TREND_DAYS earlier
@@ -30,7 +31,13 @@ export interface Forecast {
 
 export const WINDOW_DAYS = 21;
 const HALF_LIFE = 10;
-const SYSTEMATIC = 0.035;
+// Chance of winning: 3.5 p.p. (the first guess) left the 90-100% band winning 78% of the time. Log-loss improves up
+// to ~0.14 and the calibration table is flat there; 0.12 keeps some margin for polls we cannot audit.
+const SYSTEMATIC = 0.12;
+// Share band: maximum likelihood on shares gives 0.085 (0.078-0.09 leaving one election out), which makes the
+// 90% band cover about 90% of results. The win chance needs a wider error because the leaders' errors are not
+// independent and upsets are fat-tailed, so the two are not the same number.
+const SYSTEMATIC_BAND = 0.085;
 const RUNOFF_SYSTEMATIC = 0.03;
 const DEFF = 1.5;
 const SIMS = 20_000;
@@ -38,7 +45,7 @@ export const TREND_DAYS = 14;
 const TREND_SLACK = 7; // the reference snapshot may end up to a week before the 14-day mark
 
 // Stated in the UI: the numbers shown there come from here, not from copied text.
-export const PARAMS = { janelaDias: WINDOW_DAYS, meiaVidaDias: HALF_LIFE, erroSistematico: SYSTEMATIC, simulacoes: SIMS, tendenciaDias: TREND_DAYS };
+export const PARAMS = { janelaDias: WINDOW_DAYS, meiaVidaDias: HALF_LIFE, erroSistematico: SYSTEMATIC, erroFaixa: SYSTEMATIC_BAND, simulacoes: SIMS, tendenciaDias: TREND_DAYS };
 
 const days = (a: string, b: string) => (Date.parse(a) - Date.parse(b)) / 86_400_000;
 const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z]/g, "");
@@ -111,17 +118,14 @@ function rng(seed: string) {
   return () => Math.sqrt(-2 * Math.log(uniform() || 1e-12)) * Math.cos(2 * Math.PI * uniform());
 }
 
-const quantile = (xs: Float64Array, q: number) => xs[Math.min(xs.length - 1, Math.floor(q * xs.length))]!;
-
-export function forecast(cargo: Race, uf: string, polls: Poll[], vagas: number): Forecast | null {
+// `systematic` is a parameter only so the backtest can compare values; the build always uses SYSTEMATIC.
+export function forecast(cargo: Race, uf: string, polls: Poll[], vagas: number, systematic = SYSTEMATIC): Forecast | null {
   const first = selectPolls(polls.filter((p) => p.turno === 1));
   if (!first.length) return null;
   const { mean, nEff } = average(first);
   const sqs = [...mean.keys()];
-  const sd = sqs.map((sq) => {
-    const p = mean.get(sq)!;
-    return Math.sqrt((p * (1 - p)) / nEff + SYSTEMATIC ** 2 * (p / (p + 0.15)));
-  });
+  const sdOf = (p: number, sys: number) => Math.sqrt((p * (1 - p)) / nEff + sys ** 2 * (p / (p + 0.15)));
+  const sd = sqs.map((sq) => sdOf(mean.get(sq)!, systematic));
   const newest = newestOf(first);
   const earlier = selectPolls(polls.filter((p) => p.turno === 1 && days(newest, p.fim) >= TREND_DAYS));
   // A reference much older than the fortnight would still be labelled "2 weeks ago": better no trend.
@@ -130,7 +134,6 @@ export function forecast(cargo: Race, uf: string, polls: Poll[], vagas: number):
   const runoff = runoffAverages(selectRunoffs(polls.filter((p) => p.turno === 2)));
   const twoRounds = cargo !== "Senador";
   const gauss = rng(`${cargo}|${uf}`);
-  const draws = sqs.map(() => new Float64Array(SIMS));
   const wins = new Float64Array(sqs.length);
   const inRunoff = new Float64Array(sqs.length);
   let decided = 0;
@@ -138,11 +141,11 @@ export function forecast(cargo: Race, uf: string, polls: Poll[], vagas: number):
   for (let s = 0; s < SIMS; s++) {
     const x = sqs.map((sq, i) => Math.max(0, mean.get(sq)! + sd[i]! * gauss()));
     const total = x.reduce((a, b) => a + b, 0) + Math.max(0, 1 - sqs.reduce((a, sq) => a + mean.get(sq)!, 0));
-    x.forEach((v, i) => (draws[i]![s] = v / total));
-    const order = sqs.map((_, i) => i).sort((a, b) => draws[b]![s]! - draws[a]![s]!);
+    const share = x.map((v) => v / total);
+    const order = sqs.map((_, i) => i).sort((a, b) => share[b]! - share[a]!);
     if (!twoRounds) {
       for (const i of order.slice(0, vagas)) wins[i]!++;
-    } else if (draws[order[0]!]![s]! > 0.5) {
+    } else if (share[order[0]!]! > 0.5) {
       wins[order[0]!]!++;
       decided++;
     } else {
@@ -150,7 +153,7 @@ export function forecast(cargo: Race, uf: string, polls: Poll[], vagas: number):
       inRunoff[a]!++;
       inRunoff[b]!++;
       const h2h = runoff.get(pairKey(sqs[a]!, sqs[b]!));
-      const qA = h2h ? (h2h.a === sqs[a] ? h2h.q : 1 - h2h.q) : draws[a]![s]! / (draws[a]![s]! + draws[b]![s]!);
+      const qA = h2h ? (h2h.a === sqs[a] ? h2h.q : 1 - h2h.q) : share[a]! / (share[a]! + share[b]!);
       const sdA = h2h ? Math.sqrt((qA * (1 - qA)) / h2h.nEff + RUNOFF_SYSTEMATIC ** 2) : 0.05;
       wins[qA + sdA * gauss() >= 0.5 ? a : b]!++;
     }
@@ -158,12 +161,13 @@ export function forecast(cargo: Race, uf: string, polls: Poll[], vagas: number):
 
   const candidatos = sqs
     .map((sq, i) => {
-      const d = draws[i]!.slice().sort();
+      const m = mean.get(sq)!;
+      const half = 1.645 * sdOf(m, SYSTEMATIC_BAND);
       return {
         sq,
-        media: mean.get(sq)!,
-        lo: quantile(d, 0.05),
-        hi: quantile(d, 0.95),
+        media: m,
+        lo: Math.max(0, m - half),
+        hi: Math.min(1, m + half),
         pVitoria: wins[i]! / SIMS,
         p2turno: twoRounds ? inRunoff[i]! / SIMS : null,
         tendencia: prior?.has(sq) ? mean.get(sq)! - prior.get(sq)! : null,
