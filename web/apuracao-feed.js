@@ -14,6 +14,17 @@ export class HttpError extends Error {
 
 const TIMEOUT_MS = 20_000;
 
+// Date and time of a file as one sortable number; NaN when the file does not say.
+const versaoDe = (d) => {
+  const dia = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(d?.versao?.data ?? "");
+  const hora = /^(\d{2}):(\d{2}):(\d{2})$/.exec(d?.versao?.hora ?? "");
+  return dia && hora ? Number(`${dia[3]}${dia[2]}${dia[1]}${hora[1]}${hora[2]}${hora[3]}`) : NaN;
+};
+
+// The TSE sometimes answers with a file older than one it already served (seen on count night, even
+// the zeroed pre-vote file): the numbers on screen never go back. Unknown versions are taken as new.
+export const maisRecente = (novo, atual) => (atual && versaoDe(novo) < versaoDe(atual) ? atual : novo);
+
 // The view prints these messages as they are, so the browser's English text never reaches the page.
 function explain(e, timedOut) {
   if (timedOut) return new Error("o TSE não respondeu a tempo");
@@ -64,7 +75,7 @@ export function createFeed({ load = loadResultado, onChange, every = POLL_MS, ti
     ctl = new AbortController();
     let patch;
     try {
-      patch = { status: "ok", dados: await load(url, ctl.signal), buscadoEm: now(), erro: null };
+      patch = { status: "ok", dados: maisRecente(await load(url, ctl.signal), snap.dados), buscadoEm: now(), erro: null };
     } catch (e) {
       // 404: the TSE has not published this file (now). Either way the last good numbers stay on screen.
       patch = e instanceof HttpError && e.status === 404 ? { status: "ausente", erro: null } : { status: "erro", erro: e?.message || "falha ao consultar o TSE" };
