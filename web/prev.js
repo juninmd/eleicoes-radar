@@ -64,7 +64,7 @@ export const listName = (c) => (c.ficha?.federacao ? c.ficha.federacao.split(" -
 // chance that chance() would show as 1% or more, so under 0,5% we say so instead.
 export function porque(c, ano = 2022) {
   const ex = c.prev?.ex;
-  if (c.prev && c.prev.p < 0.005) return ["O modelo dá menos de 1%: com a arrecadação e a lista de hoje, os sinais que ele usa ficam longe dos de quem se elegeu em 2022."];
+  if (c.prev && c.prev.p < 0.005) return [`O modelo dá menos de 1%: com a arrecadação e a lista de hoje, os sinais que ele usa ficam longe dos de quem se elegeu em ${h(ano)}.`];
   if (!ex) return ["O detalhe deste cálculo não veio nesta versão dos dados."];
   const lista = h(listName(c));
   return [

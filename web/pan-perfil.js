@@ -48,6 +48,6 @@ export function perfilView({ data, cargo, label, br }) {
       ${exp ? `<li><i class="k mean"></i><span><b>Traço e segundo número:</b> parcela das vagas esperadas pelo modelo, somando a chance de cada candidatura.</span></li>` : ""}
     </ul>
     ${FACETS.map((f) => facet(f, data.perfil)).join("")}
-    ${exp ? `<p class="exp-read">O traço é o perfil esperado dos eleitos segundo o modelo (soma das chances de cada candidatura do grupo): uma estimativa, não um resultado. O modelo olha só arrecadação, força da lista e ocupação declarada de deputado: ele não usa gênero, cor ou raça, idade nem escolaridade. Quando barra e traço diferem, é porque esses grupos se distribuem de forma diferente em arrecadação e listas.</p>` : ""}
+    ${exp ? `<p class="exp-read">O traço é o perfil esperado dos eleitos segundo o modelo (soma das chances de cada candidatura do grupo): uma estimativa, não um resultado. O modelo olha arrecadação, força da lista, ocupação declarada, o número da urna e o resultado da eleição anterior (da pessoa e dos partidos da lista): ele não usa gênero, cor ou raça, idade nem escolaridade. Quando barra e traço diferem, é porque esses grupos se distribuem de forma diferente em arrecadação e listas.</p>` : ""}
     <p class="muted small">Autodeclaração ao TSE. O perfil só aparece para disputas com ${int(MIN_PERFIL)} candidaturas ou mais, e categorias com menos de ${MIN_CELL} candidaturas são reunidas em “${OUTRAS}”.</p>`;
 }

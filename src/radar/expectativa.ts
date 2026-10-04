@@ -53,6 +53,15 @@ export function lideres(f: CandidateForecast[], quem: Map<string, { nome: string
 
 const EX_MIN_P = 0.005; // chance() shows "<1%" below this, so no explanation is attached there
 
+// Why a saved deputy model cannot be used with this code (null when it can). A model trained on other features, in
+// another order, or without the previous election to join would score every candidate wrongly and silently.
+export function modelProblem(m: { coef?: number[]; features?: string[]; anterior?: number }, has: (file: string) => boolean): string | null {
+  const same = m.coef?.length === FEATURES.length && m.features?.length === FEATURES.length && m.features.every((f, i) => f === FEATURES[i]);
+  if (!same || !Number.isInteger(m.anterior)) return "coeficientes de outra versão (bun run radar:model)";
+  const file = `data/hist/${m.anterior}.json`;
+  return has(file) ? null : `falta ${file} (bun run radar:hist ${m.anterior})`;
+}
+
 // Deputies: the seat model's chance for every candidacy, joined to the previous election by person key.
 export function scoreDeputies(cands: Candidate[], vagas: Map<string, number>, m: { coef: number[]; knots: Knots }, prev: HistElection): Map<string, Prev> {
   const base = cands.filter((c) => c.cargo.startsWith("Deputado"));
@@ -104,12 +113,11 @@ export function buildExpectativa(cands: Candidate[]) {
   let modelo: unknown = null;
   if (existsSync(MODEL)) {
     const m: { coef: number[]; knots: Knots; treino: string; anterior: number; corte: string; features: string[]; backtest: unknown } = JSON.parse(readFileSync(MODEL, "utf8"));
-    const prevFile = `data/hist/${m.anterior}.json`;
-    if (m.coef.length !== FEATURES.length || !existsSync(prevFile)) {
-      // A model trained on other features, or without the previous election to join, would score every candidate wrongly.
-      console.warn(`[expectativa] modelo de deputados ignorado: ${m.coef.length !== FEATURES.length ? "coeficientes de outra versão (bun run radar:model)" : `falta ${prevFile} (bun run radar:hist ${m.anterior})`}`);
+    const problem = modelProblem(m, existsSync);
+    if (problem) {
+      console.warn(`[expectativa] modelo de deputados ignorado: ${problem}`);
     } else {
-      const prev: HistElection = JSON.parse(readFileSync(prevFile, "utf8"));
+      const prev: HistElection = JSON.parse(readFileSync(`data/hist/${m.anterior}.json`, "utf8"));
       for (const [sq, v] of scoreDeputies(cands, vagas, m, prev)) porCandidato.set(sq, v);
       modelo = { treino: m.treino, anterior: m.anterior, corte: m.corte, features: m.features, coef: m.coef.map(r4), backtest: m.backtest };
     }

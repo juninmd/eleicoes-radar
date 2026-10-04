@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { lideres, scoreDeputies } from "./expectativa";
+import { lideres, modelProblem, scoreDeputies } from "./expectativa";
 import type { HistElection } from "./hist/aggregate";
 import { FEATURES } from "./model/seats";
 import type { Candidate } from "./tse";
@@ -47,5 +47,28 @@ describe("scoreDeputies", () => {
 
   test("the chances of one race add up to its seats", () => {
     expect(out.get("a")!.p + out.get("b")!.p).toBeCloseTo(1, 3);
+  });
+});
+
+describe("modelProblem", () => {
+  const ok = { coef: FEATURES.map(() => 0), features: [...FEATURES], anterior: 2022 };
+  const has = (file: string) => file === "data/hist/2022.json";
+
+  test("a model that matches the code and has its previous election on disk is usable", () => {
+    expect(modelProblem(ok, has)).toBeNull();
+  });
+
+  test("same number of features in another order is rejected, not silently misread", () => {
+    expect(modelProblem({ ...ok, features: [...FEATURES].reverse() }, has)).toContain("outra versão");
+  });
+
+  test("a model from an older version (fewer coefficients, no anterior) is rejected", () => {
+    expect(modelProblem({ coef: [0, 1, 2], features: ["a", "b", "c"] }, has)).toContain("outra versão");
+    expect(modelProblem({ ...ok, anterior: undefined }, has)).toContain("outra versão");
+    expect(modelProblem({ ...ok, anterior: Number("x") }, has)).toContain("outra versão");
+  });
+
+  test("a missing previous-election file says which command makes it", () => {
+    expect(modelProblem({ ...ok, anterior: 2018 }, has)).toBe("falta data/hist/2018.json (bun run radar:hist 2018)");
   });
 });

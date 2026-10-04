@@ -3,6 +3,7 @@
 import { type Ant, partyNumber } from "../model/seats";
 import type { HistElection } from "./aggregate";
 import { DEPUTIES, isElected } from "./parse";
+import { inherited } from "./succession";
 
 export interface AntQuery { sq: string; uf: string; cargo: string; pk: string; numero: string }
 
@@ -19,7 +20,9 @@ export function buildAnt(prev: HistElection, cands: AntQuery[]): Map<string, Ant
   for (const c of prev.cands) {
     if (!DEPUTIES.has(c.cargo) || !c.pk) continue;
     const p = person.get(c.pk) ?? { share: new Map(), elected: false };
-    p.share.set(`${c.uf}|${c.cargo}`, c.votos / (race.get(`${c.uf}|${c.cargo}`) || 1));
+    // The same person can appear twice in one race (a re-filed or substituted registration, one row with no votes).
+    const g = `${c.uf}|${c.cargo}`;
+    p.share.set(g, Math.max(p.share.get(g) ?? 0, c.votos / (race.get(g) || 1)));
     p.elected ||= isElected(c.sit);
     person.set(c.pk, p);
   }
@@ -31,7 +34,7 @@ export function buildAnt(prev: HistElection, cands: AntQuery[]): Map<string, Ant
       ran: share !== undefined,
       share: share ?? 0,
       elected: p?.elected ?? false,
-      partido: (party.get(`${g}|${partyNumber(c.numero)}`) ?? 0) / (race.get(g) || 1),
+      partido: inherited(prev.year, partyNumber(c.numero)).reduce((a, n) => a + (party.get(`${g}|${n}`) ?? 0), 0) / (race.get(g) || 1),
     }];
   }));
 }

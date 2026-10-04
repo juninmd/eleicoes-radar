@@ -44,3 +44,44 @@ describe("what the previous election says about a candidacy", () => {
     expect(out.get("n4")).toMatchObject({ ran: false, elected: false });
   });
 });
+
+describe("the same person twice in one race", () => {
+  const election = (rows: ReturnType<typeof c>[]): HistElection => ({ year: 2022, cutoff: "", vagas: {}, legenda: {}, cands: rows });
+  const withVotes = c("v", "SP", "DEPUTADO FEDERAL", "ANA|1970-01-01", "2201", 500, "ELEITO POR QP");
+  const refiled = c("z", "SP", "DEPUTADO FEDERAL", "ANA|1970-01-01", "2201", 0, "NÃO ELEITO");
+  const other = c("o", "SP", "DEPUTADO FEDERAL", "BIA|1980-02-02", "1301", 500, "NÃO ELEITO");
+  const ask = [{ sq: "n", uf: "SP", cargo: "DEPUTADO FEDERAL", pk: "ANA|1970-01-01", numero: "2299" }];
+
+  test("the row with votes counts, whichever comes last", () => {
+    for (const rows of [[withVotes, refiled, other], [refiled, withVotes, other]]) {
+      const a = buildAnt(election(rows), ask).get("n")!;
+      expect(a.share).toBeCloseTo(0.5, 6);
+      expect(a.elected).toBe(true);
+    }
+  });
+});
+
+describe("a party's weight follows its successor, not just its number", () => {
+  const row = (numero: string, votos: number) => c(`s${numero}`, "SP", "DEPUTADO FEDERAL", "", numero, votos, "NÃO ELEITO");
+  const weight = (year: number, rows: ReturnType<typeof c>[], numero: string) =>
+    buildAnt({ year, cutoff: "", vagas: {}, legenda: {}, cands: rows }, [{ sq: "q", uf: "SP", cargo: "DEPUTADO FEDERAL", pk: "", numero }]).get("q")!.partido;
+
+  test("2018 -> 2022: União gets PSL + DEM and not the PRP that held 44 before", () => {
+    const rows = [row("1701", 600), row("2501", 200), row("4401", 100), row("5101", 100)];
+    expect(weight(2018, rows, "4499")).toBeCloseTo(0.8, 6);
+    expect(weight(2018, rows, "5199")).toBeCloseTo(0.2, 6); // Patriota = its own 51 + the PRP
+  });
+
+  test("2022 -> 2026: mergers add up, a reused number inherits nothing, a rename keeps its votes", () => {
+    const rows = [row("1401", 100), row("5101", 100), row("2001", 100), row("1901", 200), row("7701", 400), row("9001", 100), row("3301", 100)];
+    expect(weight(2022, rows, "2599")).toBeCloseTo(200 / 1100, 6); // PRD = PTB + Patriota
+    expect(weight(2022, rows, "2099")).toBeCloseTo(300 / 1100, 6); // Podemos = PODE (19) + PSC (20)
+    expect(weight(2022, rows, "7799")).toBeCloseTo(500 / 1100, 6); // Solidariedade + PROS
+    expect(weight(2022, rows, "1499")).toBe(0); // Missão took the PTB's number but not its votes
+    expect(weight(2022, rows, "3399")).toBeCloseTo(100 / 1100, 6); // PMN -> Mobiliza kept 33
+  });
+
+  test("no successor listed for the year: the number's own votes, as before", () => {
+    expect(weight(2014, [row("4401", 100), row("1301", 100)], "4499")).toBeCloseTo(0.5, 6);
+  });
+});

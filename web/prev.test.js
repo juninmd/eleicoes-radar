@@ -116,3 +116,10 @@ test("dossier block places the candidate in the race and reads the simulation co
   expect(html).toContain("20.000");
   expect(prevBlock({ ...cand("Z", 0, 0, 0), prev: null }, exp)).toBe("");
 });
+
+test("the election the model looked back at comes from the model, in every sentence that names it", () => {
+  const dep = { ...cand("Cris", 0, 0, 0), fin: { total: 1_500_000 }, prev: { p: 0.004, fonte: "modelo" } };
+  expect(porque(dep, 2018)[0]).toContain("quem se elegeu em 2018");
+  expect(porque(dep, 2018)[0]).not.toContain("2022");
+  expect(porque({ ...dep, prev: { p: 0.62, fonte: "modelo", ex: { r: 3, g: 9, lr: 1, ln: 5, vl: 2, dep: false, rep: false, el: true, ps: 0.031, lp: 0.2 } } }, 2018).join(" ")).toContain("em 2018");
+});

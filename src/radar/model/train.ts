@@ -4,11 +4,11 @@
 // Usage: bun run radar:model
 import { writeFileSync } from "node:fs";
 import { type Loaded, loadHist } from "../hist/load";
+import { YEARS } from "../hist/sources";
 import { evaluate, features, FEATURES, fitIsotonic, fitLogistic, predictGroups, recalibrate, type SeatCand } from "./seats";
 
 export const TRAIN_YEARS = [2018, 2022];
-// 2022 first round was 02/10/2022; the cutoff everywhere is election day minus seven days.
-export const CORTE_2022 = "2022-09-25";
+const LATEST = Math.max(...TRAIN_YEARS); // the election 2026 is joined to; its cutoff is election day minus seven days
 
 const years = TRAIN_YEARS.map((y) => {
   const l: Loaded = loadHist(y);
@@ -73,7 +73,7 @@ const coef = fit(() => true);
 
 writeFileSync(
   "data/modelo-deputados.json",
-  JSON.stringify({ treino: TRAIN_YEARS.join(" e "), anterior: 2022, corte: CORTE_2022, features: FEATURES, coef, knots, backtest }, null, 1),
+  JSON.stringify({ treino: TRAIN_YEARS.join(" e "), anterior: LATEST, corte: YEARS[LATEST]!.cutoff, features: FEATURES, coef, knots, backtest }, null, 1),
 );
 for (const [i, b] of backtests.entries()) {
   console.log(`[modelo] ${years[i]!.year}: ${b.candidatos} candidaturas, ${b.vagas} vagas · acerto ${(b.acerto * 100).toFixed(1)}% vs ${(b.acertoBaseline * 100).toFixed(1)}% só por dinheiro · Brier ${b.brier.toFixed(4)}`);
