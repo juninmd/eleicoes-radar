@@ -105,6 +105,13 @@ describe("renderCamara", () => {
     expect(html).toContain("PT/PC do B/PV");
   });
 
+  test("it says the distribution is provisional and how little of the count it rests on", () => {
+    const html = renderCamara({ nac, cor });
+    expect(html).toContain("distribuídas por enquanto");
+    expect(html).toContain("com 50,0% das seções totalizadas"); // SP 50/100, RJ 100/100, AC 0/100
+    expect(html).not.toMatch(/já atribuídas/);
+  });
+
   test("the list table repeats the dots as text", () => {
     const html = renderCamara({ nac, cor });
     expect(html).toMatch(/<td class="num">34<\/td>/);

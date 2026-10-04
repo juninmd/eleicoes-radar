@@ -1,7 +1,7 @@
 // "Câmara" view for Deputado Federal: the seats the TSE has assigned to each party or federation,
 // summed over the 27 states, drawn as a hemicycle. Only the TSE's own numbers: no projection.
 import { h, int, pct } from "./format.js";
-import { linhasUf } from "./apuracao-nacional.js";
+import { avancoDe, linhasUf } from "./apuracao-nacional.js";
 
 const NEUTRO = "#d5d9d3";
 const chave = (nome) => nome.trim().replace(/\s+/g, " ").toLowerCase();
@@ -9,9 +9,12 @@ const chave = (nome) => nome.trim().replace(/\s+/g, " ").toLowerCase();
 export function vagasNacionais(linhas) {
   const soma = new Map();
   let emDisputa = 0;
+  const secoes = { total: 0, totalizadas: 0 };
   const com = linhas.filter((l) => l.dados);
   for (const l of com) {
     emDisputa += l.dados.cargo.vagas;
+    secoes.total += l.secoes.total;
+    secoes.totalizadas += l.secoes.totalizadas;
     for (const p of l.dados.partidos ?? []) {
       if (p.vagas <= 0) continue;
       const k = chave(p.nome);
@@ -21,7 +24,7 @@ export function vagasNacionais(linhas) {
     }
   }
   const listas = [...soma.values()].sort((a, b) => b.vagas - a.vagas || a.nome.localeCompare(b.nome, "pt-BR"));
-  return { listas, definidas: listas.reduce((a, l) => a + l.vagas, 0), emDisputa, cobertura: { com: com.length, de: linhas.length } };
+  return { listas, definidas: listas.reduce((a, l) => a + l.vagas, 0), emDisputa, avanco: avancoDe(secoes), cobertura: { com: com.length, de: linhas.length } };
 }
 
 const W = 640;
@@ -57,7 +60,7 @@ export function renderCamara({ nac, cor }) {
   const linhas = linhasUf(nac?.ufs ?? {}, "Deputado Federal");
   if (!linhas.length || linhas.every((l) => !l.dados && l.status === "carregando")) return `<p class="muted">Consultando os 27 estados…</p>`;
   const v = vagasNacionais(linhas);
-  const resumo = `<p class="exp-lead"><b>${int(v.definidas)} de ${int(v.emDisputa)} vagas</b> já atribuídas a partidos ou federações pelo TSE, em ${int(v.cobertura.com)} de ${int(v.cobertura.de)} estados lidos.</p>
+  const resumo = `<p class="exp-lead"><b>${int(v.definidas)} de ${int(v.emDisputa)} vagas</b> distribuídas por enquanto pelo TSE a partidos ou federações, com ${pct(v.avanco, 1)} das seções totalizadas, em ${int(v.cobertura.com)} de ${int(v.cobertura.de)} estados lidos.</p>
     <p class="exp-read">Enquanto a apuração está aberta, as vagas por lista podem mudar: o TSE as define pelo quociente eleitoral de cada estado, e só depois escolhe os candidatos de cada lista.</p>`;
   if (!v.listas.length) return `${resumo}<p class="empty">O TSE ainda não publicou vagas por partido ou federação.</p>`;
   const demais = cor.resto === undefined ? 0 : v.listas.filter((l) => cor(l.nome) === cor.resto).length;
