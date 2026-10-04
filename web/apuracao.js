@@ -1,8 +1,10 @@
-// "Apuração" view: the live count, read from the TSE results files. It shows only what the TSE
-// publishes (numbers and its own status text); the Radar never projects a winner here.
+// "Apuração" view: the live count, read from the TSE results files. It shows the TSE's numbers and its own
+// status text; the Radar never projects a winner. The one thing it adds is a proof, not a projection:
+// "Matematicamente eleito" (apuracao-eleito.js), only where no split of the votes still to come can change the result.
 import { h, int, pct, titleName } from "./format.js";
 import { POLL_MS } from "./apuracao-feed.js";
 import { composicao, evolucao, faixaVsApuracao } from "./apuracao-graficos.js";
+import { decididos, eleitoTse } from "./apuracao-eleito.js";
 import { createCores } from "./apuracao-nacional.js";
 import { PALETA } from "./apuracao-mapa.js";
 import { renderCamara } from "./apuracao-camara.js";
@@ -32,11 +34,22 @@ function status(d) {
 
 const proporcional = (cargo) => /^Deputado/.test(cargo);
 
+// "eleito", "eleita" or "eleito(a)" when we do not know who they are (or the TSE record has no usable gender).
+const eleitoDe = (own) => (/^fem/i.test(own?.genero ?? "") ? "eleita" : /^masc/i.test(own?.genero ?? "") ? "eleito" : "eleito(a)");
+const chipMat = (own) => `<span class="rot alta mat">Matematicamente ${eleitoDe(own)}</span>`;
+
+// Said once, above the table, with the rule in words: the label is the Radar's arithmetic, not the TSE's call.
+function decididoTxt(d, ids) {
+  const nomes = d.candidatos.filter((c) => ids.has(c.id)).map((c) => `<b>${h(titleName(c.nome))}</b> (${h(c.partido)})`);
+  if (!nomes.length) return "";
+  return `<p class="apu-decidido"><b>Matematicamente ${nomes.length > 1 ? "eleitos" : "eleito(a)"}:</b> ${nomes.join(" e ")}. Mesmo que todos os eleitores das seções ainda não totalizadas votassem em outro candidato, o resultado não mudaria. É uma conta do Radar sobre os números do TSE: não é a marcação do TSE nem a diplomação.</p>`;
+}
+
 function lead(d, cargo) {
   const [a, b] = d.candidatos;
   if (!a || !a.votos) return "";
   if (proporcional(cargo)) {
-    const eleitos = d.candidatos.filter((c) => /^eleit/i.test(c.situacao)).length; // "Não eleito" does not match
+    const eleitos = d.candidatos.filter(eleitoTse).length;
     return `${int(d.cargo.vagas)} vagas em disputa. Segundo o TSE, ${int(eleitos)} já ${eleitos === 1 ? "tem" : "têm"} situação de eleito${d.quociente ? `. Quociente eleitoral: <b>${int(d.quociente)}</b> votos` : ""}.`;
   }
   if (d.cargo.vagas > 1 && b) {
@@ -55,14 +68,15 @@ const difTxt = (cmp) => {
 // Poll columns exist only where the race has polls; "rows" carries the comparison of every candidate.
 function tabela(fase, rows, avatar, limit) {
   const polls = rows.some((r) => r.cmp);
-  const temStatus = rows.some((r) => r.c.situacao); // empty until the TSE marks someone
-  const body = rows.slice(0, limit).map(({ c, own, cmp }) => {
+  const temStatus = rows.some((r) => r.c.situacao); // the TSE's own column: empty until the TSE marks someone
+  const body = rows.slice(0, limit).map(({ c, own, cmp, mat, ele }) => {
     // Status and poll comparison are printed twice: under the name for phones, in their own columns for wider screens (CSS shows one).
     const chip = c.situacao ? `<span class="rot ${c.destaque ? "alta" : "baixa"}">${h(c.situacao)}</span>` : "";
     const inline = chip || cmp ? `<span class="row-inline">${chip}${cmp ? `<span class="cmp-inline">pesquisa <b>${pct(cmp.media, 1)}</b> · ${difTxt(cmp)}${faixaTxt(cmp, fase) ? ` · ${faixaTxt(cmp, fase)}` : ""}</span>` : ""}</span>` : "";
-    const nome = `${own ? avatar(own, "xs") : ""}<span>${h(titleName(c.nome))} <small>${h(c.partido)} · ${h(c.num)}</small>${inline}</span>`;
+    // The Radar's label sits under the name at every width: the TSE column is for the TSE's text only and may be scrolled out of view.
+    const nome = `${own ? avatar(own, "xs") : ""}<span>${h(titleName(c.nome))} <small>${h(c.partido)} · ${h(c.num)}</small>${mat ? `<span class="mat-nome">${chipMat(own)}</span>` : ""}${inline}</span>`;
     const band = cmp && Number.isFinite(cmp.lo) && Number.isFinite(cmp.hi) ? `<small>faixa ${pct(cmp.lo, 0)}–${pct(cmp.hi, 0)}</small>` : "";
-    return `<tr>
+    return `<tr${ele ? ' class="eleito"' : ""}>
       <th scope="row">${own ? `<button type="button" class="linkish" data-open="${h(own.id)}">${nome}</button>` : `<span class="linkish">${nome}</span>`}</th>
       <td class="num">${int(c.votos)}</td>
       <td><div class="rangewrap"><div class="apu-bar" aria-hidden="true"><span style="width:${Math.max(0, Math.min(100, c.pct * 100))}%"></span></div><b class="rv">${pct(c.pct, 2)}</b></div></td>
@@ -105,6 +119,7 @@ const comoLer = (proporcional) => `<details class="how"><summary>Como ler a apur
   <li>As urnas não chegam em ordem aleatória: cada região e cada seção entra em um momento, e quem lidera agora pode ser ultrapassado.</li>
   <li>A % de cada candidato é a calculada pelo TSE sobre os votos válidos. Brancos e nulos ficam de fora dela e aparecem à parte.</li>
   <li>A coluna Situação é o texto que o próprio TSE publica (por exemplo "Eleito" ou "2º turno"). O Radar não projeta vencedor.</li>
+  ${!proporcional ? `<li>"Matematicamente eleito" é uma conta do Radar, não do TSE, e é rígida: vale quando o candidato fica à frente mesmo que todos os eleitores das seções que faltam votassem no adversário e nenhum votasse nele (Presidente e Governador: mais da metade dos votos válidos que ainda podem existir; Senado: o último eleito segue à frente do primeiro que ficou de fora). Quem está apertado, ou ainda longe, não ganha a etiqueta. A marcação do TSE vale à parte.</li>` : ""}
   ${proporcional ? `<li>Nos cargos proporcionais as vagas são divididas primeiro entre partidos e federações, pelo quociente eleitoral, e só depois entre os candidatos de cada lista. Por isso um candidato pode ter mais votos que outro e não se eleger.</li>` : ""}
 </ol></details>`;
 
@@ -129,9 +144,12 @@ export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, exp, vist
   const vistas = vistasDe(cargo);
   const aberta = vistas.includes(vista) ? vista : "placar";
   // Deputies have no polls: only the other offices are compared. The id used to look up a candidate comes from our data, never from the file.
+  const dec = decididos(d, cargo, uf);
   const rows = (d?.candidatos ?? []).map((c) => {
     const own = byId.get(c.id);
-    return { c, own, cmp: proporcional(cargo) ? null : comparar(c, own?.prev) };
+    // The TSE's own text always wins; the proof only labels whoever the TSE has not marked yet.
+    const mat = dec.has(c.id) && !c.situacao;
+    return { c, own, cmp: proporcional(cargo) ? null : comparar(c, own?.prev), ele: eleitoTse(c) || mat, mat };
   });
   const corrida = exp?.corridas?.find((x) => x.cargo === cargo && x.uf === uf);
   const local = uf === "BR" ? "" : ` · ${h(uf)}`;
@@ -153,6 +171,7 @@ export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, exp, vist
       ${status(d)}
       ${aguardando ? aviso("A apuração ainda não começou: o TSE não totalizou nenhuma seção. Os números aparecem aqui assim que ele começar a publicar.")
         : `<p class="exp-lead">${lead(d, cargo)}</p>
+           ${decididoTxt(d, new Set(rows.filter((r) => r.mat).map((r) => r.c.id)))}
            ${d.fase === "parcial" ? `<p class="exp-read">Resultado parcial: com ${pctSecoes(d.secoes)} das seções totalizadas, os números ainda mudam e a ordem pode se inverter.</p>` : ""}
            ${proporcional(cargo) ? `${vagasPorLista(d)}<p class="muted small">Não há pesquisa por candidato a deputado, então esta lista não tem comparação com pesquisas.</p>` : comparacao(rows, corrida, d.fase, d.cargo.vagas)}
            ${tabela(d.fase, rows, avatar, limit)}`}`;

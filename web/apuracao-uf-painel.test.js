@@ -127,3 +127,50 @@ describe("tabelaUf", () => {
     expect(html.match(/<tr data-uf="SP"[^>]*>/)[0]).toContain('aria-current="true"');
   });
 });
+
+describe("decided races", () => {
+  // 900 of 1.000 electors counted and 800 valid votes: at most 100 votes can still arrive.
+  const quase = (cs, vagas = 1) => {
+    const u = uf({ vagas, cands: cs });
+    u.dados.eleitorado = { apto: 1000, apurado: 900 };
+    u.dados.votos = { validos: 800 };
+    return u;
+  };
+  const dois = [c("1", "ANA SOUZA", "AAA", 600, 0.75), c("2", "BETO LIMA", "BBB", 200, 0.25)];
+  const decidida = linhasUf({ SP: quase(dois), RJ: uf({ cands }) }, "Governador");
+  const de = (u) => decidida.find((l) => l.uf === u);
+
+  test("the panel tints the winner's line, labels it, and says whose arithmetic it is", () => {
+    const html = painelUf(de("SP"), { cor, cargo: "Governador" });
+    expect(html.match(/<li class="eleito">/g)).toHaveLength(1);
+    expect(html).toContain("Matematicamente eleito(a)</span>");
+    expect(html).toContain("conta do Radar sobre os números do TSE");
+    expect(html).toContain("Não é a marcação do TSE");
+  });
+
+  test("an undecided state gets neither the tint, the label nor the explanation", () => {
+    const html = painelUf(de("RJ"), { cor, cargo: "Governador" });
+    expect(html).not.toContain("eleito");
+    expect(html).not.toContain("Matematicamente");
+  });
+
+  test("the table row of a decided state is tinted and labelled; the others are untouched", () => {
+    const html = tabelaUf(decidida, { cargo: "Governador", corridas: [], sel: null });
+    expect(html.match(/<tr data-uf="SP" class="eleito">/g)).toHaveLength(1);
+    expect(html.match(/<tr data-uf="RJ">/g)).toHaveLength(1);
+    expect(html.match(/Matematicamente eleito\(a\)/g)).toHaveLength(1);
+  });
+
+  test("with two seats decided the table says so in the plural", () => {
+    const tres = [c("1", "ANA", "AAA", 300, 0.43), c("2", "BETO", "BBB", 280, 0.4), c("3", "CRIS", "CCC", 100, 0.14), c("4", "DUDU", "DDD", 20, 0.03)];
+    const sen = linhasUf({ SP: quase(tres, 2) }, "Senador");
+    expect(tabelaUf(sen, { cargo: "Senador", corridas: [], sel: null })).toContain("Matematicamente eleitos");
+    expect(painelUf(sen[0], { cor, cargo: "Senador" }).match(/<li class="eleito">/g)).toHaveLength(2);
+  });
+
+  test("the president's state rows never carry it", () => {
+    const pres = linhasUf({ SP: quase(dois) }, "Presidente");
+    expect(tabelaUf(pres, { cargo: "Presidente", corridas: [], sel: null })).not.toContain("Matematicamente");
+    expect(painelUf(pres[0], { cor, cargo: "Presidente" })).not.toContain("Matematicamente");
+  });
+});
