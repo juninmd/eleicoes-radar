@@ -9,7 +9,8 @@ Não recomenda votos: o eleitor escolhe o peso de cada indicador.
 bun install
 bun run radar:fetch     # baixa os arquivos da Câmara (idempotente; --force atualiza)
 bun run radar:polls     # pesquisas da Wikipédia -> data/pesquisas.json (cache diário; --force atualiza)
-bun run radar:model     # treina o modelo de deputados em 2022 -> data/modelo-deputados.json
+bun run radar:hist 2014 # (uma vez; também 2018 e 2022, ~3 min cada) resultados e contas das eleições passadas -> data/hist/
+bun run radar:model     # treina o modelo de deputados em 2018 e 2022 -> data/modelo-deputados.json
 bun run radar:profiles  # trajetória e fotos de reserva (Câmara, Senado, Wikidata)
 bun run radar:suppliers # CNPJ dos fornecedores na Receita (BrasilAPI + minhareceita, sem chave; retomável)
 bun run radar:build     # gera web/data/ (uf/<UF>.json, fotos/, expectativa.json, meta.json)
@@ -28,7 +29,7 @@ O TSE bloqueia alguns clientes automáticos (403 do WAF); `curl -A "Mozilla/5.0"
   `consulta_cand_2026.zip` (cadastro), `prestacao_de_contas_eleitorais_candidatos_2026.zip` (contas),
   `consulta_vagas_2026.zip` (vagas por cargo), `foto_cand2026_<UF>_div.zip` (fotos, uma por UF + `BR`)
 - Para a variação de patrimônio: `bem_candidato_2022.zip`
-- Para o modelo de deputados: `consulta_cand_2022.zip` e `prestacao_de_contas_eleitorais_candidatos_2022.zip`
+- Para o modelo de deputados (2014, 2018 e 2022): `consulta_cand_<ano>`, `consulta_vagas_<ano>`, `votacao_candidato_munzona_<ano>`, `votacao_partido_munzona_<ano>` e as contas (`prestacao_final_2014`, `prestacao_de_contas_eleitorais_candidatos_2018` e `_2022`); URLs no AGENTS.md
 
 Depois rode `bun run radar:build` de novo. Outro caminho: `TSE_ZIP=caminho.zip bun run radar:build`.
 
@@ -71,18 +72,36 @@ Indicador ausente conta como 0,5, para que evidência parcial não supere um his
   "Pesquisas eleitorais ... 2026" da Wikipédia (`src/radar/polls/`). Só entram cenários reais: todo
   nome com percentual precisa ser candidatura registrada na disputa. Média da pesquisa mais recente de
   cada instituto nos últimos 21 dias (meia-vida 10 dias, peso √amostra), em votos válidos.
-  20 mil simulações com erro amostral + 3,5 p.p. de erro sistemático; 2º turno usa confronto direto
+  20 mil simulações com erro amostral + erro sistemático medido nas eleições de 2014, 2018 e 2022 (126 disputas;
+  `erroSistematico` para a chance de vitória e `erroFaixa` para a faixa de 90%, ambos em `PARAMS`); o chute inicial
+  de 3,5 p.p. deixava a faixa de 90% cobrir só 64% dos resultados. Misturar o resultado da eleição anterior à média
+  das pesquisas foi testado e não melhora (AGENTS.md). 2º turno usa confronto direto
   quando existe. Senado elege os 2 mais votados (vagas de `consulta_vagas_2026`).
   Cada candidato também traz a **tendência** (média de agora menos a média só com pesquisas de 14+ dias
   antes, com a referência a no máximo 21 dias da pesquisa mais nova, senão sem tendência; menos de 0,5 p.p. é "estável"). Os parâmetros (janela, meia-vida, erro, simulações) saem de
   `PARAMS` em `polls/forecast.ts` para `expectativa.json` (`metodo`): a interface lê de lá, não repete números.
-- **Deputados:** sem pesquisa pública por candidato. Regressão logística treinada em 2022 com dados de
+- **Deputados:** sem pesquisa pública por candidato. Regressão logística treinada em 2018 e 2022 com dados de
   7 dias antes da eleição (arrecadação escalada pelas vagas, força da lista partido/federação, posição
-  na lista, ocupação declarada "deputado"), ajustada para somar as vagas de cada UF e recalibrada
-  (isotônica). Validação cruzada por UF: acerta 58% dos eleitos contra 49% de "top-N por dinheiro".
+  na lista, ocupação declarada "deputado", número da urna que repete o do partido, e o que a eleição anterior
+  diz: se a pessoa disputou o mesmo cargo e com quantos votos, se foi eleita, e o peso dos partidos da lista),
+  ajustada para somar as vagas de cada UF e recalibrada (isotônica; depois disso a soma por UF fica em média a
+  2,7% das vagas, no pior caso 7%). A "eleição anterior" liga as pessoas por
+  nome civil + data de nascimento (`hist/ant.ts`; o CPF vem mascarado nos arquivos antigos). Validação cruzada
+  por UF em 2022: acerta 63% dos eleitos contra 49% de "top-N por dinheiro" (sem as variáveis da eleição
+  anterior eram 58%). Deixando uma eleição inteira de fora: 60% em 2018 e 62% em 2022 (sem as variáveis da
+  eleição anterior: 57% e 58%). O ganho vem da fatia de votos da própria pessoa e de ela ter sido eleita; o peso
+  dos partidos da lista (que segue fusões e números reaproveitados, `hist/succession.ts`) não agrega além do
+  dinheiro da lista.
   Para explicar a chance, cada candidatura com 0,5% ou mais leva `ex` (posição na arrecadação do estado,
-  vagas esperadas da lista, posição na lista, se declara "deputado"): vem de `explain()` em `model/seats.ts`,
-  que usa o mesmo cálculo das features do modelo.
+  vagas esperadas da lista, posição na lista, se declara "deputado", se foi eleita e com quantos votos na
+  eleição anterior, peso dos partidos da lista): vem de `explain()` em `model/seats.ts`, que usa o mesmo
+  cálculo das features do modelo. Sem `data/hist/<anterior>.json` o build ignora o modelo e avisa.
+- **Monte Carlo de votos (`src/radar/mc/`, não usado na interface):** sorteia os votos de cada candidato e lista
+  (regressão do log da fatia de votos + choque da lista + choque do partido + resíduo reamostrado) e aplica as
+  regras reais de quociente e sobras (`allocate.ts`, que reproduz 99,3% / 99,8% / 99,8% dos eleitos de 2014,
+  2018 e 2022 com os votos reais). `bun run radar:mc-backtest` compara tudo deixando uma eleição de fora:
+  a logística ganha em acerto, Brier e log-loss nas três eleições, e a média das duas não melhora. Por isso a
+  interface continua com a logística; o Monte Carlo fica como ferramenta de análise.
 - A interface usa faixas verbais (muito provável ≥85%, provável ≥60%, disputa aberta ≥30%, possível ≥5%,
   improvável) sempre ao lado do número; a definição fica em `web/prev.js`.
 - Não é pesquisa eleitoral e não substitui uma; a interface diz isso junto de cada número.
