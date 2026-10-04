@@ -13,6 +13,8 @@ bun run radar:model     # treina o modelo de deputados em 2022 -> data/modelo-de
 bun run radar:profiles  # trajetória e fotos de reserva (Câmara, Senado, Wikidata)
 bun run radar:suppliers # CNPJ dos fornecedores na Receita (BrasilAPI + minhareceita, sem chave; retomável)
 bun run radar:build     # gera web/data/ (uf/<UF>.json, fotos/, expectativa.json, meta.json)
+bun run radar:panorama  # agregados das abas Partidos/Dinheiro/Perfil -> web/data/panorama.json (depois do build)
+bun run radar:geo       # uma vez: malha dos estados (IBGE) -> web/mapa-uf.json (versionado; o mapa da Apuração usa)
 bun run radar:serve     # http://127.0.0.1:4173  (health: /health)
 bun test src/radar web
 ```
@@ -71,11 +73,78 @@ Indicador ausente conta como 0,5, para que evidência parcial não supere um his
   cada instituto nos últimos 21 dias (meia-vida 10 dias, peso √amostra), em votos válidos.
   20 mil simulações com erro amostral + 3,5 p.p. de erro sistemático; 2º turno usa confronto direto
   quando existe. Senado elege os 2 mais votados (vagas de `consulta_vagas_2026`).
+  Cada candidato também traz a **tendência** (média de agora menos a média só com pesquisas de 14+ dias
+  antes, com a referência a no máximo 21 dias da pesquisa mais nova, senão sem tendência; menos de 0,5 p.p. é "estável"). Os parâmetros (janela, meia-vida, erro, simulações) saem de
+  `PARAMS` em `polls/forecast.ts` para `expectativa.json` (`metodo`): a interface lê de lá, não repete números.
 - **Deputados:** sem pesquisa pública por candidato. Regressão logística treinada em 2022 com dados de
   7 dias antes da eleição (arrecadação escalada pelas vagas, força da lista partido/federação, posição
   na lista, ocupação declarada "deputado"), ajustada para somar as vagas de cada UF e recalibrada
   (isotônica). Validação cruzada por UF: acerta 58% dos eleitos contra 49% de "top-N por dinheiro".
+  Para explicar a chance, cada candidatura com 0,5% ou mais leva `ex` (posição na arrecadação do estado,
+  vagas esperadas da lista, posição na lista, se declara "deputado"): vem de `explain()` em `model/seats.ts`,
+  que usa o mesmo cálculo das features do modelo.
+- A interface usa faixas verbais (muito provável ≥85%, provável ≥60%, disputa aberta ≥30%, possível ≥5%,
+  improvável) sempre ao lado do número; a definição fica em `web/prev.js`.
 - Não é pesquisa eleitoral e não substitui uma; a interface diz isso junto de cada número.
+
+## Panorama (partidos, dinheiro, alianças, perfil)
+
+Quatro abas que olham o conjunto de candidaturas do cargo aberto na cédula, no estado ou no Brasil todo.
+Nenhuma entra na nota. Descritivo, sem ranking de qualidade e sem recomendação.
+
+- **Dados:** `bun run radar:panorama` (`src/radar/panorama.ts`) lê `web/data/uf/*.json` e `agenda.json` e escreve
+  `web/data/panorama.json` (~0,3 MB): por escopo (UF e `BR`) e cargo, dinheiro por fonte e por partido, mediana, mulheres,
+  vagas esperadas (soma das chances do modelo), concentração em decis e perfil. Sem nomes, ids nem CPF (teste cobre).
+- **Privacidade:** percentual de partido só com 3 ou mais candidaturas; perfil só em disputas com 30 ou mais (`MIN_PERFIL`) e,
+  categoria com menos de 5 candidaturas (`MIN_CELL`) já sai do JSON reunida em "Outras categorias"; se essa soma ainda ficar
+  abaixo de 5, a menor vizinha entra junto, para que o total não revele a célula pequena. "Mulheres" por partido só sai
+  quando a célula Feminino também sai. Vale para o **resumo agregado**: gênero, cor/raça e nascimento de cada candidatura
+  já estão em `web/data/uf/*.json` (cadastro público do TSE), então isto não é controle de confidencialidade. Limite
+  conhecido: a visão Brasil é dobrada por conta própria, e "Brasil menos os outros estados" pode derivar uma categoria que
+  só um estado dobrou.
+- **Alianças:** vêm do texto de coligação/federação do cadastro (`web/aliancas.js`), por estado. Deputado só tem federação.
+- **Gráficos** (`web/charts.js`, `web/sankey.js`): SVG/HTML sem dependências; todo número desenhado também está em texto.
+- Sem `panorama.json` as abas mostram como gerá-lo; o resto do Radar não depende dele.
+
+## Apuração em tempo real
+
+Aba **Apuração**: o navegador lê direto os arquivos de resultados do TSE (`web/apuracao-tse.js`,
+`apuracao-feed.js`, `apuracao.js`), sem passar pelo servidor do Radar, e consulta de novo a cada 60 s
+enquanto a aba está aberta e visível.
+
+- **URL:** `https://resultados.tse.jus.br/oficial/ele2026/<eleição>/dados/<uf>/<uf>-c<cargo>-e<eleição>-u.json`.
+  1º turno: eleição `6257` (Presidente, arquivo `br`) e `6259` (Governador `3`, Senador `5`, Deputado Federal `6`,
+  Estadual `7`, Distrital `8`, um arquivo por UF). Os códigos saem de `config/ele-c.json`; o 2º turno usa `6258` e `6260`.
+- **Sem proxy:** o TSE responde CORS para qualquer origem e `Cache-Control` de 20 a 45 s (`max-age`), então não há fetch no
+  servidor nem URL montada a partir de entrada do usuário (`tseUrl` só aceita cargo conhecido e UF de 2 letras).
+  Se o TSE parar de liberar CORS, ficar fora do ar (ou o arquivo sumir, 404), a aba mostra o motivo e mantém os
+  últimos números e a hora deles. Cada consulta tem limite de 20 s; um erro ao desenhar não interrompe a consulta seguinte.
+- **Só mostra o que o TSE publica:** a coluna Situação é o texto `st` do arquivo. `e: "s"` não quer dizer "eleito"
+  (no 1º turno de 2024 os dois mais votados vinham `e=s` com `st="2º turno"`), e o Radar não projeta vencedor.
+- **Comparação com pesquisas** (`apuracao-pesquisa.js`): Presidente, Governador e Senador. Mesma base (votos válidos),
+  seta sem cor (acima ou abaixo da pesquisa não é bom nem ruim) e "dentro/fora da faixa de 90%". Com a apuração parcial a
+  tela diz que a diferença pode refletir quais urnas já entraram, além do erro da pesquisa ("dentro/fora da faixa por
+  enquanto"). No Senado cada eleitor vota em até 2 nomes: a nota avisa que as % são de votos, não de eleitores.
+  Deputados não têm pesquisa.
+- **Visões** (botões Placar / Mapa / Câmara / Gráficos dentro da aba):
+  - *Placar*: a tabela de candidatos da disputa aberta, com a comparação com as pesquisas.
+  - *Mapa* (Presidente, Governador, Senador): 27 estados em SVG (`apuracao-mapa.js`; Presidente soma também o arquivo do
+    exterior, `zz`). Modos: quem lidera (cor = partido do líder, tom = % do líder), margem (no Senado, na última vaga),
+    andamento da apuração e, para Governador e Senador, contra a pesquisa (líder igual ou diferente; diferente aparece
+    hachurado, nunca em cor de "erro"). Estados pequenos (DF, SE, AL) e o exterior têm botão próprio. Tabela dos estados
+    abaixo = versão em texto; clicar num estado abre os candidatos dele e "Abrir a disputa" muda a UF da cédula.
+  - *Câmara* (Deputado Federal): hemiciclo com as vagas que o TSE já atribuiu a cada partido ou federação (`agr[].vag`), somadas
+    nos 27 estados; vagas ainda sem lista ficam em cinza. Não há comparação com pesquisa (deputado não tem).
+  - *Gráficos*: eleitorado das seções apuradas (válidos, brancos, nulos, abstenção), apuração × faixa de 90% das pesquisas
+    por candidato e evolução das parcelas desde que a aba foi aberta (só em memória, um ponto por versão de arquivo do TSE).
+- **Custo de rede:** o mapa e a Câmara leem 27 arquivos (28 com o exterior) a cada 60 s, no máximo 6 ao mesmo tempo e só com a
+  aba visível; fora dessas visões é um arquivo só. Os arquivos têm cache de 20 a 45 s e vão com revalidação por ETag.
+- **Pesquisa por estado:** `expectativa.json` traz `lideres` (3 primeiros por média) em cada corrida, gerado no `radar:build`.
+  Sem esse campo (build antigo) o modo "Contra a pesquisa" some. Presidente só tem pesquisa nacional: não há modo por estado.
+- **Cores:** paleta daltônica fixa, entregue por ordem de nº de estados liderados e mantida na sessão; cor não tem relação com
+  espectro político nem com a identidade do partido. A malha dos estados é do IBGE (crédito no rodapé do mapa).
+- **Antes da votação** os arquivos já existem, zerados (`s.st = 0`): a tela mostra "Aguardando início".
+- **Estado vazio ou falha:** 404 vira "ainda não publicado"; erro de rede mantém os últimos números e avisa a hora deles.
 
 ## Deploy
 
@@ -85,13 +154,27 @@ Imagem `ghcr.io/juninmd/eleicoes-radar` (`Dockerfile`: só `web/` + `serve.ts`),
 que rodou o pipeline:
 
 ```sh
-bun run radar:build && bun test src/radar web
+bun run radar:build && bun run radar:panorama && bun test src/radar web
 docker build --platform linux/amd64 -t ghcr.io/juninmd/eleicoes-radar:$(git rev-parse --short HEAD) -t ghcr.io/juninmd/eleicoes-radar:latest .
 docker push ghcr.io/juninmd/eleicoes-radar:latest   # o Deployment usa :latest + imagePullPolicy Always
 kubectl -n apps rollout restart deploy/eleicoes-radar
 ```
 
 Rollback: `docker push` da tag anterior como `:latest` e `rollout restart`. Saúde: `GET /health`.
+
+O servidor (`src/radar/serve.ts`) envia `Content-Security-Policy` restritiva (`default-src 'none'`, scripts só da própria origem,
+`connect-src` só a origem e `resultados.tse.jus.br`), `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` e afins em toda
+resposta. As fontes (Big Shoulders Display, Public Sans, Spline Sans Mono; licença OFL em `web/fonts/`) são servidas daqui, sem
+Google Fonts.
+
+## Interface
+
+- **Teclado e leitor de tela:** abas de visão e de cédula seguem o padrão WAI-ARIA (uma parada de Tab, setas/Home/End; painéis
+  ligados por `aria-controls`); Enter/Espaço no grafo da Rede; o dossiê recebe o foco ao abrir e devolve ao fechar (Esc).
+- **Nota sem dado:** se nenhum indicador escolhido tem dado para a candidatura (ex.: governador com pesos de mandato), a nota
+  aparece como "–", e a lista oferece os pesos de Campanha em um clique. A busca ignora acentos.
+- **Celular:** o estado (UF) vem antes da lista; pesos e cola ficam depois, com atalho "Ajustar o que pesa".
+- **Desempenho:** CLS medido em 0,008 (desktop) e 0,020 (celular emulado, 390 px) com a altura do que é preenchido por JS reservada em CSS.
 
 ## Decisões e limites
 

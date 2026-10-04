@@ -1,9 +1,9 @@
 /* Urna-inspired base styles: tokens, layout, radar list, dossier, cola. */
 :root {
   --ground: #e4e7e3; --surface: #f8f9f6; --sunk: #eef0ec; --line: #cbd0ca;
-  --ink: #14171a; --ink-2: #454c52; --muted: #687076;
+  --ink: #14171a; --ink-2: #454c52; --muted: #5e6569;
   --panel: #23272a; --panel-2: #2f3438; --panel-ink: #e8ebe5; --panel-muted: #a3aaa6;
-  --confirma: #17804a; --confirma-ink: #ffffff; --corrige: #c85a17; --focus: #1d63c9;
+  --confirma: #17804a; --confirma-ink: #ffffff; --corrige: #b24d10; --corrige-ink: #ffffff; --focus: #1d63c9;
   --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4;
   --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
   --body: "Public Sans", "Segoe UI", system-ui, sans-serif;
@@ -15,7 +15,7 @@
     --ground: #111315; --surface: #1a1d20; --sunk: #15181a; --line: #30363a;
     --ink: #e9ece7; --ink-2: #c0c6c2; --muted: #8e9692;
     --panel: #0b0c0d; --panel-2: #22272a; --panel-ink: #e9ece7; --panel-muted: #8e9692;
-    --confirma: #2fa866; --confirma-ink: #06150c; --corrige: #e57a36; --focus: #6aa4ff;
+    --confirma: #2fa866; --confirma-ink: #06150c; --corrige: #e57a36; --corrige-ink: #1b0f06; --focus: #6aa4ff;
     --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181;
   }
 }
@@ -24,7 +24,7 @@
   --ground: #111315; --surface: #1a1d20; --sunk: #15181a; --line: #30363a;
   --ink: #e9ece7; --ink-2: #c0c6c2; --muted: #8e9692;
   --panel: #0b0c0d; --panel-2: #22272a; --panel-ink: #e9ece7; --panel-muted: #8e9692;
-  --confirma: #2fa866; --confirma-ink: #06150c; --corrige: #e57a36; --focus: #6aa4ff;
+  --confirma: #2fa866; --confirma-ink: #06150c; --corrige: #e57a36; --corrige-ink: #1b0f06; --focus: #6aa4ff;
   --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181;
 }
 * { box-sizing: border-box; }
@@ -57,29 +57,50 @@ body.has-dossie .layout { grid-template-columns: 290px minmax(0, 1fr) minmax(0, 
 .field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--ink-2); }
 select, input[type="search"] { font: inherit; color: var(--ink); background: var(--sunk); border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; width: 100%; }
 .check { display: flex; gap: 8px; align-items: center; font-size: 14px; }
-.peso { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; font-size: 13px; cursor: help; }
+.peso { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; font-size: 13px; }
+.how { grid-column: 1 / -1; font-size: 12px; color: var(--ink-2); }
+.how summary { cursor: pointer; color: var(--muted); font-size: 11px; width: fit-content; }
+.how p { margin: 4px 0 0; line-height: 1.4; }
 .peso small { color: var(--muted); font: 500 10px var(--mono); text-transform: uppercase; letter-spacing: 0.06em; }
 .peso input { grid-column: 1 / -1; accent-color: var(--confirma); width: 100%; }
 .grupo { margin: 6px 0 -4px; font: 700 11px var(--mono); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
 .grupo:first-child { margin-top: 0; }
 #pesos { display: flex; flex-direction: column; gap: 10px; }
-.scroll { overflow-x: auto; }
+.scroll { overflow-x: auto; position: relative; } /* positioned so the absolutely placed .sr text inside is clipped here, not left to widen the page */
 .agenda { border-collapse: collapse; font-size: 13px; width: 100%; }
 .agenda th { text-align: left; font: 700 11px var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 4px 6px; border-bottom: 1px solid var(--line); }
 .agenda td { padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .agenda .voto { font: 700 13px var(--mono); white-space: nowrap; }
 .pill { font: 700 11px var(--mono); text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 6px; border-radius: 3px; white-space: nowrap; }
 .pill.ok { background: var(--confirma); color: var(--confirma-ink); }
-.pill.no { background: var(--corrige); color: #fff; }
+.pill.no { background: var(--corrige); color: var(--corrige-ink); }
 .pill.nd { border: 1px solid var(--line); color: var(--muted); }
 .peso output { font: 500 12px var(--mono); color: var(--muted); grid-row: 1; grid-column: 2; }
 #presets { display: flex; flex-wrap: wrap; gap: 6px; }
 #presets button, #mais, .ghost { font: 600 13px var(--body); background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 6px 10px; cursor: pointer; }
 #presets button:hover, #mais:hover, .ghost:hover { border-color: var(--ink-2); }
+#presets button[aria-pressed="true"] { background: var(--panel); color: var(--panel-ink); border-color: var(--panel); }
+.skip { position: absolute; left: 8px; top: -48px; z-index: 20; background: var(--panel); color: var(--panel-ink); padding: 10px 14px; border-radius: 4px; font-weight: 700; }
+.skip:focus { top: 8px; }
+/* Controls only the radar list uses. The weights stay while a dossier is open, because its score uses them. */
+body[data-visao]:not([data-visao="radar"]) .radar-only, body[data-visao]:not([data-visao="radar"]):not(.has-dossie) #pesos-box { display: none; }
+body[data-visao]:not([data-visao="radar"]) #radar-view { display: none; } /* a saved non-radar view must not flash the radar skeleton before app.js swaps it */
+.hint { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--corrige); border-radius: 4px; padding: 12px 14px; margin-bottom: 8px; }
+.hint[hidden] { display: none; }
+.hint p { margin: 0; flex: 1 1 320px; font-size: 13px; color: var(--ink-2); }
+.to-weights { display: none; }
+/* Layout shift: these are filled by JS after the first paint. Reserving their final height keeps what is below from jumping.
+   Measured with 11 indicators in the 290px rail, 5 ballot tabs, 4 summary cards and 6 cola rows; update when those change. */
+#cedulas { min-height: 83px; }
+#achados { min-height: 111px; }
+#cola-lista { min-height: 268px; } /* 6 rows: the buttons below it must not drop when the rows are drawn */
+@media (min-width: 861px) { #presets { min-height: 64px; } #pesos { min-height: 891px; } }
+body:not(.ready) .metodo { display: none; } /* it would sit in view until the list pushes it down */
 
 /* The cola: a paper slip */
 .cola { background: var(--panel); color: var(--panel-ink); border-color: var(--panel); }
-.cola h2 { color: var(--panel-muted); }
+.cola h2, .cola .muted { color: var(--panel-muted); }
+.print-only { display: none; }
 #cola-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 #cola-lista li { display: grid; grid-template-columns: auto 1fr auto; column-gap: 8px; align-items: center; font-size: 12px; color: var(--panel-muted); }
 #cola-lista li > .av { grid-row: span 2; }
@@ -121,7 +142,7 @@ select, input[type="search"] { font: inherit; color: var(--ink); background: var
 .tag { font-style: normal; font-weight: 600; color: var(--ink-2); }
 .tag.ok { color: var(--confirma); }
 .tag.st-reeleicao { color: var(--corrige); }
-.tag.st-novo { color: var(--s1); }
+.tag.st-novo { color: color-mix(in srgb, var(--s1) 78%, var(--ink)); } /* the chart blue alone is 4.2:1 on the light surface */
 .dhead .civil { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
 .dhead .status { font-weight: 600; color: var(--ink); }
 .cand .money { font: 500 13px var(--mono); color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -159,6 +180,7 @@ select, input[type="search"] { font: inherit; color: var(--ink); background: var
 .nota.small { font-size: 28px; }
 .scoreline .muted { font-size: 12px; }
 .scoreline .btn-confirma { margin-left: auto; }
+#dossie[hidden] { display: none; } /* the display:flex above would otherwise beat the hidden attribute and leave a full-screen overlay on narrow screens */
 #dossie section { display: flex; flex-direction: column; gap: 10px; }
 #dossie h3 { font: 700 13px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.1em; margin: 0; color: var(--ink-2); display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
 #dossie h3 small { text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--muted); }
@@ -196,13 +218,21 @@ select, input[type="search"] { font: inherit; color: var(--ink); background: var
 .metodo p, .metodo ul { margin: 0 0 8px; max-width: 62ch; }
 .metodo ul { padding-left: 18px; }
 
-@media (max-width: 1180px) {
+/* With the dossier open the list needs ~670px; below this width a third column would squeeze it, so the dossier slides over instead. */
+body.has-dossie .wrap.layout { max-width: 1480px; }
+@media (max-width: 1480px) {
   body.has-dossie .layout { grid-template-columns: 290px minmax(0, 1fr); }
   #dossie { position: fixed; inset: 0 0 0 auto; width: min(480px, 100%); max-height: none; border-radius: 0; z-index: 10; padding-top: calc(env(safe-area-inset-top, 0px) + 20px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); box-shadow: -12px 0 40px rgba(0, 0, 0, 0.25); }
 }
 @media (max-width: 860px) {
   .layout, body.has-dossie .layout { grid-template-columns: minmax(0, 1fr); }
-  .rail { position: static; order: 2; }
+  /* One column: state first (the UF decides what the list holds), then the list, then the weights and the cola. */
+  .rail { display: contents; }
+  #estado-box { order: 0; }
+  main { order: 1; }
+  #pesos-box { order: 2; }
+  #cola-box { order: 3; }
+  .to-weights { display: inline; }
   #cedulas { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
   #achados { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .metodo { grid-template-columns: minmax(0, 1fr); }

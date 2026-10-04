@@ -2,6 +2,7 @@
 // politicians, and how much each party's candidates paid them. Individuals never appear.
 import { ageAtFirstPayment, NEW_DAYS, supplierFlags } from "./flags";
 import { formatCnpj, isValidCnpj } from "./cnpj";
+import { maskCpf } from "../privacy";
 import { addressKey } from "./view";
 import type { Empresa } from "./receita";
 import type { Directory, Supplier, Suppliers } from "./collect";
@@ -41,7 +42,7 @@ function toNode(s: Supplier, empresas: Map<string, Empresa>, addrN: Map<string, 
   const k = addressKey(e);
   return {
     id: s.cnpj,
-    nome: e?.razao || s.nome,
+    nome: maskCpf(e?.razao || s.nome),
     cnpj: formatCnpj(s.cnpj),
     total: Math.round(s.total),
     politicos: s.pagos.size,

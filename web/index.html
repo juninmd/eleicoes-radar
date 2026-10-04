@@ -1,10 +1,18 @@
 <title>Radar do Voto 2026</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Public+Sans:ital,wght@0,400;0,600;0,700;1,400&family=Spline+Sans+Mono:wght@500;700&display=swap">
+<meta name="description" content="Painel técnico das candidaturas de 2026 com dados abertos do TSE e da Câmara: votos, mandato, campanha e fornecedores. Não recomenda voto; você escolhe os pesos.">
+<meta name="theme-color" content="#23272a">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preload" href="fonts/public-sans.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/big-shoulders-display.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/spline-sans-mono.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts.css">
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="expectativa.css">
+<link rel="stylesheet" href="apuracao.css">
+<link rel="stylesheet" href="panorama.css">
+<script src="boot.js"></script>
 
+<a class="skip" href="#principal">Pular para as candidaturas</a>
 <header class="mast">
   <div class="wrap">
     <div>
@@ -18,11 +26,11 @@
 
 <div class="wrap layout">
   <aside class="rail" aria-label="Controles">
-    <div class="box">
+    <div class="box" id="estado-box">
       <h2>Seu estado</h2>
       <label class="field" for="uf">UF do seu título<select id="uf"></select></label>
       <label class="check" for="mostrarFotos"><input type="checkbox" id="mostrarFotos" checked> Mostrar fotos</label>
-      <label class="field" for="situacao">Situação do candidato<select id="situacao">
+      <label class="field radar-only" for="situacao">Situação do candidato<select id="situacao">
         <option value="todas">Todas</option>
         <option value="reeleicao">Tenta a reeleição</option>
         <option value="novo">Estreante no cargo</option>
@@ -31,14 +39,15 @@
         <option value="camara">Com histórico na Câmara</option>
       </select></label>
     </div>
-    <div class="box">
+    <div class="box" id="pesos-box">
       <h2>O que pesa no seu voto</h2>
       <p class="muted" style="font-size:12px;margin:0">Padrão: <b>Economia e liberdade</b>. Os indicadores de agenda usam votos reais em plenário; quem não tem mandato na Câmara fica no meio da escala.</p>
-      <div id="presets" aria-label="Combinações prontas"></div>
+      <div id="presets" role="group" aria-label="Combinações prontas"></div>
       <div id="pesos"></div>
     </div>
-    <div class="box cola" aria-labelledby="cola-titulo">
+    <div class="box cola" id="cola-box" aria-labelledby="cola-titulo">
       <h2 id="cola-titulo">Minha cola</h2>
+      <div class="print-only">Eleições 2026 · 1º turno · domingo, 4 de outubro</div>
       <ol id="cola-lista"></ol>
       <div class="row">
         <button type="button" class="btn-confirma" id="copiar">Copiar cola</button>
@@ -51,15 +60,24 @@
     </div>
   </aside>
 
-  <main>
+  <main id="principal" tabindex="-1">
     <div id="modos" role="tablist" aria-label="Visão">
-      <button type="button" role="tab" data-modo="radar" aria-selected="true">Radar técnico</button>
-      <button type="button" role="tab" data-modo="expectativa" aria-selected="false">Expectativa</button>
-      <button type="button" role="tab" data-modo="rede" aria-selected="false">Rede</button>
+      <button type="button" role="tab" id="tab-radar" aria-controls="painel" data-modo="radar" aria-selected="true">Radar técnico</button>
+      <button type="button" role="tab" id="tab-expectativa" aria-controls="painel" data-modo="expectativa" aria-selected="false" tabindex="-1">Expectativa</button>
+      <button type="button" role="tab" id="tab-rede" aria-controls="painel" data-modo="rede" aria-selected="false" tabindex="-1">Rede</button>
+      <button type="button" role="tab" id="tab-apuracao" aria-controls="painel" data-modo="apuracao" aria-selected="false" tabindex="-1">Apuração</button>
+      <button type="button" role="tab" id="tab-partidos" aria-controls="painel" data-modo="partidos" aria-selected="false" tabindex="-1">Partidos</button>
+      <button type="button" role="tab" id="tab-dinheiro" aria-controls="painel" data-modo="dinheiro" aria-selected="false" tabindex="-1">Dinheiro</button>
+      <button type="button" role="tab" id="tab-aliancas" aria-controls="painel" data-modo="aliancas" aria-selected="false" tabindex="-1">Alianças</button>
+      <button type="button" role="tab" id="tab-perfil" aria-controls="painel" data-modo="perfil" aria-selected="false" tabindex="-1">Perfil</button>
     </div>
+    <div id="painel" role="tabpanel" aria-labelledby="tab-radar">
     <div id="cedulas" role="tablist" aria-label="Cédulas na ordem da urna"></div>
+    <div id="cedula-painel" role="tabpanel">
     <div id="exp-view" hidden aria-live="polite"></div>
     <div id="rede-view" hidden></div>
+    <div id="apu-view" hidden></div>
+    <div id="pan-view" hidden></div>
     <div id="radar-view">
     <div id="achados" aria-live="polite"></div>
     <div class="toolbar">
@@ -71,13 +89,19 @@
         <option value="numero">Número</option>
       </select></label>
     </div>
-    <p class="legend">Nota de 0 a 100 com os seus pesos. Os pontos mostram quanto do peso tem dado real (●●● = todos os indicadores escolhidos). Indicador sem dado conta como mediano (50).</p>
-    <ol id="lista" aria-label="Candidaturas"></ol>
+    <p class="legend">Nota de 0 a 100 com os seus pesos. Os pontos mostram quanto do peso tem dado real (●●● = todos os indicadores escolhidos). Indicador sem dado conta como mediano (50); sem dado nenhum, a nota fica em “–”. <a class="to-weights" href="#pesos-box">Ajustar o que pesa ↓</a></p>
+    <div id="sem-evidencia" class="hint" role="status" hidden>
+      <p><b>Nenhuma candidatura desta cédula tem dado para os indicadores que você escolheu.</b> Agenda e mandato vêm de votos e gastos na Câmara, que quem disputa este cargo em geral não tem. Sem nota, a ordem “Nota técnica” e “Mais evidência” cai para a arrecadação.</p>
+      <button type="button" class="btn-confirma" id="usar-campanha">Usar os pesos de Campanha</button>
+    </div>
+    <ol id="lista" aria-label="Candidaturas" tabindex="-1"></ol>
     <button type="button" id="mais" hidden>Mostrar mais</button>
+    </div>
+    </div>
     </div>
   </main>
 
-  <aside id="dossie" hidden aria-label="Dossiê do candidato"></aside>
+  <aside id="dossie" hidden tabindex="-1" aria-label="Dossiê do candidato"></aside>
 </div>
 
 <section class="wrap metodo" aria-labelledby="metodo-t">
@@ -94,7 +118,7 @@
     <h3>Cálculo</h3>
     <p>Cada indicador vira uma posição relativa de 0 a 100. Dinheiro de campanha é comparado dentro da mesma disputa (cargo e estado). O trabalho na Câmara é comparado entre deputados que concorrem, e a cota só entre colegas do mesmo estado.</p>
     <p>Os indicadores de agenda (impostos, liberdade econômica, liberdade de expressão) são a parcela de votos alinhados em votações nominais escolhidas e listadas no dossiê, com o motivo de cada sentido. A lista fica em <code>src/radar/agenda.json</code> e pode ser editada.</p>
-    <p>A nota é a média ponderada dos indicadores. Quando falta um dado, ele conta como mediano (50): falta de evidência não premia nem pune. Por isso quem só tem dados de campanha fica perto do meio da escala.</p>
+    <p>A nota é a média ponderada dos indicadores. Quando falta um dado, ele conta como mediano (50): falta de evidência não premia nem pune. Por isso quem só tem dados de campanha fica perto do meio da escala. Se nenhum dos indicadores que você escolheu tem dado para a candidatura, a nota não é calculada e aparece como “–” (um 50 inventado pareceria avaliação).</p>
   </div>
   <div>
     <h3>Limites</h3>
@@ -111,7 +135,18 @@
   <div>
     <h3>Expectativa</h3>
     <p>Presidente, governador e senador: média das pesquisas registradas no TSE e compiladas na Wikipédia, usando a mais recente de cada instituto nos últimos 21 dias, com peso maior para as mais novas e as de amostra maior. A chance vem de 20 mil simulações com erro de amostra mais um erro sistemático de 3,5 pontos, porque pesquisas no Brasil já erraram além da margem declarada. No 2º turno entram as pesquisas de confronto direto quando existem.</p>
-    <p>Deputados não têm pesquisa pública por candidato. A chance vem de um modelo treinado em 2022 com o que se sabia 7 dias antes da eleição (arrecadação, força do partido ou federação e ocupação declarada "deputado") e calibrado para somar o número de vagas. É sinal de competitividade, não previsão de voto.</p>
+    <p>Como ler: a chance é a fração das simulações em que o candidato vence (ou fica entre os eleitos), não a % de votos que ele terá. A faixa clara cobre 90% das simulações; se as faixas de dois candidatos se cruzam, a ordem pode inverter dentro do erro das pesquisas. A coluna "2 semanas" compara a média de agora com a de 14 dias antes, e variações menores que 0,5 ponto contam como estáveis. As palavras (muito provável, provável, disputa aberta, possível, improvável) são só um apelido para a faixa do número, que sempre aparece junto.</p>
+    <p>Deputados não têm pesquisa pública por candidato. A chance vem de um modelo treinado em 2022 com o que se sabia 7 dias antes da eleição (arrecadação, força do partido ou federação e ocupação declarada "deputado") e calibrado para somar o número de vagas. Em cada candidatura aparece o que o modelo olhou: posição na arrecadação do estado, vagas que a lista (partido ou federação) deve eleger e a posição da pessoa nela. É sinal de competitividade, não previsão de voto.</p>
+  </div>
+  <div>
+    <h3>Apuração</h3>
+    <p>A aba Apuração lê, direto do seu navegador, os arquivos de resultados que o TSE publica em resultados.tse.jus.br, e consulta de novo a cada 60 segundos enquanto você está nela. Nada passa por este servidor e nada é guardado. Ela tem quatro visões: Placar (a disputa aberta, com a comparação com as pesquisas), Mapa (os 27 estados de uma vez, para Presidente, Governador e Senador; a malha é do IBGE), Câmara (as vagas por partido ou federação de Deputado Federal) e Gráficos (quem votou, apuração contra a faixa das pesquisas e a evolução desde que você abriu a aba, só em memória).</p>
+    <p>O Radar mostra os números e a situação como o TSE publica ("Eleito", "2º turno"...). Ele não projeta vencedor. Enquanto as seções não chegam a 100%, o resultado é parcial: a ordem de chegada das urnas não é aleatória, então quem lidera agora pode ser ultrapassado. Se o TSE ficar fora do ar ou ainda não tiver publicado o arquivo, a tela diz isso e mantém os últimos números recebidos.</p>
+  </div>
+  <div>
+    <h3>Panorama</h3>
+    <p>As abas Partidos, Dinheiro, Alianças e Perfil somam as candidaturas do cargo aberto na cédula, no seu estado ou no Brasil todo. Nenhuma delas entra na nota: são contexto. Os totais são calculados quando os dados são gerados e não trazem nome nem documento de ninguém.</p>
+    <p>Partidos com menos de 3 candidaturas ficam sem percentual, e o perfil (gênero, cor ou raça, escolaridade, idade) só aparece para disputas com 30 candidaturas ou mais, e categorias com menos de 5 candidaturas são reunidas em “Outras categorias” já na geração dos dados, para o resumo não destacar grupos minúsculos (a ficha de cada candidatura, do cadastro público do TSE, não muda). "Vagas esperadas" soma a chance que o modelo de deputados dá a cada candidatura; para governador e presidente aparece como chance de eleição. Alianças vêm do texto de coligação e federação do registro do TSE, são por estado e não dizem nada sobre cada candidato.</p>
   </div>
 </section>
 

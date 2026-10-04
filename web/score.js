@@ -33,5 +33,6 @@ export function score(ind, weights) {
     if (has) covered += w;
     acc += w * (has ? ind[key] : 0.5);
   }
-  return { nota: total ? Math.round((acc / total) * 100) : null, cobertura: total ? covered / total : 0 };
+  // No evidence behind any chosen weight: the median fill alone would print 50 for everyone.
+  return { nota: covered ? Math.round((acc / total) * 100) : null, cobertura: total ? covered / total : 0 };
 }

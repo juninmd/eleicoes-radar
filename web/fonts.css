@@ -1,0 +1,6 @@
+/* Self-hosted latin subsets (covers Portuguese). SIL OFL 1.1: see fonts/OFL-*.txt. Variable fonts: one file per family and style. */
+/* optional: the heading font is much narrower than any fallback, so a late swap re-wraps the masthead and shifts the page; preloaded, it is almost always ready in time. */
+@font-face { font-family: "Big Shoulders Display"; font-style: normal; font-weight: 700 900; font-display: optional; src: url(fonts/big-shoulders-display.woff2) format("woff2"); }
+@font-face { font-family: "Public Sans"; font-style: normal; font-weight: 400 700; font-display: swap; src: url(fonts/public-sans.woff2) format("woff2"); }
+@font-face { font-family: "Public Sans"; font-style: italic; font-weight: 400; font-display: swap; src: url(fonts/public-sans-italic.woff2) format("woff2"); }
+@font-face { font-family: "Spline Sans Mono"; font-style: normal; font-weight: 500 700; font-display: swap; src: url(fonts/spline-sans-mono.woff2) format("woff2"); }

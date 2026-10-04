@@ -108,3 +108,27 @@ describe("new companies", () => {
     expect(v.find((f) => f.cnpj !== "11.222.333/0001-81")!.nova).toBe(false);
   });
 });
+describe("privacy", () => {
+  // Individual entrepreneurs (MEI) are registered as "NAME 12345678901": those digits are a CPF.
+  const names = ["JOAO DA SILVA 12345678901", "MARIA SOUZA CPF: 123.456.789-01.", "ANA LIMA - 123.456.789-01"];
+  const leaks = (t: string) => /(?<!\d)(\d{11}|\d{3}\.\d{3}\.\d{3}-\d{2})(?!\d)/.test(t);
+
+  test("supplier view and network never carry a CPF in a name, whether it comes from the TSE or the Receita", async () => {
+    const { buildRede } = await import("./graph");
+    const dir: Directory = new Map([["10", { id: "10", nome: "A", cargo: "X", uf: "SP", partido: "P1" }], ["11", { id: "11", nome: "B", cargo: "X", uf: "SP", partido: "P2" }]]);
+    for (const [i, nome] of names.entries()) {
+      const cnpj = ["11222333000181", "53721430000169", "11444777000161"][i]!;
+      const all: Suppliers = new Map();
+      for (const sq of ["10", "11"]) addCampaign(all, camp({ SQ_CANDIDATO: sq, NR_CPF_CNPJ_FORNECEDOR: cnpj, NM_FORNECEDOR_RFB: nome }));
+      const fromReceita = new Map([[cnpj, { cnpj, encontrada: true, razao: nome } as Empresa]]);
+      for (const empresas of [new Map(), fromReceita]) {
+        const view = supplierView("10", byPolitician(all).get("10")!, dir, empresas, new Map());
+        const rede = buildRede(all, dir, empresas, new Map());
+        for (const n of [view[0]!.nome, rede.fornecedores[0]!.nome]) {
+          expect(leaks(n)).toBe(false);
+          expect(n).toContain(nome.split(" ")[0]!); // the person's name stays, only the CPF goes
+        }
+      }
+    }
+  });
+});

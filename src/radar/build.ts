@@ -8,6 +8,7 @@ import { loadTsePhotos } from "./profiles/tse-photos";
 import { loadCandidates } from "./candidates";
 import { loadMandates, type Mandate, type MandateIndex } from "./mandate";
 import { computeIndicators, type Scored } from "./indicators";
+import { maskCpf } from "./privacy";
 import { normalizeName, round } from "./stats";
 import type { Candidate } from "./tse";
 import type { AgendaConfig } from "./camara/agenda";
@@ -51,8 +52,7 @@ const OUT = "web/data";
 const AGENDA = process.env.AGENDA ?? "src/radar/agenda.json";
 
 const r0 = (v: number) => Math.round(v);
-// CEAP supplier names of individuals sometimes embed the supplier's CPF; never ship it.
-export const maskCpf = (s: string) => s.replace(/\d{3}\.\d{3}\.\d{3}-\d{2}/g, "(CPF omitido)");
+export { maskCpf };
 export const slug = (s: string) => normalizeName(s).toLowerCase().replace(/ /g, "-");
 
 export function linkMandate(c: Candidate, { byName, byCpf }: MandateIndex): Mandate | null {

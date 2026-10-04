@@ -11,6 +11,7 @@ export interface CandidateForecast {
   hi: number; // 95th percentile
   pVitoria: number; // P(elected)
   p2turno: number | null; // P(reaching a runoff), majoritarian 2-round races only
+  tendencia: number | null; // change in the poll average (share of valid votes) vs TREND_DAYS earlier
 }
 
 export interface Forecast {
@@ -22,6 +23,8 @@ export interface Forecast {
   desde: string | null;
   ultima: string | null;
   p1turno: number | null; // P(decided in the first round)
+  refTendencia: string | null; // date of the newest poll behind the earlier average
+  confrontos: { a: string; b: string; qa: number; n: number }[]; // head-to-head share of `a` among decided voters, from `n` polls
   candidatos: CandidateForecast[];
 }
 
@@ -31,6 +34,11 @@ const SYSTEMATIC = 0.035;
 const RUNOFF_SYSTEMATIC = 0.03;
 const DEFF = 1.5;
 const SIMS = 20_000;
+export const TREND_DAYS = 14;
+const TREND_SLACK = 7; // the reference snapshot may end up to a week before the 14-day mark
+
+// Stated in the UI: the numbers shown there come from here, not from copied text.
+export const PARAMS = { janelaDias: WINDOW_DAYS, meiaVidaDias: HALF_LIFE, erroSistematico: SYSTEMATIC, simulacoes: SIMS, tendenciaDias: TREND_DAYS };
 
 const days = (a: string, b: string) => (Date.parse(a) - Date.parse(b)) / 86_400_000;
 const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z]/g, "");
@@ -114,6 +122,11 @@ export function forecast(cargo: Race, uf: string, polls: Poll[], vagas: number):
     const p = mean.get(sq)!;
     return Math.sqrt((p * (1 - p)) / nEff + SYSTEMATIC ** 2 * (p / (p + 0.15)));
   });
+  const newest = newestOf(first);
+  const earlier = selectPolls(polls.filter((p) => p.turno === 1 && days(newest, p.fim) >= TREND_DAYS));
+  // A reference much older than the fortnight would still be labelled "2 weeks ago": better no trend.
+  const before = earlier.length && days(newest, newestOf(earlier)) <= TREND_DAYS + TREND_SLACK ? earlier : [];
+  const prior = before.length ? average(before).mean : null;
   const runoff = runoffAverages(selectRunoffs(polls.filter((p) => p.turno === 2)));
   const twoRounds = cargo !== "Senador";
   const gauss = rng(`${cargo}|${uf}`);
@@ -153,6 +166,7 @@ export function forecast(cargo: Race, uf: string, polls: Poll[], vagas: number):
         hi: quantile(d, 0.95),
         pVitoria: wins[i]! / SIMS,
         p2turno: twoRounds ? inRunoff[i]! / SIMS : null,
+        tendencia: prior?.has(sq) ? mean.get(sq)! - prior.get(sq)! : null,
       };
     })
     .sort((a, b) => b.pVitoria - a.pVitoria || b.media - a.media);
@@ -162,9 +176,30 @@ export function forecast(cargo: Race, uf: string, polls: Poll[], vagas: number):
     institutos: [...new Set(first.map((p) => p.instituto))].sort(),
     desde: dates[0] ?? null, ultima: dates.at(-1) ?? null,
     p1turno: twoRounds ? decided / SIMS : null,
+    refTendencia: before.length ? newestOf(before) : null,
+    confrontos: twoRounds ? matchups(runoff, candidatos) : [],
     candidatos,
   };
 }
+
+const MATCHUP_MIN = 0.05; // both must reach a runoff in at least 5% of simulations to matter
+
+// The head-to-head averages that actually feed the simulations, for the pairs that can happen.
+function matchups(runoff: ReturnType<typeof runoffAverages>, cs: CandidateForecast[]) {
+  const p2 = new Map(cs.map((c) => [c.sq, c.p2turno ?? 0]));
+  const rank = new Map(cs.map((c, i) => [c.sq, i])); // cs is sorted by chance of winning
+  return [...runoff]
+    .flatMap(([k, v]) => {
+      const [x, y] = k.split("|") as [string, string];
+      if ((p2.get(x) ?? 0) < MATCHUP_MIN || (p2.get(y) ?? 0) < MATCHUP_MIN) return [];
+      const [a, b] = rank.get(x)! < rank.get(y)! ? [x, y] : [y, x]; // the likelier winner first
+      return [{ a, b, qa: v.a === a ? v.q : 1 - v.q, n: v.n }];
+    })
+    .sort((m, n) => (p2.get(n.a)! + p2.get(n.b)!) - (p2.get(m.a)! + p2.get(m.b)!))
+    .slice(0, 3);
+}
+
+const newestOf = (polls: Poll[]) => polls.reduce((m, p) => (p.fim > m ? p.fim : m), "");
 
 const pairKey = (a: string, b: string) => [a, b].sort().join("|");
 
@@ -178,8 +213,8 @@ function selectRunoffs(polls: Poll[]): Poll[] {
 }
 
 // Head-to-head share of the first SQ (sorted) per pair, among decided voters.
-export function runoffAverages(polls: Poll[]): Map<string, { a: string; q: number; nEff: number }> {
-  const out = new Map<string, { a: string; q: number; nEff: number }>();
+export function runoffAverages(polls: Poll[]): Map<string, { a: string; q: number; nEff: number; n: number }> {
+  const out = new Map<string, { a: string; q: number; nEff: number; n: number }>();
   const groups = new Map<string, Poll[]>();
   for (const p of polls) {
     const k = pairKey(...(Object.keys(p.votos) as [string, string]));
@@ -197,7 +232,7 @@ export function runoffAverages(polls: Poll[]): Map<string, { a: string; q: numbe
       num += (w * va) / (va + vb);
       den += w;
     }
-    if (den > 0) out.set(k, { a, q: num / den, nEff: Math.min(ps.reduce((s, p) => s + (p.amostra ?? 800), 0), 10_000) / DEFF });
+    if (den > 0) out.set(k, { a, q: num / den, nEff: Math.min(ps.reduce((s, p) => s + (p.amostra ?? 800), 0), 10_000) / DEFF, n: ps.length });
   }
   return out;
 }
