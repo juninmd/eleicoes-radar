@@ -2,6 +2,7 @@
 // and which other politicians they served. Individuals (CPF) are never listed.
 import { ageAtFirstPayment, NEW_DAYS, supplierFlags } from "./flags";
 import { formatCnpj } from "./cnpj";
+import { maskCpf } from "../privacy";
 import type { Empresa } from "./receita";
 import type { Directory, Suppliers, Supplier } from "./collect";
 
@@ -51,7 +52,7 @@ export function supplierView(id: string, list: Supplier[], dir: Directory, empre
     const k = addressKey(e);
     const others = [...s.pagos].filter(([pid]) => pid !== id).sort((a, b) => b[1].valor - a[1].valor);
     return {
-      nome: e?.razao || s.nome,
+      nome: maskCpf(e?.razao || s.nome),
       cnpj: formatCnpj(s.cnpj),
       valor: Math.round(s.pagos.get(id)!.valor),
       via: [...s.pagos.get(id)!.via],
