@@ -1,7 +1,7 @@
 // Polls the results file of every state for one office (the map and the national tally need all of
 // them). Same rules as createFeed: injected clock/network/visibility, a token against stale answers,
 // a failing state keeps its last numbers, and a renderer error never stops the cycle.
-import { HttpError, loadResultado, POLL_MS } from "./apuracao-feed.js";
+import { HttpError, loadResultado, maisRecente, POLL_MS } from "./apuracao-feed.js";
 import { tseUrl } from "./apuracao-tse.js";
 
 export const UFS = ["AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO"];
@@ -27,7 +27,7 @@ export function createBrasilFeed({ load = loadResultado, url = tseUrl, onChange,
   async function one(uf, mine) {
     let p;
     try {
-      p = { status: "ok", dados: await load(url(cargo, uf), ctl.signal), erro: null, buscadoEm: now() };
+      p = { status: "ok", dados: maisRecente(await load(url(cargo, uf), ctl.signal), snap.ufs[uf]?.dados), erro: null, buscadoEm: now() };
     } catch (e) {
       // 404: not published (now). Either way the state keeps the numbers it had.
       p = e instanceof HttpError && e.status === 404 ? { status: "ausente", erro: null } : { status: "erro", erro: e?.message || "falha ao consultar o TSE" };

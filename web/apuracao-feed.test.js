@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { createFeed, HttpError, loadResultado, POLL_MS } from "./apuracao-feed.js";
+import { createFeed, HttpError, loadResultado, maisRecente, POLL_MS } from "./apuracao-feed.js";
 
 // Fake clock and network: timers only run when the test fires them, loads resolve when the test says so.
 function rig({ visible = true } = {}) {
@@ -210,6 +210,48 @@ describe("createFeed", () => {
     await flush();
     expect(r.events.at(-1).status).toBe("carregando");
     expect(r.timers).toHaveLength(0);
+  });
+});
+
+// Real behaviour seen on count night: the TSE answered with a file OLDER than one it had already served
+// (11 of 406 answers in 70 s), even the zeroed file from before the vote.
+describe("a file older than the one on screen", () => {
+  const v = (hora, st, data = "04/10/2026") => ({ fase: "parcial", versao: { data, hora }, secoes: { total: 100, totalizadas: st } });
+
+  test("maisRecente keeps the newer of two versions, and takes the new one when it cannot tell", () => {
+    expect(maisRecente(v("17:24:39", 36), v("17:25:49", 47))).toEqual(v("17:25:49", 47));
+    expect(maisRecente(v("17:26:22", 51), v("17:25:49", 47))).toEqual(v("17:26:22", 51));
+    expect(maisRecente(v("17:25:49", 47), v("17:25:49", 47))).toEqual(v("17:25:49", 47));
+    expect(maisRecente(v("23:59:59", 5, "03/10/2026"), v("00:00:01", 6))).toEqual(v("00:00:01", 6)); // the day counts before the time
+    expect(maisRecente({ fase: "parcial", n: 2 }, { fase: "parcial", n: 1 })).toEqual({ fase: "parcial", n: 2 }); // no version: nothing to compare
+    expect(maisRecente(v("17:25:49", 47), null)).toEqual(v("17:25:49", 47));
+  });
+
+  test("an older answer does not take the numbers back, and the poll goes on", async () => {
+    const r = rig();
+    r.feed.follow("u1");
+    r.calls[0].resolve(v("17:25:49", 47));
+    await flush();
+    await r.fire();
+    r.calls[1].resolve(v("17:24:39", 36));
+    await flush();
+    expect(r.events.at(-1)).toMatchObject({ status: "ok", erro: null, dados: v("17:25:49", 47) });
+    expect(r.timers).toHaveLength(1);
+    await r.fire();
+    r.calls[2].resolve(v("17:26:22", 51));
+    await flush();
+    expect(r.events.at(-1).dados).toEqual(v("17:26:22", 51));
+  });
+
+  test("the zeroed file from before the vote never replaces numbers that already counted", async () => {
+    const r = rig();
+    r.feed.follow("u1");
+    r.calls[0].resolve(v("17:20:19", 656));
+    await flush();
+    await r.fire();
+    r.calls[1].resolve({ ...v("20:13:52", 0, "02/10/2026"), fase: "aguardando" });
+    await flush();
+    expect(r.events.at(-1).dados).toEqual(v("17:20:19", 656));
   });
 });
 

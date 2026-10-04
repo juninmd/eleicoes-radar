@@ -82,6 +82,21 @@ describe("createBrasilFeed", () => {
     expect(r.timers).toHaveLength(1); // still polling
   });
 
+  test("a state answered with an older file than the one it shows keeps the newer numbers, the others update", async () => {
+    const v = (hora, st) => ({ fase: "parcial", versao: { data: "04/10/2026", hora }, secoes: { total: 100, totalizadas: st } });
+    const r = rig({ concurrency: 27 });
+    r.feed.follow("Governador");
+    for (const uf of UFS) r.settle(uf, v("17:25:49", 47));
+    await flush();
+    await r.fire();
+    for (const uf of UFS) r.settle(uf, uf === "DF" ? v("17:24:39", 36) : v("17:26:22", 51));
+    await flush();
+    const { ufs } = r.events.at(-1);
+    expect(ufs.DF).toMatchObject({ status: "ok", erro: null, dados: v("17:25:49", 47) });
+    expect(ufs.SP.dados).toEqual(v("17:26:22", 51));
+    expect(r.timers).toHaveLength(1);
+  });
+
   test("a 404 on one state means not published yet, and keeps what it had", async () => {
     const r = rig({ concurrency: 27 });
     r.feed.follow("Governador");
