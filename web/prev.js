@@ -62,9 +62,9 @@ export const listName = (c) => (c.ficha?.federacao ? c.ficha.federacao.split(" -
 
 // What the deputy model looked at, as checkable facts. The build attaches `ex` only from the
 // chance that chance() would show as 1% or more, so under 0,5% we say so instead.
-export function porque(c) {
+export function porque(c, ano = 2022) {
   const ex = c.prev?.ex;
-  if (c.prev && c.prev.p < 0.005) return ["O modelo dá menos de 1%: com a arrecadação e a lista de hoje, os sinais que ele usa ficam longe dos de quem se elegeu em 2022."];
+  if (c.prev && c.prev.p < 0.005) return [`O modelo dá menos de 1%: com a arrecadação e a lista de hoje, os sinais que ele usa ficam longe dos de quem se elegeu em ${h(ano)}.`];
   if (!ex) return ["O detalhe deste cálculo não veio nesta versão dos dados."];
   const lista = h(listName(c));
   return [
@@ -73,6 +73,10 @@ export function porque(c) {
       : "Sem receita declarada até o retrato do TSE: no modelo, isso reduz a chance.",
     `A lista <b>${lista}</b> tem a fatia de dinheiro de cerca de <b>${ex.vl.toFixed(1).replace(".", ",")}</b> vaga(s) do estado, e a pessoa é a <b>${int(ex.lr)}ª</b> que mais arrecadou na lista (de ${int(ex.ln)}).`,
     ...(ex.dep ? ["Declara ocupação de deputado: quem já tem mandato costuma se reeleger mais, e o modelo conta isso."] : []),
+    ...(ex.rep ? [`O número <b>${h(c.num)}</b> repete o do partido: é o mais fácil de lembrar na urna, e o modelo dá um peso maior a isso.`] : []),
+    ...(ex.el ? [`Foi eleito(a) deputado(a) em ${h(ano)}: quem já tem mandato costuma se reeleger, e o modelo conta isso.`] : []),
+    ...(ex.ps != null ? [`Teve <b>${pct(ex.ps, 1)}</b> dos votos para ${h(c.cargo)} no estado em ${h(ano)}.`] : []),
+    ...(ex.lp > 0 ? [`Os partidos da lista somaram <b>${pct(ex.lp, 1)}</b> dos votos para o cargo no estado em ${h(ano)}.`] : []),
   ];
 }
 
@@ -89,8 +93,8 @@ export function prevBlock(c, exp) {
   const facts = poll
     ? `<p class="muted small">${pos ? `<b>${pos}º de ${r.candidatos.length}</b> em chance de vencer. ` : ""}${pct(p.media, 1)} dos votos válidos (faixa de 90%: ${pct(p.lo, 1)}–${pct(p.hi, 1)}).${t ? ` Em 2 semanas: ${tendCell(p.tend)}.` : ""}${p.p2t !== null && p.p2t !== undefined ? ` Chance de ir ao 2º turno: <b>${chance(p.p2t)}</b>.` : ""}</p>
        ${rangeBar(p, Math.max(p.hi * 1.25, 0.1), displayName(c))}${r?.ultima ? `<p class="muted small">Pesquisa mais recente: ${fmtDate(r.ultima)} (${frescor(r.ultima)}).</p>` : ""}`
-    : `<p class="muted small">Por que o modelo chegou nisso:</p><ul class="porque">${porque(c).map((x) => `<li>${x}</li>`).join("")}</ul>`;
-  const how = poll ? howPoll(exp?.metodo?.simulacoes) : "Chance = probabilidade, segundo um modelo treinado na eleição de 2022, de ficar entre os eleitos do estado. As chances de todos os candidatos somam aproximadamente o número de vagas. Não existe pesquisa pública por deputado.";
+    : `<p class="muted small">Por que o modelo chegou nisso:</p><ul class="porque">${porque(c, exp?.modelo?.anterior).map((x) => `<li>${x}</li>`).join("")}</ul>`;
+  const how = poll ? howPoll(exp?.metodo?.simulacoes) : `Chance = probabilidade, segundo um modelo treinado nas eleições de ${h(exp?.modelo?.treino ?? "2022")}, de ficar entre os eleitos do estado. As chances de todos os candidatos somam aproximadamente o número de vagas. Não existe pesquisa pública por deputado.`;
   return `<section><h3>Expectativa <small>não é pesquisa eleitoral</small></h3>
     <div class="prevline"><span class="big">${chance(p.p)}</span>${chip(p.p)}<span class="muted">de chance de ser eleito(a)</span></div>
     ${facts}

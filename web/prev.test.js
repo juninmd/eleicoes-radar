@@ -68,6 +68,29 @@ test("deputy explanation lists facts, and under 1% says the model sees little", 
   expect(porque({ ...dep, fin: { total: 0 } })[0]).toContain("Sem receita");
 });
 
+test("a number that repeats the party's is named in the explanation, and only then", () => {
+  const base = { ...cand("Cris", 0, 0, 0), num: "2222", fin: { total: 1_500_000 }, prev: { p: 0.62, fonte: "modelo", ex: { r: 3, g: 1200, lr: 1, ln: 20, vl: 4.2, dep: false, rep: true } } };
+  expect(porque(base).join(" ")).toContain("<b>2222</b> repete o do partido");
+  const plain = { ...base, num: "2223", prev: { ...base.prev, ex: { ...base.prev.ex, rep: false } } };
+  expect(porque(plain).join(" ")).not.toContain("repete o do partido");
+  const old = { ...base, prev: { ...base.prev, ex: { r: 3, g: 1200, lr: 1, ln: 20, vl: 4.2, dep: false } } }; // data built before the feature existed
+  expect(porque(old).join(" ")).not.toContain("repete o do partido");
+});
+
+test("the previous election is explained with its year, and only for who has something to say", () => {
+  const ex = { r: 3, g: 1200, lr: 1, ln: 20, vl: 4.2, dep: false, rep: false };
+  const base = { ...cand("Cris", 0, 0, 0), cargo: "Deputado Federal", fin: { total: 1_500_000 }, prev: { p: 0.62, fonte: "modelo", ex: { ...ex, el: true, ps: 0.0123, lp: 0.31 } } };
+  const lines = porque(base, 2022).join(" ");
+  expect(lines).toContain("Foi eleito(a) deputado(a) em 2022");
+  expect(lines).toContain("Teve <b>1,2%</b> dos votos para Deputado Federal no estado em 2022");
+  expect(lines).toContain("partidos da lista somaram <b>31,0%</b>");
+  const fresh = porque({ ...base, prev: { ...base.prev, ex: { ...ex, el: false, ps: null, lp: 0 } } }, 2022).join(" ");
+  expect(fresh).not.toContain("Foi eleito");
+  expect(fresh).not.toContain("Teve <b>");
+  expect(fresh).not.toContain("partidos da lista");
+  expect(porque({ ...base, prev: { ...base.prev, ex } }).join(" ")).not.toContain("Foi eleito"); // data built before the feature existed
+});
+
 test("a probable deputy whose data has no explanation says so instead of claiming under 1%", () => {
   const stale = { ...cand("Cris", 0, 0, 0), prev: { p: 0.62, fonte: "modelo" } };
   expect(porque(stale)[0]).toContain("não veio nesta versão");
@@ -92,4 +115,11 @@ test("dossier block places the candidate in the race and reads the simulation co
   expect(html).toContain("1 dia antes da eleição");
   expect(html).toContain("20.000");
   expect(prevBlock({ ...cand("Z", 0, 0, 0), prev: null }, exp)).toBe("");
+});
+
+test("the election the model looked back at comes from the model, in every sentence that names it", () => {
+  const dep = { ...cand("Cris", 0, 0, 0), fin: { total: 1_500_000 }, prev: { p: 0.004, fonte: "modelo" } };
+  expect(porque(dep, 2018)[0]).toContain("quem se elegeu em 2018");
+  expect(porque(dep, 2018)[0]).not.toContain("2022");
+  expect(porque({ ...dep, prev: { p: 0.62, fonte: "modelo", ex: { r: 3, g: 9, lr: 1, ln: 5, vl: 2, dep: false, rep: false, el: true, ps: 0.031, lp: 0.2 } } }, 2018).join(" ")).toContain("em 2018");
 });

@@ -9,15 +9,34 @@ export interface SeatCand {
   lista: string; // party, or federation when there is one (seats are shared by the list)
   receita: number;
   ocupacao: string;
+  numero: string; // ballot number: the party's two digits, then two (federal) or three (state) of the candidate's own
+  ant?: Ant; // what the previous election says; absent when there is no earlier result to join
 }
+
+// The candidate's own result last time (same cargo and state) and the weight of the party in that race.
+export interface Ant {
+  ran: boolean;
+  share: number; // share of the race's nominal votes
+  elected: boolean; // won any deputy seat last time
+  partido: number; // the candidate's party's share of nominal votes in the race
+}
+
+export const partyNumber = (numero: string): string => numero.slice(0, 2);
 
 export const FEATURES = [
   "intercepto", "log(fatia × vagas)", "log(vagas esperadas da lista)", "log(posição na lista / vagas esperadas)", "sem receita",
-  "ocupação: deputado", "ocupação: vereador",
+  "ocupação: deputado", "ocupação: vereador", "número repete o do partido",
+  "disputou o cargo antes", "log(votos antes × vagas)", "eleito antes", "log(peso dos partidos da lista antes × vagas)",
 ];
 
+// 22 -> 2222 (federal) or 22222 (state): the party's number repeated is the easiest one to remember at the urna.
+export function repeatsParty(numero: string): boolean {
+  if (!/^\d{4,5}$/.test(numero)) return false; // governor, senator and president numbers are the party's or one digit longer
+  return numero === numero.slice(0, 2).repeat(3).slice(0, numero.length);
+}
+
 // One row per candidate with its place in the group (state + cargo) and in its list.
-interface Placed { c: SeatCand; share: number; expected: number; listRank: number; listN: number; groupRank: number; groupN: number }
+interface Placed { c: SeatCand; share: number; expected: number; listAnt: number; listRank: number; listN: number; groupRank: number; groupN: number }
 
 function* place(cands: SeatCand[], vagas: Map<string, number>): Generator<Placed> {
   for (const [grupo, cs] of Map.groupBy(cands, (c) => c.grupo)) {
@@ -28,8 +47,11 @@ function* place(cands: SeatCand[], vagas: Map<string, number>): Generator<Placed
       const listMoney = members.reduce((a, c) => a + c.receita, 0);
       const expected = total > 0 ? (listMoney / total) * seats : 0;
       const ranked = [...members].sort((a, b) => b.receita - a.receita);
+      // Each party of the list counts once, however many of its candidates are on it.
+      const weight = new Map(members.filter((m) => m.ant).map((m) => [partyNumber(m.numero), m.ant!.partido]));
+      const listAnt = [...weight.values()].reduce((a, v) => a + v, 0);
       for (const [i, c] of ranked.entries()) {
-        yield { c, share: total > 0 ? c.receita / total : 0, expected, listRank: i + 1, listN: members.length, groupRank: groupRank.get(c.sq)!, groupN: cs.length };
+        yield { c, share: total > 0 ? c.receita / total : 0, expected, listAnt, listRank: i + 1, listN: members.length, groupRank: groupRank.get(c.sq)!, groupN: cs.length };
       }
     }
   }
@@ -38,21 +60,25 @@ function* place(cands: SeatCand[], vagas: Map<string, number>): Generator<Placed
 export function features(cands: SeatCand[], vagas: Map<string, number>): Map<string, number[]> {
   const out = new Map<string, number[]>();
   const seatsOf = (c: SeatCand) => vagas.get(c.grupo) ?? 0;
-  for (const { c, share, expected, listRank } of place(cands, vagas)) {
+  for (const { c, share, expected, listAnt, listRank } of place(cands, vagas)) {
+    const ant = c.ant;
     out.set(c.sq, [1, Math.log(share * seatsOf(c) + 0.01), Math.log(expected + 0.05), Math.log(listRank / (expected + 1)), c.receita > 0 ? 0 : 1,
-      c.ocupacao === "DEPUTADO" ? 1 : 0, c.ocupacao === "VEREADOR" ? 1 : 0]);
+      c.ocupacao === "DEPUTADO" ? 1 : 0, c.ocupacao === "VEREADOR" ? 1 : 0, repeatsParty(c.numero) ? 1 : 0,
+      ant?.ran ? 1 : 0, ant?.ran ? Math.log(ant.share * seatsOf(c) + 0.05) : 0, ant?.elected ? 1 : 0, Math.log(listAnt * seatsOf(c) + 0.05)]);
   }
   return out;
 }
 
 // What the model looks at, in words a voter can check: money rank in the state, the
 // list's expected seats and the candidate's place on it, and sitting-deputy status.
-export interface SeatWhy { r: number; g: number; lr: number; ln: number; vl: number; dep: boolean }
+// el: won a seat last time; ps: share of the race's votes it got last time (null when it did not run); lp: the list's parties' share.
+export interface SeatWhy { r: number; g: number; lr: number; ln: number; vl: number; dep: boolean; rep: boolean; el: boolean; ps: number | null; lp: number }
 
 export function explain(cands: SeatCand[], vagas: Map<string, number>): Map<string, SeatWhy> {
   const out = new Map<string, SeatWhy>();
   for (const p of place(cands, vagas)) {
-    out.set(p.c.sq, { r: p.groupRank, g: p.groupN, lr: p.listRank, ln: p.listN, vl: Math.round(p.expected * 10) / 10, dep: p.c.ocupacao === "DEPUTADO" });
+    out.set(p.c.sq, { r: p.groupRank, g: p.groupN, lr: p.listRank, ln: p.listN, vl: Math.round(p.expected * 10) / 10, dep: p.c.ocupacao === "DEPUTADO", rep: repeatsParty(p.c.numero),
+      el: p.c.ant?.elected ?? false, ps: p.c.ant?.ran ? Math.round(p.c.ant.share * 1e4) / 1e4 : null, lp: Math.round(p.listAnt * 1e3) / 1e3 });
   }
   return out;
 }
@@ -86,7 +112,7 @@ export function fitLogistic(X: number[][], y: number[], l2 = 1e-3, iters = 30): 
   return w;
 }
 
-function solve(A: number[][], b: number[]): number[] {
+export function solve(A: number[][], b: number[]): number[] {
   const n = b.length;
   const M = A.map((row, i) => [...row, b[i]!]);
   for (let c = 0; c < n; c++) {
@@ -194,6 +220,6 @@ export function evaluate(cands: SeatCand[], vagas: Map<string, number>, elected:
       n: bin.length,
     };
   });
-  const brier = cands.reduce((a, c) => a + (p.get(c.sq)! - (elected.has(c.sq) ? 1 : 0)) ** 2, 0) / cands.length;
-  return { acerto: hits / seatsTotal, acertoBaseline: base / seatsTotal, brier, calibracao, candidatos: cands.length, vagas: seatsTotal };
+  const brier = cands.reduce((a, c) => a + (p.get(c.sq)! - (elected.has(c.sq) ? 1 : 0)) ** 2, 0) / (cands.length || 1);
+  return { acerto: hits / (seatsTotal || 1), acertoBaseline: base / (seatsTotal || 1), brier, calibracao, candidatos: cands.length, vagas: seatsTotal };
 }

@@ -14,7 +14,9 @@
     "radar:profiles": "bun run src/radar/profiles/fetch-profiles.ts",
     "radar:suppliers": "bun run src/radar/suppliers/fetch-suppliers.ts",
     "radar:panorama": "bun run src/radar/panorama.ts",
-    "radar:geo": "bun run src/radar/geo/uf-map.ts"
+    "radar:geo": "bun run src/radar/geo/uf-map.ts",
+    "radar:hist": "bun run src/radar/hist/aggregate.ts",
+    "radar:mc-backtest": "bun run src/radar/mc/backtest.ts"
   },
   "dependencies": {
     "fflate": "0.8.3",

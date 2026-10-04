@@ -14,7 +14,7 @@ export function renderExpectativa({ exp, cargo, uf, cands, avatar, limit }) {
 
 const legenda = (twoRounds) => `<ul class="legenda" aria-label="Como ler o quadro">
   <li><i class="k mean"></i><span><b>Marca escura:</b> média das pesquisas em votos válidos (sem indecisos, brancos e nulos).</span></li>
-  <li><i class="k range"></i><span><b>Faixa clara:</b> onde o resultado cai em 90% das simulações. Faixa larga = mais incerteza.</span></li>
+  <li><i class="k range"></i><span><b>Faixa clara:</b> onde o resultado caiu em 90% das eleições passadas com pesquisas desse tamanho. Faixa larga = mais incerteza.</span></li>
   <li><i class="k"></i><span><b>${twoRounds ? "Vence" : "Eleito"}:</b> % das simulações em que termina ${twoRounds ? "vencedor" : "entre os eleitos"}. Não é a % de votos.</span></li>
   <li><i class="k"></i><span><b>2 semanas:</b> mudança da média em relação às pesquisas de 14 dias antes.</span></li>
 </ul>`;
@@ -25,7 +25,7 @@ function metodo(r, m) {
   return `<details class="how"><summary>Como esta média é calculada</summary><ol class="muted small">
     <li>Entram ${int(r.pesquisas)} pesquisas: a mais recente de cada instituto (${h(r.institutos.join(", "))}), dentro de ${m.janelaDias} dias da mais nova.</li>
     <li>Cada uma pesa menos conforme envelhece (cai pela metade a cada ${m.meiaVidaDias} dias) e pesa mais com amostra maior.</li>
-    <li>${int(m.simulacoes)} simulações somam o erro de amostra e um erro sistemático de ${pp(m.erroSistematico)} p.p., porque pesquisas no Brasil já erraram além da margem declarada.</li>
+    <li>${int(m.simulacoes)} simulações somam o erro de amostra a um erro sistemático medido nas eleições de 2014, 2018 e 2022. A faixa clara é onde o resultado caiu em 90% dessas vezes${m.faixaEm40 != null ? `: para quem aparece com 40%, cerca de ±${pp(m.faixaEm40)} p.p. só pelo erro sistemático` : ""}. A chance de vitória usa um erro maior, calibrado para a diferença entre os dois primeiros, que errou mais do que o resultado de cada um.</li>
     <li>A coluna "2 semanas" compara com a média feita só com pesquisas de ${m.tendenciaDias} dias ou mais antes${r.refTendencia ? ` (a mais nova delas é de ${fmtDate(r.refTendencia)})` : ""}.</li></ol></details>`;
 }
 
