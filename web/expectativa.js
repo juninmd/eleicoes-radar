@@ -25,7 +25,7 @@ function metodo(r, m) {
   return `<details class="how"><summary>Como esta média é calculada</summary><ol class="muted small">
     <li>Entram ${int(r.pesquisas)} pesquisas: a mais recente de cada instituto (${h(r.institutos.join(", "))}), dentro de ${m.janelaDias} dias da mais nova.</li>
     <li>Cada uma pesa menos conforme envelhece (cai pela metade a cada ${m.meiaVidaDias} dias) e pesa mais com amostra maior.</li>
-    <li>${int(m.simulacoes)} simulações somam o erro de amostra a um erro sistemático medido nas eleições de 2014, 2018 e 2022: de até ${pp(m.erroFaixa ?? m.erroSistematico)} p.p. na faixa de 90% e de até ${pp(m.erroSistematico)} p.p. na chance de vitória, que é mais larga porque os dois líderes erram juntos e as zebras existem. Com o chute inicial de 3,5 p.p., a faixa cobria só 64% dos resultados.</li>
+    <li>${int(m.simulacoes)} simulações somam o erro de amostra a um erro sistemático medido nas eleições de 2014, 2018 e 2022. A faixa clara é onde o resultado caiu em 90% dessas vezes${m.faixaEm40 != null ? `: para quem aparece com 40%, cerca de ±${pp(m.faixaEm40)} p.p. só pelo erro sistemático` : ""}. A chance de vitória usa um erro maior, calibrado para a diferença entre os dois primeiros, que errou mais do que o resultado de cada um.</li>
     <li>A coluna "2 semanas" compara com a média feita só com pesquisas de ${m.tendenciaDias} dias ou mais antes${r.refTendencia ? ` (a mais nova delas é de ${fmtDate(r.refTendencia)})` : ""}.</li></ol></details>`;
 }
 

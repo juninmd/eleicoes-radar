@@ -12,7 +12,7 @@ const corrida = {
   primeiroTurno: [{ instituto: "A", fim: "2026-10-03", amostra: 1000, margem: 3, votos: { 1: 40, 2: 38, 3: 4 }, indecisos: 12 }],
   segundoTurno: [{ instituto: "A", fim: "2026-10-03", amostra: 1000, votos: { 1: 48, 2: 46 } }],
 };
-const exp = { fontes: [{ uf: "SP", url: "https://pt.wikipedia.org/wiki/x" }], vagas: {}, corridas: [corrida], metodo: { janelaDias: 21, meiaVidaDias: 10, erroSistematico: 0.12, erroFaixa: 0.085, simulacoes: 20000, tendenciaDias: 14 }, modelo: null };
+const exp = { fontes: [{ uf: "SP", url: "https://pt.wikipedia.org/wiki/x" }], vagas: {}, corridas: [corrida], metodo: { janelaDias: 21, meiaVidaDias: 10, erroSistematico: 0.12, erroFaixa: 0.085, faixaEm40: 0.1193, simulacoes: 20000, tendenciaDias: 14 }, modelo: null };
 
 test("a majoritarian race explains the number: reading, trend, legend, runoff average and method", () => {
   const html = renderExpectativa({ exp, cargo: "Governador", uf: "SP", cands: gov, avatar, limit: 40 });
@@ -25,7 +25,7 @@ test("a majoritarian race explains the number: reading, trend, legend, runoff av
   expect(html).toContain("2 pesquisas");
   expect(html).toContain("Como esta média é calculada");
   expect(html).toContain("20.000 simulações");
-  expect(html).toContain("de até 8,5 p.p. na faixa de 90% e de até 12,0 p.p. na chance de vitória"); // both fitted errors come from the build, not from copied text
+  expect(html).toContain("para quem aparece com 40%, cerca de ±11,9 p.p. só pelo erro sistemático"); // the example comes from the build, not from copied text
   expect(html).toContain("Indecisos"); // poll table keeps the undecided share visible
   expect(html).not.toContain("undefined");
   expect(html).not.toContain("NaN");

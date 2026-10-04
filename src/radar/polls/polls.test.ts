@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { parseTables } from "./html-table";
 import { classifyTable, dedupe, extractPolls, matchCandidate, parseEndDate, parsePct, type Poll } from "./extract";
-import { average, forecast, instituteKeys, selectPolls } from "./forecast";
+import { average, forecast, instituteKeys, PARAMS, selectPolls } from "./forecast";
 
 const cands = [
   { sq: "1", nome: "TARCISIO GOMES DE FREITAS", nomeUrna: "TARCÍSIO", partido: "REPUBLICANOS" },
@@ -134,6 +134,21 @@ describe("forecast", () => {
     expect(a.hi - a.lo).toBeGreaterThan(c.hi - c.lo);
     expect(c.lo).toBeGreaterThanOrEqual(0);
     expect(a.hi).toBeLessThanOrEqual(1);
+  });
+
+  test("a larger systematic error makes a clear leader less certain", () => {
+    const polls = [poll("A", "2026-09-20", { "1": 45, "2": 35, "3": 20 })];
+    const tight = forecast("Senador", "SP", polls, 1, 0.035)!.candidatos[0]!.pVitoria;
+    const wide = forecast("Senador", "SP", polls, 1)!.candidatos[0]!.pVitoria;
+    expect(tight).toBeGreaterThan(wide);
+  });
+
+  test("the 40% example the method text quotes is the band the forecast really draws", () => {
+    const f = forecast("Governador", "SP", [poll("A", "2026-09-20", { "1": 40, "2": 40, "3": 20 }, 1, 1e9)], 1)!;
+    const c = f.candidatos.find((x) => x.sq === "1")!;
+    expect(c.media).toBeCloseTo(0.4, 6);
+    expect((c.hi - c.lo) / 2).toBeCloseTo(PARAMS.faixaEm40, 3); // sampling error vanishes at n = 1e9
+    expect(PARAMS.faixaEm40).toBeGreaterThan(0.1); // about ±12 p.p.: polls in Brazil have missed by that much
   });
 
   test("runoff uses head-to-head polls when they exist", () => {

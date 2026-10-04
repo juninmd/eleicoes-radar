@@ -35,8 +35,8 @@ const HALF_LIFE = 10;
 // to ~0.14 and the calibration table is flat there; 0.12 keeps some margin for polls we cannot audit.
 const SYSTEMATIC = 0.12;
 // Share band: maximum likelihood on shares gives 0.085 (0.078-0.09 leaving one election out), which makes the
-// 90% band cover about 90% of results. The win chance needs a wider error because the leaders' errors are not
-// independent and upsets are fat-tailed, so the two are not the same number.
+// 90% band cover about 90% of results. The win chance needs a wider error because the gap between the two leaders
+// missed by more than each share alone (sd 12.6 p.p.) and upsets are fat-tailed, so the two are not the same number.
 const SYSTEMATIC_BAND = 0.085;
 const RUNOFF_SYSTEMATIC = 0.03;
 const DEFF = 1.5;
@@ -44,8 +44,15 @@ const SIMS = 20_000;
 export const TREND_DAYS = 14;
 const TREND_SLACK = 7; // the reference snapshot may end up to a week before the 14-day mark
 
-// Stated in the UI: the numbers shown there come from here, not from copied text.
-export const PARAMS = { janelaDias: WINDOW_DAYS, meiaVidaDias: HALF_LIFE, erroSistematico: SYSTEMATIC, erroFaixa: SYSTEMATIC_BAND, simulacoes: SIMS, tendenciaDias: TREND_DAYS };
+// Systematic part of a share's sd: it grows with the share, so small candidates are not given a point-sized error.
+const systematicSd = (p: number, sys: number) => sys * Math.sqrt(p / (p + 0.15));
+
+// Stated in the UI: the numbers shown there come from here, not from copied text. faixaEm40 is the half-width of
+// the 90% band from the systematic error alone for a candidate polling 40%, the example the method text gives.
+export const PARAMS = {
+  janelaDias: WINDOW_DAYS, meiaVidaDias: HALF_LIFE, erroSistematico: SYSTEMATIC, erroFaixa: SYSTEMATIC_BAND,
+  faixaEm40: Math.round(1.645 * systematicSd(0.4, SYSTEMATIC_BAND) * 1e4) / 1e4, simulacoes: SIMS, tendenciaDias: TREND_DAYS,
+};
 
 const days = (a: string, b: string) => (Date.parse(a) - Date.parse(b)) / 86_400_000;
 const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z]/g, "");
@@ -118,13 +125,13 @@ function rng(seed: string) {
   return () => Math.sqrt(-2 * Math.log(uniform() || 1e-12)) * Math.cos(2 * Math.PI * uniform());
 }
 
-// `systematic` is a parameter only so the backtest can compare values; the build always uses SYSTEMATIC.
+// `systematic` is a parameter so a recalibration can compare values (AGENTS.md); the build always uses SYSTEMATIC.
 export function forecast(cargo: Race, uf: string, polls: Poll[], vagas: number, systematic = SYSTEMATIC): Forecast | null {
   const first = selectPolls(polls.filter((p) => p.turno === 1));
   if (!first.length) return null;
   const { mean, nEff } = average(first);
   const sqs = [...mean.keys()];
-  const sdOf = (p: number, sys: number) => Math.sqrt((p * (1 - p)) / nEff + sys ** 2 * (p / (p + 0.15)));
+  const sdOf = (p: number, sys: number) => Math.sqrt((p * (1 - p)) / nEff + systematicSd(p, sys) ** 2);
   const sd = sqs.map((sq) => sdOf(mean.get(sq)!, systematic));
   const newest = newestOf(first);
   const earlier = selectPolls(polls.filter((p) => p.turno === 1 && days(newest, p.fim) >= TREND_DAYS));
