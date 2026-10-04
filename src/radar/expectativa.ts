@@ -7,7 +7,10 @@ import { decodeLatin1, parseCsv } from "./csv";
 import type { Candidate } from "./tse";
 import type { Poll, Race } from "./polls/extract";
 import { forecast, PARAMS, type CandidateForecast } from "./polls/forecast";
-import { explain, predictGroups, type Knots, type SeatCand, type SeatWhy } from "./model/seats";
+import { buildAnt } from "./hist/ant";
+import type { HistElection } from "./hist/aggregate";
+import { keyOf } from "./hist/parse";
+import { explain, FEATURES, predictGroups, type Knots, type SeatCand, type SeatWhy } from "./model/seats";
 
 export interface Prev {
   p: number; // P(elected)
@@ -50,6 +53,20 @@ export function lideres(f: CandidateForecast[], quem: Map<string, { nome: string
 
 const EX_MIN_P = 0.005; // chance() shows "<1%" below this, so no explanation is attached there
 
+// Deputies: the seat model's chance for every candidacy, joined to the previous election by person key.
+export function scoreDeputies(cands: Candidate[], vagas: Map<string, number>, m: { coef: number[]; knots: Knots }, prev: HistElection): Map<string, Prev> {
+  const base = cands.filter((c) => c.cargo.startsWith("Deputado"));
+  const ant = buildAnt(prev, base.map((c) => ({ sq: c.sq, uf: c.uf, cargo: c.cargo.toUpperCase(), pk: keyOf(c.nome, c.nascimento), numero: c.numero })));
+  const deps: SeatCand[] = base.map((c) => ({ sq: c.sq, grupo: `${c.uf}|${c.cargo.toUpperCase()}`, lista: c.federacao || c.partido, receita: c.finance.total, ocupacao: c.ocupacao ?? "", numero: c.numero, ant: ant.get(c.sq) }));
+  const why = explain(deps, vagas);
+  const out = new Map<string, Prev>();
+  for (const [sq, raw] of predictGroups(deps, vagas, m.coef, m.knots)) {
+    const p = r4(raw); // the stored (rounded) value is what the UI shows, so the threshold must use it
+    out.set(sq, { p, fonte: "modelo", ...(p >= EX_MIN_P && { ex: why.get(sq) }) });
+  }
+  return out;
+}
+
 const RACES: Race[] = ["Presidente", "Governador", "Senador"];
 
 export function buildExpectativa(cands: Candidate[]) {
@@ -86,16 +103,16 @@ export function buildExpectativa(cands: Candidate[]) {
 
   let modelo: unknown = null;
   if (existsSync(MODEL)) {
-    const m: { coef: number[]; knots: Knots; treino: string; corte: string; features: string[]; backtest: unknown } = JSON.parse(readFileSync(MODEL, "utf8"));
-    const deps: SeatCand[] = cands
-      .filter((c) => c.cargo.startsWith("Deputado"))
-      .map((c) => ({ sq: c.sq, grupo: `${c.uf}|${c.cargo.toUpperCase()}`, lista: c.federacao || c.partido, receita: c.finance.total, ocupacao: c.ocupacao ?? "" }));
-    const why = explain(deps, vagas);
-    for (const [sq, raw] of predictGroups(deps, vagas, m.coef, m.knots)) {
-      const p = r4(raw); // the stored (rounded) value is what the UI shows, so the threshold must use it
-      porCandidato.set(sq, { p, fonte: "modelo", ...(p >= EX_MIN_P && { ex: why.get(sq) }) });
+    const m: { coef: number[]; knots: Knots; treino: string; anterior: number; corte: string; features: string[]; backtest: unknown } = JSON.parse(readFileSync(MODEL, "utf8"));
+    const prevFile = `data/hist/${m.anterior}.json`;
+    if (m.coef.length !== FEATURES.length || !existsSync(prevFile)) {
+      // A model trained on other features, or without the previous election to join, would score every candidate wrongly.
+      console.warn(`[expectativa] modelo de deputados ignorado: ${m.coef.length !== FEATURES.length ? "coeficientes de outra versão (bun run radar:model)" : `falta ${prevFile} (bun run radar:hist ${m.anterior})`}`);
+    } else {
+      const prev: HistElection = JSON.parse(readFileSync(prevFile, "utf8"));
+      for (const [sq, v] of scoreDeputies(cands, vagas, m, prev)) porCandidato.set(sq, v);
+      modelo = { treino: m.treino, anterior: m.anterior, corte: m.corte, features: m.features, coef: m.coef.map(r4), backtest: m.backtest };
     }
-    modelo = { treino: m.treino, corte: m.corte, features: m.features, coef: m.coef.map(r4), backtest: m.backtest };
   }
 
   const resumo = {
