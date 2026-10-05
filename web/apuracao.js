@@ -1,8 +1,16 @@
 // "Apuração" view: the live count, read from the TSE results files. It shows the TSE's numbers and its own
-// status text; the Radar never projects a winner. The one thing it adds is a proof, not a projection:
-// "Matematicamente eleito" (apuracao-eleito.js), only where no split of the votes still to come can change the result.
+// status text; the Radar never names a winner. What it adds is arithmetic, kept apart and labelled as such:
+// "Matematicamente eleito" (apuracao-eleito.js), a proof that holds only where no split of the votes still to come can change
+// the result, and "Segundo turno garantido" (same file), its first-round twin; the Projeção view (apuracao-projecao*.js), an
+// estimate of vote shares with its formulas on the page; the Cadeiras view, a reading of who holds each seat today; and the
+// head-to-head bar and the list of updates (apuracao-duelo.js, apuracao-novidades.js).
 import { h, int, pct, titleName } from "./format.js";
 import { POLL_MS } from "./apuracao-feed.js";
+import { renderProjecao } from "./apuracao-projecao-view.js";
+import { renderCadeiras } from "./apuracao-cadeiras-view.js";
+import { renderDuelo } from "./apuracao-duelo.js";
+import { renderNovidades } from "./apuracao-novidades.js";
+import { idadeTxt, pausaDoTse } from "./apuracao-ritmo.js";
 import { composicao, evolucao, faixaVsApuracao } from "./apuracao-graficos.js";
 import { decididos, eleitoTse } from "./apuracao-eleito.js";
 import { createCores } from "./apuracao-nacional.js";
@@ -20,10 +28,24 @@ const pctSecoes = ({ totalizadas, total }) => pct(totalizadas >= total ? ratio(t
 
 const stat = (valor, rotulo) => `<div><b>${valor}</b><span>${rotulo}</span></div>`;
 
-function status(d) {
+// The count does not arrive at a steady pace: the TSE publishes in rounds, with long gaps. Said in words, so a quiet screen is not
+// taken for a broken page. The age sits in its own span (apuracao-dom.js ignores it when comparing renders) and the banner has
+// no minutes in it, so a poll that brings nothing new still does not redraw the page.
+function ritmo(d, snap) {
+  const p = snap?.buscadoEm ? pausaDoTse([d], snap.buscadoEm) : null;
+  if (!p) return { idade: "", pausa: "" };
+  return {
+    idade: ` <span id="apu-idade">(${idadeTxt(p.idadeMs)})</span>`,
+    pausa: p.parado && d.fase === "parcial" ? `<p class="apu-aviso apu-pausa"><b>Sem arquivo novo do TSE há mais de 10 minutos.</b> A pausa é do TSE, que publica em rodadas: a página continua consultando e mostra o arquivo mais recente que recebeu.</p>` : "",
+  };
+}
+
+function status(d, snap) {
   const { secoes: s, votos: v, eleitorado: e } = d;
+  const r = ritmo(d, snap);
   return `<progress class="apu-prog" max="${s.total || 1}" value="${s.totalizadas}" aria-label="Seções totalizadas">${pctSecoes(s)}</progress>
-    <p class="exp-meta"><b>${int(s.totalizadas)} de ${int(s.total)} seções totalizadas (${pctSecoes(s)})</b> · arquivo do TSE de ${h(d.versao.data)} ${h(d.versao.hora)}</p>
+    <p class="exp-meta"><b>${int(s.totalizadas)} de ${int(s.total)} seções totalizadas (${pctSecoes(s)})</b> · arquivo do TSE de ${h(d.versao.data)} ${h(d.versao.hora)}${r.idade}</p>
+    ${r.pausa}
     ${v.total ? `<div class="apu-stats">
       ${stat(pct(ratio(e.comparecimento, e.apurado), 1), "comparecimento nas seções totalizadas")}
       ${stat(int(v.validos), "votos válidos")}
@@ -72,7 +94,7 @@ function tabela(fase, rows, avatar, limit) {
   const body = rows.slice(0, limit).map(({ c, own, cmp, mat, ele }) => {
     // Status and poll comparison are printed twice: under the name for phones, in their own columns for wider screens (CSS shows one).
     const chip = c.situacao ? `<span class="rot ${c.destaque ? "alta" : "baixa"}">${h(c.situacao)}</span>` : "";
-    const inline = chip || cmp ? `<span class="row-inline">${chip}${cmp ? `<span class="cmp-inline">pesquisa <b>${pct(cmp.media, 1)}</b> · ${difTxt(cmp)}${faixaTxt(cmp, fase) ? ` · ${faixaTxt(cmp, fase)}` : ""}</span>` : ""}</span>` : "";
+    const inline = chip || cmp ? `<span class="row-inline">${chip}${cmp ? `<span class="cmp-inline">pesquisa <b>${pct(cmp.media, 1)}</b> · ${difTxt(cmp)}${faixaTxt(cmp, fase) ? ` <span class="faixa-txt">${faixaTxt(cmp, fase)}</span>` : ""}</span>` : ""}</span>` : "";
     // The Radar's label sits under the name at every width: the TSE column is for the TSE's text only and may be scrolled out of view.
     const nome = `${own ? avatar(own, "xs") : ""}<span>${h(titleName(c.nome))} <small>${h(c.partido)} · ${h(c.num)}</small>${mat ? `<span class="mat-nome">${chipMat(own)}</span>` : ""}${inline}</span>`;
     const band = cmp && Number.isFinite(cmp.lo) && Number.isFinite(cmp.hi) ? `<small>faixa ${pct(cmp.lo, 0)}–${pct(cmp.hi, 0)}</small>` : "";
@@ -85,7 +107,7 @@ function tabela(fase, rows, avatar, limit) {
   });
   return `<div class="scroll"><table class="exp-bars">
     <caption class="sr">Votos apurados por candidato, em ordem decrescente${polls ? ", com a média das pesquisas ao lado" : ""}</caption>
-    <thead><tr><th scope="col">Candidato</th><th scope="col" class="num">Votos</th><th scope="col">% dos votos válidos</th>${polls ? `<th scope="col" class="pq-col">Pesquisa (média)</th><th scope="col" class="pq-col">Diferença</th>` : ""}${temStatus ? `<th scope="col" class="st-col">Situação (TSE)</th>` : ""}</tr></thead>
+    <thead><tr><th scope="col">Candidato</th><th scope="col" class="num">Votos</th><th scope="col">% dos válidos</th>${polls ? `<th scope="col" class="pq-col">Pesquisa (média)</th><th scope="col" class="pq-col">Diferença</th>` : ""}${temStatus ? `<th scope="col" class="st-col">Situação (TSE)</th>` : ""}</tr></thead>
     <tbody>${body.join("")}</tbody></table></div>
     ${rows.length > limit ? `<button type="button" id="apu-mais" class="ghost">Mostrar mais</button>` : ""}`;
 }
@@ -126,8 +148,13 @@ const comoLer = (proporcional) => `<details class="how"><summary>Como ler a apur
 const aviso = (txt) => `<p class="empty">${txt}</p>`;
 
 const MAPA_CARGOS = new Set(["Presidente", "Governador", "Senador"]);
-const ROTULOS = { placar: "Placar", mapa: "Mapa", camara: "Câmara", graficos: "Gráficos" };
-export const vistasDe = (cargo) => (MAPA_CARGOS.has(cargo) ? ["placar", "mapa", "graficos"] : cargo === "Deputado Federal" ? ["placar", "camara", "graficos"] : ["placar", "graficos"]);
+const UMA_VAGA = new Set(["Presidente", "Governador"]); // one seat, one vote: the arithmetic of the Projeção view applies
+const ROTULOS = { placar: "Placar", mapa: "Mapa", projecao: "Projeção", cadeiras: "Cadeiras", camara: "Câmara", graficos: "Gráficos" };
+export const vistasDe = (cargo) => {
+  if (UMA_VAGA.has(cargo)) return ["placar", "mapa", "projecao", "graficos"];
+  if (MAPA_CARGOS.has(cargo)) return ["placar", "mapa", "graficos"];
+  return cargo === "Deputado Federal" ? ["placar", "cadeiras", "camara", "graficos"] : ["placar", "cadeiras", "graficos"];
+};
 
 const quemDe = (d) => Object.fromEntries(d.candidatos.map((c) => [c.id, { nome: c.nome, partido: c.partido }]));
 
@@ -139,7 +166,9 @@ function graficos(d, rows, hist, cor) {
     <h3>Evolução desde que você abriu a aba</h3>${evolucao(hist, quemDe(d), cor)}`;
 }
 
-export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, exp, vista = "placar", hist = [], nac = null, mapa, modoMapa = "lider", selUf = null, cor = createCores(PALETA) }) {
+// proj: what apuracao-projecao-estado.js hands over ({ analise, partes, nomes, esperadas }), or null while the files are loading.
+// novidades: the lines of apuracao-novidades.js kept by the mount since the tab was opened.
+export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, exp, vista = "placar", hist = [], novidades = [], nac = null, proj = null, mapa, modoMapa = "lider", selUf = null, cor = createCores(PALETA) }) {
   const d = snap?.dados;
   const vistas = vistasDe(cargo);
   const aberta = vistas.includes(vista) ? vista : "placar";
@@ -158,6 +187,8 @@ export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, exp, vist
     corpo = renderCamara({ nac, cor });
   } else if (aberta === "mapa") {
     corpo = renderNacional({ nac, cargo, corridas: exp?.corridas, modo: modoMapa, sel: selUf, cor, mapa });
+  } else if (aberta === "projecao") {
+    corpo = proj ? renderProjecao({ ...proj, cor, cargo }) : aviso("Consultando o TSE…");
   } else if (!d) {
     corpo = snap?.status === "ausente" ? aviso("O TSE ainda não publicou o arquivo de resultados desta disputa. A página continua consultando.")
       : snap?.status === "erro" ? aviso(`Não foi possível consultar o TSE agora: ${h(snap.erro)}. Nova tentativa em ${POLL_MS / 1000} s.`)
@@ -166,17 +197,20 @@ export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, exp, vist
     const aguardando = d.fase === "aguardando";
     const desde = `Mostrando os números de ${h(snap.buscadoEm.toLocaleTimeString("pt-BR"))}.`;
     const avisos = snap.status === "erro" ? aviso(`Falha ao atualizar (${h(snap.erro)}). ${desde}`) : snap.status === "ausente" ? aviso(`O TSE não está entregando este arquivo agora. ${desde}`) : "";
-    corpo = aberta === "graficos" ? `${avisos}${status(d)}${graficos(d, rows, hist, cor)}`
+    corpo = aberta === "graficos" ? `${avisos}${status(d, snap)}${graficos(d, rows, hist, cor)}`
+      : aberta === "cadeiras" ? `${avisos}${status(d, snap)}${renderCadeiras({ d, byId })}`
       : `${avisos}
-      ${status(d)}
+      ${status(d, snap)}
       ${aguardando ? aviso("A apuração ainda não começou: o TSE não totalizou nenhuma seção. Os números aparecem aqui assim que ele começar a publicar.")
         : `<p class="exp-lead">${lead(d, cargo)}</p>
            ${decididoTxt(d, new Set(rows.filter((r) => r.mat).map((r) => r.c.id)))}
+           ${renderDuelo({ d, cargo, uf, cor })}
            ${d.fase === "parcial" ? `<p class="exp-read">Resultado parcial: com ${pctSecoes(d.secoes)} das seções totalizadas, os números ainda mudam e a ordem pode se inverter.</p>` : ""}
+           ${renderNovidades(novidades)}
            ${proporcional(cargo) ? `${vagasPorLista(d)}<p class="muted small">Não há pesquisa por candidato a deputado, então esta lista não tem comparação com pesquisas.</p>` : comparacao(rows, corrida, d.fase, d.cargo.vagas)}
            ${tabela(d.fase, rows, avatar, limit)}`}`;
   }
-  const quando = aberta === "mapa" || aberta === "camara" ? nac?.buscadoEm : snap?.buscadoEm;
+  const quando = aberta === "mapa" || aberta === "camara" || (aberta === "projecao" && cargo === "Presidente") ? nac?.buscadoEm : snap?.buscadoEm;
   const nav = `<div class="apu-vistas" role="group" aria-label="Visão da apuração">${vistas.map((v) => `<button type="button" data-vista="${v}" aria-pressed="${v === aberta}">${ROTULOS[v]}</button>`).join("")}</div>`;
   return `<section class="exp-card apu" aria-labelledby="apu-t">
     <h2 id="apu-t">${h(cargo)}${local} <span class="rot ${d?.fase === "parcial" ? "aberta" : d?.fase === "concluida" ? "alta" : "baixa"}">${h(FASES[d?.fase] ?? "Consultando")}</span></h2>

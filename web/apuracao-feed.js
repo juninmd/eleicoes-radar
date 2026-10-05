@@ -15,7 +15,7 @@ export class HttpError extends Error {
 const TIMEOUT_MS = 20_000;
 
 // Date and time of a file as one sortable number; NaN when the file does not say.
-const versaoDe = (d) => {
+export const versaoDe = (d) => {
   const dia = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(d?.versao?.data ?? "");
   const hora = /^(\d{2}):(\d{2}):(\d{2})$/.exec(d?.versao?.hora ?? "");
   return dia && hora ? Number(`${dia[3]}${dia[2]}${dia[1]}${hora[1]}${hora[2]}${hora[3]}`) : NaN;

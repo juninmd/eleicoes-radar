@@ -57,7 +57,7 @@ describe("parseApuracao", () => {
 
   test("reads counts, shares and the label the TSE itself publishes", () => {
     const r = parseApuracao(file({ cands: [cand("280002551544", "22", "ALFA", "1", "1801139", "29,48", "s", "2º turno"), cand("9", "13", "BETA", "2", "10", "0,00", "n", "Não eleito")] }));
-    expect(r.candidatos[0]).toEqual({ id: "280002551544", num: "22", nome: "ALFA", partido: "AAA", votos: 1801139, pct: 0.2948, destaque: true, situacao: "2º turno" });
+    expect(r.candidatos[0]).toEqual({ id: "280002551544", num: "22", nome: "ALFA", partido: "AAA", votos: 1801139, pct: 0.2948, destaque: true, situacao: "2º turno", lista: r.partidos[0].nome });
     expect(r.candidatos[1]).toMatchObject({ destaque: false, situacao: "Não eleito" });
     expect(r.versao).toEqual({ data: "04/10/2026", hora: "19:41:07" });
     expect(r.cargo).toEqual({ codigo: "3", nome: "Governador", vagas: 1 });
@@ -100,6 +100,8 @@ describe("parseApuracao", () => {
     expect(r.cargo.vagas).toBe(70);
     expect(r.quociente).toBe(210123);
     expect(r.partidos).toEqual([{ nome: "PT/PC do B/PV", vagas: 9 }, { nome: "PL", vagas: 0 }]);
+    // Each candidate names the list that holds the seats, with the same text as `partidos`: the Cadeiras view joins them.
+    expect(r.candidatos.map((c) => [c.nome, c.lista])).toEqual([["ALFA", "PT/PC do B/PV"], ["BETA", "PL"]]);
     expect(parseApuracao(file({ cargo: { qe: "" } })).quociente).toBeNull();
     expect(parseApuracao(file()).quociente).toBeNull();
   });

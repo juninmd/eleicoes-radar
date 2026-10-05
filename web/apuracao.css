@@ -131,3 +131,101 @@
 .apu .mat-nome { display: block; }
 .apu-top li.eleito { padding: 4px 6px 4px 10px; background: color-mix(in srgb, var(--confirma) 11%, var(--surface)); box-shadow: inset 4px 0 0 var(--confirma); border-radius: 4px; }
 .apu-decidido { margin: 0; padding: 10px 12px; font-size: 14px; background: var(--sunk); border-left: 4px solid var(--confirma); border-radius: 0 6px 6px 0; }
+
+/* Projeção and Cadeiras: the Radar's own arithmetic. The notice is orange, apart from the green of "Matematicamente eleito" (a proof) */
+.apu-aviso { margin: 0; padding: 10px 12px; font-size: 14px; background: var(--sunk); border-left: 4px solid var(--corrige); border-radius: 0 6px 6px 0; }
+.apu-proj { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.apu-proj li { display: grid; grid-template-columns: minmax(120px, 190px) minmax(0, 1fr) 58px; gap: 2px 12px; align-items: center; font-size: 14px; }
+.apu-proj .nome { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.apu-proj .nome small, .apu-proj li > small { font: 500 11px var(--mono); color: var(--muted); }
+.apu-proj li > b { font: 700 15px var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
+.apu-proj li > small { grid-column: 2 / -1; }
+.trilha { position: relative; height: 22px; background: var(--sunk); border-radius: 4px; }
+.trilha .faixa { position: absolute; top: 4px; height: 14px; min-width: 6px; border-radius: 4px; opacity: 0.55; } /* min-width: a band narrower than the dot would vanish behind it; the exact range is in the text */
+.trilha .ponto { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; border: 2px solid var(--surface); box-sizing: border-box; box-shadow: 0 0 0 1px var(--ink); }
+.trilha .hoje { position: absolute; top: 2px; bottom: 2px; width: 2px; margin-left: -1px; background: var(--ink); }
+.trilha .meta { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px dashed var(--ink-2); }
+.leg { display: inline-flex; align-items: center; gap: 6px; margin-right: 14px; }
+.leg i { display: inline-block; flex: none; }
+.leg i.hoje { width: 2px; height: 14px; background: var(--ink); }
+.leg i.ponto { width: 12px; height: 12px; border-radius: 50%; background: var(--ink-2); box-shadow: 0 0 0 1px var(--ink); }
+.leg i.faixa { width: 22px; height: 10px; border-radius: 4px; background: color-mix(in srgb, var(--ink-2) 35%, transparent); }
+.leg i.meta { width: 0; height: 14px; border-left: 2px dashed var(--ink-2); }
+.apu-precisa { margin: 0; padding-left: 18px; font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
+.apu-chances { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px 12px; }
+.apu-chances div { display: flex; flex-direction: column-reverse; gap: 2px; padding: 8px 10px; background: var(--sunk); border-radius: 6px; }
+.apu-chances dt { font-size: 12px; color: var(--ink-2); }
+.apu-chances dd { margin: 0; font: 700 20px var(--mono); font-variant-numeric: tabular-nums; }
+.apu-falta li { grid-template-columns: 34px minmax(0, 1fr) 64px; row-gap: 0; }
+.apu-falta li > small { grid-column: 2 / -1; font: 500 11px var(--mono); color: var(--muted); }
+.apu-falta .fill { border-radius: 0 4px 4px 0; }
+.apu-falta abbr { text-decoration: none; cursor: help; }
+.apu-cad { border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; background: var(--surface); }
+.apu-cad + .apu-cad { margin-top: 6px; }
+.apu-cad summary { cursor: pointer; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.apu-cad summary small { font: 500 12px var(--mono); color: var(--muted); }
+.apu-cad summary .rot { margin: 0; }
+.apu-cad summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.apu-cad-lista, .apu-cad-fora, .apu-aperto { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.apu-cad-lista li, .apu-cad-fora li { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; }
+.apu-cad-lista li b, .apu-cad-fora li b { margin-left: auto; font: 700 13px var(--mono); font-variant-numeric: tabular-nums; }
+.apu-cad-lista .linkish small, .apu-cad-fora .linkish small { font: 500 11px var(--mono); color: var(--muted); }
+.apu-cad-fora { padding-top: 6px; border-top: 1px dashed var(--line); color: var(--ink-2); }
+.apu-aperto { margin: 0; padding-left: 18px; list-style: disc; }
+@media (max-width: 520px) {
+  .apu-proj li { grid-template-columns: minmax(0, 1fr) 58px; }
+  .apu-proj .trilha { grid-column: 1 / -1; grid-row: 2; }
+  .apu-proj li > small { grid-column: 1 / -1; }
+}
+
+/* Head-to-head bar and list of updates. The line at 50% is ink with a surface halo, so it reads over any party colour */
+.apu-duelo { display: flex; flex-direction: column; gap: 8px; }
+.apu-duelo-trilho { position: relative; padding: 4px 0; }
+.apu-duelo-bar { display: flex; height: 20px; border-radius: 4px; overflow: hidden; background: var(--sunk); border: 1px solid var(--line); }
+.apu-duelo-bar .seg { height: 100%; min-width: 2px; }
+.apu-duelo-bar .seg.resto { background: var(--line); flex: 1 1 auto; }
+.apu .key.resto { background: var(--line); }
+.apu-duelo-tick { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--ink); box-shadow: 0 0 0 1px var(--surface); }
+.apu-duelo-leg { flex-direction: column; align-items: flex-start; gap: 4px; }
+.apu-duelo-leg li { flex-wrap: wrap; }
+.apu-novidades { border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; background: var(--surface); }
+.apu-novidades summary { cursor: pointer; font-weight: 600; font-size: 14px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.apu-novidades summary small { font: 500 12px var(--mono); color: var(--muted); }
+.apu-novidades summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.apu-novidades ol { list-style: none; margin: 8px 0; padding: 0; }
+.apu-novidades li { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 8px; padding: 6px 0 6px 8px; font-size: 14px; border-top: 1px solid var(--line); border-left: 3px solid transparent; }
+.apu-novidades li:first-child { border-top: 0; }
+.apu-novidades li.tse { border-left-color: var(--focus); }
+.apu-novidades li.radar { border-left-color: var(--confirma); }
+.apu-novidades time { font: 600 12px var(--mono); color: var(--muted); padding-top: 2px; }
+
+/* The runoff notice: claim and label in view, the rule behind a fold */
+.apu-turno2 p { margin: 0; }
+.apu-turno2 summary { cursor: pointer; margin-top: 6px; padding: 4px 0; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.apu-turno2 summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.apu-turno2 details p { margin-top: 6px; font-size: 13px; }
+.apu-duelo-leg .lg-fl::before { content: "· "; }
+
+/* Phones: the lead and the bar first, two columns of totals, touch targets of 44px, no label cut off by its bar */
+@media (max-width: 520px) {
+  .apu-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .apu-stats b { font-size: 16px; overflow-wrap: anywhere; }
+  .apu-vistas, .apu-modos { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+  .apu-vistas button, .apu-modos button { min-height: 44px; padding: 8px 4px; font-size: 13px; }
+  .apu-chips .chip { min-height: 36px; }
+  .apu-duelo-leg li { display: flex; flex-wrap: wrap; width: 100%; row-gap: 0; }
+  .apu-duelo-leg .lg-nm { flex: 1 1 0; min-width: 0; } /* a long ballot name wraps beside its colour key instead of dropping below it */
+  .apu-duelo-leg .lg-fl { flex: 1 0 100%; padding-left: 18px; font-size: 12px; color: var(--muted); }
+  .apu-modos button { font-size: 12px; } /* "Apuração" fits its cell at 320 px */
+  .apu-duelo-leg .lg-fl::before { content: none; }
+  .apu .exp-bars tbody th small { display: block; margin-top: 1px; }
+  .apu .bancadas li { grid-template-columns: minmax(0, 1fr) 40px; row-gap: 3px; }
+  .apu .bancadas li > span:first-child { grid-column: 1 / -1; overflow-wrap: anywhere; }
+  .apu .apu-falta li { grid-template-columns: minmax(0, 1fr) 64px; }
+  .apu .apu-falta li > small { grid-column: 1 / -1; }
+  .apu .exp-bars td.num { font-size: 13px; }
+  .apu .cmp-inline { line-height: 1.35; }
+  .apu .cmp-inline .faixa-txt { display: block; }
+  .apu-ufs td:nth-child(2) { min-width: 0; }
+  .apu-ufs td:nth-child(3) small:not(.vel) { display: block; }
+}

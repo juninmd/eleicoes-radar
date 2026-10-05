@@ -70,6 +70,11 @@ describe("tabelaUf", () => {
     expect(ordem).toEqual(["AC", "AL", "SP", "ZZ"]);
   });
 
+  test("the sections column reads short on a phone and complete to a screen reader", () => {
+    const html = tabelaUf(linhas, { cargo: "Governador", corridas: [], sel: null });
+    expect(html).toContain('<th scope="col">Seções<span class="sr"> totalizadas</span></th>'); // "TOTALIZADAS" alone made the column wider than the leader's
+  });
+
   test("shows the leader and the margin where there are numbers and a dash where there are none", () => {
     const html = tabelaUf(linhas, { cargo: "Governador", corridas: [], sel: null });
     const sp = html.match(/<tr data-uf="SP"[^]*?<\/tr>/)[0];
