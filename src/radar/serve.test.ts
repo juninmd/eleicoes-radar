@@ -15,7 +15,7 @@ describe("static server", () => {
   test("the title, description, icon and stylesheets sit in <head>, where crawlers and audits read them", async () => {
     const html = await (await get("/")).text();
     const [head, body] = html.split("</head>");
-    for (const tag of ["<title>", '<meta name="description"', '<meta name="theme-color"', '<link rel="icon"', '<link rel="stylesheet" href="styles.css">', '<meta charset="utf-8">']) {
+    for (const tag of ["<title>", '<meta name="description"', '<meta name="theme-color"', '<link rel="icon"', '<link rel="stylesheet" href="app.css">', '<meta charset="utf-8">']) {
       expect(head).toContain(tag);
       expect(body).not.toContain(tag);
     }
