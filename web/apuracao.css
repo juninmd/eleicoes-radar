@@ -2,11 +2,11 @@
 .apu h2 .rot { margin: 0 0 0 8px; vertical-align: middle; font-size: 11px; }
 .apu-prog { width: 100%; height: 10px; accent-color: var(--confirma); }
 .apu-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 12px; }
-.apu-stats div { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; background: var(--sunk); border-radius: 6px; }
+.apu-stats div { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; background: var(--sunk); border-radius: var(--r-lg); }
 .apu-stats b { font: 700 18px var(--mono); font-variant-numeric: tabular-nums; }
 .apu-stats small { font: 500 12px var(--mono); color: var(--muted); }
 .apu-stats span { font-size: 12px; color: var(--ink-2); }
-.apu-bar { flex: 1; min-width: 0; height: 12px; background: var(--sunk); border-radius: 4px; overflow: hidden; }
+.apu-bar { flex: 1; min-width: 0; height: 12px; background: var(--sunk); border-radius: var(--r-md); overflow: hidden; }
 .apu-bar span { display: block; height: 100%; background: var(--s1); }
 .apu .empty { margin: 0; }
 .apu .row-inline { display: none; }
@@ -28,7 +28,7 @@
 }
 
 /* Sub-navigation and map modes: segmented buttons in the urna look */
-.apu-vistas, .apu-modos { display: flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; width: fit-content; max-width: 100%; }
+.apu-vistas, .apu-modos { display: flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; width: fit-content; max-width: 100%; }
 .apu-vistas button, .apu-modos button { font: 600 13px var(--body); background: transparent; color: var(--ink); border: 0; padding: 8px 14px; cursor: pointer; }
 .apu-vistas button + button, .apu-modos button + button { border-left: 1px solid var(--line); }
 .apu-vistas button[aria-pressed="true"], .apu-modos button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
@@ -37,7 +37,7 @@
 /* National view: the map and the detail panel side by side, stacked on phones */
 .apu-nac { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(260px, 1fr); gap: 16px; align-items: start; }
 .apu-nac-mapa { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.apu-mapa { width: 100%; height: auto; max-height: 620px; background: var(--sunk); border-radius: 6px; overflow: visible; } /* visible: the focus ring of a state at the edge (Fernando de Noronha) is not clipped */
+.apu-mapa { width: 100%; height: auto; max-height: 620px; background: var(--sunk); border-radius: var(--r-lg); overflow: visible; } /* visible: the focus ring of a state at the edge (Fernando de Noronha) is not clipped */
 .apu-mapa .uf { stroke: var(--surface); stroke-width: 1; cursor: pointer; transition: stroke-width 0.12s; }
 .apu-mapa .uf:hover { stroke: var(--ink); stroke-width: 2; }
 .apu-mapa .uf.feito { stroke: var(--ink-2); stroke-width: 1.6; }
@@ -46,7 +46,7 @@
 .apu .vel { font-style: italic; }
 .apu-mapa .uf-rot { font: 700 9px var(--mono); fill: var(--ink); text-anchor: middle; dominant-baseline: middle; paint-order: stroke; stroke: var(--surface); stroke-width: 2.5px; pointer-events: none; }
 .apu-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.apu-chips .chip { display: inline-flex; align-items: center; gap: 6px; font: 700 12px var(--mono); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; cursor: pointer; }
+.apu-chips .chip { display: inline-flex; align-items: center; gap: 6px; font: 700 12px var(--mono); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: 4px 8px; cursor: pointer; }
 .apu-chips .chip[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
 .apu-legenda { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; }
 .apu-legenda li { display: inline-flex; align-items: center; gap: 6px; }
@@ -56,16 +56,16 @@
 .apu .key.igual { background: #0072B2; }
 .apu .key.dif { background: repeating-linear-gradient(45deg, #0072B2 0 3px, var(--sunk) 3px 6px); }
 .apu-grad { display: flex; align-items: center; gap: 8px; font: 500 12px var(--mono); color: var(--ink-2); }
-.apu-grad i { flex: 1; height: 12px; border-radius: 4px; background: linear-gradient(90deg, color-mix(in srgb, #0072B2 15%, var(--surface)), #0072B2); border: 1px solid var(--line); }
+.apu-grad i { flex: 1; height: 12px; border-radius: var(--r-md); background: linear-gradient(90deg, color-mix(in srgb, #0072B2 15%, var(--surface)), #0072B2); border: 1px solid var(--line); }
 
 /* Selected state panel */
-.apu-uf { background: var(--sunk); border-radius: 6px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.apu-uf { background: var(--sunk); border-radius: var(--r-lg); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 .apu-uf h3 { margin: 0; }
 .apu-uf .rot { margin: 0; }
 .apu-top { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .apu-top li { display: grid; grid-template-columns: 12px minmax(0, 1fr) 70px 58px 62px; gap: 8px; align-items: center; font-size: 14px; }
 .apu-top li > span:nth-child(2) small { display: block; font: 500 11px var(--mono); color: var(--muted); }
-.apu-top .bar { height: 10px; background: var(--surface); border-radius: 4px; overflow: hidden; }
+.apu-top .bar { height: 10px; background: var(--surface); border-radius: var(--r-md); overflow: hidden; }
 .apu-top .bar span { display: block; height: 100%; }
 .apu-top b { font: 700 13px var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
 .apu-top li > small { font: 500 11px var(--mono); color: var(--muted); text-align: right; }
@@ -73,7 +73,7 @@
 .apu-ufs td:nth-child(2) { min-width: 130px; }
 
 /* Charts */
-.apu-comp { display: flex; height: 24px; border-radius: 6px; overflow: hidden; background: var(--sunk); }
+.apu-comp { display: flex; height: 24px; border-radius: var(--r-lg); overflow: hidden; background: var(--sunk); }
 .apu-comp .seg { min-width: 2px; }
 .apu .c1 { background: var(--s1); }
 .apu .c2 { background: var(--s4); }
@@ -83,8 +83,8 @@
 .apu-dumb { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .apu-dumb-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 4px 12px; align-items: center; }
 .apu-nm small { font: 500 11px var(--mono); color: var(--muted); }
-.apu-dumb-track { position: relative; height: 22px; background: var(--sunk); border-radius: 4px; }
-.apu-dumb-track .band { position: absolute; top: 5px; height: 12px; background: color-mix(in srgb, var(--s1) 35%, transparent); border-radius: 4px; }
+.apu-dumb-track { position: relative; height: 22px; background: var(--sunk); border-radius: var(--r-md); }
+.apu-dumb-track .band { position: absolute; top: 5px; height: 12px; background: color-mix(in srgb, var(--s1) 35%, transparent); border-radius: var(--r-md); }
 .apu-dumb-track .mean { position: absolute; top: 2px; width: 3px; height: 18px; margin-left: -1px; background: var(--s1); border-radius: 2px; }
 .apu-dumb-track .dot { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: var(--ink); border: 2px solid var(--surface); box-sizing: border-box; box-shadow: 0 0 0 1px var(--ink); }
 .apu-dumb-txt { grid-column: 2; font-size: 13px; color: var(--ink-2); }
@@ -129,7 +129,7 @@
 .apu .rot.mat::before { content: "✓ "; content: "✓ " / ""; color: var(--confirma); } /* decorative: the alt text keeps screen readers from saying "check mark" */
 .apu-ufs .rot.mat { display: block; width: fit-content; }
 .apu .mat-nome { display: block; }
-.apu-top li.eleito { padding: 4px 6px 4px 10px; background: color-mix(in srgb, var(--confirma) 11%, var(--surface)); box-shadow: inset 4px 0 0 var(--confirma); border-radius: 4px; }
+.apu-top li.eleito { padding: 4px 6px 4px 10px; background: color-mix(in srgb, var(--confirma) 11%, var(--surface)); box-shadow: inset 4px 0 0 var(--confirma); border-radius: var(--r-md); }
 .apu-decidido { @apply m-0 rounded-r-md border-l-4 border-l-confirma bg-sunk px-3 py-2.5; font-size: 14px; }
 
 /* Projeção and Cadeiras: the Radar's own arithmetic. The notice is orange, apart from the green of "Matematicamente eleito" (a proof) */
@@ -140,8 +140,8 @@
 .apu-proj .nome small, .apu-proj li > small { font: 500 11px var(--mono); color: var(--muted); }
 .apu-proj li > b { font: 700 15px var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
 .apu-proj li > small { grid-column: 2 / -1; }
-.trilha { position: relative; height: 22px; background: var(--sunk); border-radius: 4px; }
-.trilha .faixa { position: absolute; top: 4px; height: 14px; min-width: 6px; border-radius: 4px; opacity: 0.55; } /* min-width: a band narrower than the dot would vanish behind it; the exact range is in the text */
+.trilha { position: relative; height: 22px; background: var(--sunk); border-radius: var(--r-md); }
+.trilha .faixa { position: absolute; top: 4px; height: 14px; min-width: 6px; border-radius: var(--r-md); opacity: 0.55; } /* min-width: a band narrower than the dot would vanish behind it; the exact range is in the text */
 .trilha .ponto { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; border: 2px solid var(--surface); box-sizing: border-box; box-shadow: 0 0 0 1px var(--ink); }
 .trilha .hoje { position: absolute; top: 2px; bottom: 2px; width: 2px; margin-left: -1px; background: var(--ink); }
 .trilha .meta { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px dashed var(--ink-2); }
@@ -149,18 +149,18 @@
 .leg i { display: inline-block; flex: none; }
 .leg i.hoje { width: 2px; height: 14px; background: var(--ink); }
 .leg i.ponto { width: 12px; height: 12px; border-radius: 50%; background: var(--ink-2); box-shadow: 0 0 0 1px var(--ink); }
-.leg i.faixa { width: 22px; height: 10px; border-radius: 4px; background: color-mix(in srgb, var(--ink-2) 35%, transparent); }
+.leg i.faixa { width: 22px; height: 10px; border-radius: var(--r-md); background: color-mix(in srgb, var(--ink-2) 35%, transparent); }
 .leg i.meta { width: 0; height: 14px; border-left: 2px dashed var(--ink-2); }
 .apu-precisa { margin: 0; padding-left: 18px; font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
 .apu-chances { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px 12px; }
-.apu-chances div { display: flex; flex-direction: column-reverse; gap: 2px; padding: 8px 10px; background: var(--sunk); border-radius: 6px; }
+.apu-chances div { display: flex; flex-direction: column-reverse; gap: 2px; padding: 8px 10px; background: var(--sunk); border-radius: var(--r-lg); }
 .apu-chances dt { font-size: 12px; color: var(--ink-2); }
 .apu-chances dd { margin: 0; font: 700 20px var(--mono); font-variant-numeric: tabular-nums; }
 .apu-falta li { grid-template-columns: 34px minmax(0, 1fr) 64px; row-gap: 0; }
 .apu-falta li > small { grid-column: 2 / -1; font: 500 11px var(--mono); color: var(--muted); }
 .apu-falta .fill { border-radius: 0 4px 4px 0; }
 .apu-falta abbr { text-decoration: none; cursor: help; }
-.apu-cad { border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; background: var(--surface); }
+.apu-cad { border: 1px solid var(--line); border-radius: var(--r-lg); padding: 8px 12px; background: var(--surface); }
 .apu-cad + .apu-cad { margin-top: 6px; }
 .apu-cad summary { cursor: pointer; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .apu-cad summary small { font: 500 12px var(--mono); color: var(--muted); }
@@ -188,7 +188,7 @@
 .apu-duelo-tick { @apply absolute inset-y-0 left-1/2 -ml-px w-0.5 bg-ink; box-shadow: 0 0 0 1px var(--surface); }
 .apu-duelo-leg { @apply flex-col items-start gap-1; }
 .apu-duelo-leg li { @apply flex-wrap; }
-.apu-novidades { border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; background: var(--surface); }
+.apu-novidades { border: 1px solid var(--line); border-radius: var(--r-lg); padding: 8px 12px; background: var(--surface); }
 .apu-novidades summary { cursor: pointer; font-weight: 600; font-size: 14px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .apu-novidades summary small { font: 500 12px var(--mono); color: var(--muted); }
 .apu-novidades summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
