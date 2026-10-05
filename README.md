@@ -103,7 +103,7 @@ Indicador ausente conta como 0,5, para que evidência parcial não supere um his
   a logística ganha em acerto, Brier e log-loss nas três eleições, e a média das duas não melhora. Por isso a
   interface continua com a logística; o Monte Carlo fica como ferramenta de análise.
 - A interface usa faixas verbais (muito provável ≥85%, provável ≥60%, disputa aberta ≥30%, possível ≥5%,
-  improvável) sempre ao lado do número; a definição fica em `web/prev.js`.
+  improvável) sempre ao lado do número; a definição fica em `web/prev.ts`.
 - Não é pesquisa eleitoral e não substitui uma; a interface diz isso junto de cada número.
 
 ## Panorama (partidos, dinheiro, alianças, perfil)
@@ -121,14 +121,14 @@ Nenhuma entra na nota. Descritivo, sem ranking de qualidade e sem recomendação
   já estão em `web/data/uf/*.json` (cadastro público do TSE), então isto não é controle de confidencialidade. Limite
   conhecido: a visão Brasil é dobrada por conta própria, e "Brasil menos os outros estados" pode derivar uma categoria que
   só um estado dobrou.
-- **Alianças:** vêm do texto de coligação/federação do cadastro (`web/aliancas.js`), por estado. Deputado só tem federação.
-- **Gráficos** (`web/charts.js`, `web/sankey.js`): SVG/HTML sem dependências; todo número desenhado também está em texto.
+- **Alianças:** vêm do texto de coligação/federação do cadastro (`web/aliancas.ts`), por estado. Deputado só tem federação.
+- **Gráficos** (`web/charts.ts`, `web/sankey.ts`): SVG/HTML sem dependências; todo número desenhado também está em texto.
 - Sem `panorama.json` as abas mostram como gerá-lo; o resto do Radar não depende dele.
 
 ## Apuração em tempo real
 
-Aba **Apuração**: o navegador lê direto os arquivos de resultados do TSE (`web/apuracao-tse.js`,
-`apuracao-feed.js`, `apuracao.js`), sem passar pelo servidor do Radar, e consulta de novo a cada 60 s
+Aba **Apuração**: o navegador lê direto os arquivos de resultados do TSE (`web/apuracao-tse.ts`,
+`apuracao-feed.ts`, `apuracao.ts`), sem passar pelo servidor do Radar, e consulta de novo a cada 60 s
 enquanto a aba está aberta e visível.
 
 - **URL:** `https://resultados.tse.jus.br/oficial/ele2026/<eleição>/dados/<uf>/<uf>-c<cargo>-e<eleição>-u.json`.
@@ -140,13 +140,13 @@ enquanto a aba está aberta e visível.
   últimos números e a hora deles. Cada consulta tem limite de 20 s; um erro ao desenhar não interrompe a consulta seguinte.
 - **Só mostra o que o TSE publica:** a coluna Situação é o texto `st` do arquivo. `e: "s"` não quer dizer "eleito"
   (no 1º turno de 2024 os dois mais votados vinham `e=s` com `st="2º turno"`), e o Radar não projeta vencedor.
-- **"Matematicamente eleito"** (`apuracao-eleito.js`): a única etiqueta do Radar, e é prova, não projeção. Falta no pior caso
+- **"Matematicamente eleito"** (`apuracao-eleito.ts`): a única etiqueta do Radar, e é prova, não projeção. Falta no pior caso
   `apto - apurado` (eleitores das seções ainda não totalizadas, abstenção inclusa, todos votando no rival). Presidente e
   Governador: mais da metade dos votos válidos que ainda podem existir (`base + falta`, com `base` = o maior entre `vv` e a soma dos candidatos). Senado: o último eleito segue
   à frente do primeiro de fora mesmo que ele leve todos os votos que faltam. Proporcionais nunca; arquivo de estado do
   Presidente nunca (é uma fatia). O texto do TSE ("Eleito") sempre vale mais: se ele existe, a etiqueta do Radar não aparece,
   e se o TSE diz outra coisa sobre quem a conta escolheu, o Radar não afirma nada.
-- **"Segundo turno garantido"** (`apuracao-eleito.js#segundoTurno`, Presidente nacional e Governador): a mesma prova do pior caso
+- **"Segundo turno garantido"** (`apuracao-eleito.ts#segundoTurno`, Presidente nacional e Governador): a mesma prova do pior caso
   para o 1º turno. O mais votado não passa de 50% dos votos válidos nem se todos os eleitores das seções que faltam votassem
   nele (`votos + falta ≤ (base + falta) / 2`, com `base` = o **menor** entre `vv` e a soma dos candidatos: aqui a base menor é a
   segura). A dupla só é dada como fechada se o terceiro não alcança o segundo nem com todos os votos que faltam
@@ -154,28 +154,28 @@ enquanto a aba está aberta e visível.
   "Eleito" em alguém, ou "2º turno" em quem a conta não escolheu (ou enquanto a dupla ainda está em aberto: o TSE já sabe
   mais que a conta), o Radar não afirma nada. É sempre "conta do Radar, não é a
   marcação do TSE", e a tela cita o arquivo do TSE em que a conta vale (não diz "às 20h55").
-- **Comparação com pesquisas** (`apuracao-pesquisa.js`): Presidente, Governador e Senador. Mesma base (votos válidos),
+- **Comparação com pesquisas** (`apuracao-pesquisa.ts`): Presidente, Governador e Senador. Mesma base (votos válidos),
   seta sem cor (acima ou abaixo da pesquisa não é bom nem ruim) e "dentro/fora da faixa de 90%". Com a apuração parcial a
   tela diz que a diferença pode refletir quais urnas já entraram, além do erro da pesquisa ("dentro/fora da faixa por
   enquanto"). No Senado cada eleitor vota em até 2 nomes: a nota avisa que as % são de votos, não de eleitores.
   Deputados não têm pesquisa.
 - **Visões** (botões Placar / Mapa / Projeção / Cadeiras / Câmara / Gráficos dentro da aba):
   - *Placar*: a tabela de candidatos da disputa aberta, com a comparação com as pesquisas. Mostra a idade do arquivo do TSE
-    ("há 2 min") e, com a apuração aberta e mais de 10 min sem arquivo novo, um aviso de que a pausa é do TSE (`apuracao-ritmo.js`).
-    Em Presidente e Governador traz o **duelo** (`apuracao-duelo.js`): os dois mais votados numa barra com a linha dos 50% dos
+    ("há 2 min") e, com a apuração aberta e mais de 10 min sem arquivo novo, um aviso de que a pausa é do TSE (`apuracao-ritmo.ts`).
+    Em Presidente e Governador traz o **duelo** (`apuracao-duelo.ts`): os dois mais votados numa barra com a linha dos 50% dos
     votos válidos, quanto falta a cada um para 50%, a diferença em pontos e em votos e os eleitores das seções que faltam
-    (a barra tem o texto equivalente ao lado). E **Últimas atualizações** (`apuracao-novidades.js`): uma linha por marco da
+    (a barra tem o texto equivalente ao lado). E **Últimas atualizações** (`apuracao-novidades.ts`): uma linha por marco da
     apuração (a cada 5 pontos de seções, depois a cada ponto a partir de 90%) e por mudança (o TSE marcou um `st`, uma prova do
     Radar passou a valer), na hora do arquivo do TSE; só em memória, some ao fechar a aba.
   - *Projeção* (Presidente e Governador): para onde a apuração caminha, **em percentual de votos válidos, nunca em vencedor**
-    (`apuracao-projecao.js`, `apuracao-projecao-view.js`). Mostra hoje × projeção com faixa de 5% a 95%, quanto dos votos que
+    (`apuracao-projecao.ts`, `apuracao-projecao-view.ts`). Mostra hoje × projeção com faixa de 5% a 95%, quanto dos votos que
     faltam cada um precisaria para passar de 50%, a chance de decidir no 1º turno e de ir ao 2º, o gráfico "O que falta apurar"
     por estado e a conta aberta do 2º turno (quanto dos votos dos demais o segundo colocado precisaria; sem probabilidade de
     vencer, de propósito). As fórmulas estão na tela ("Como calculamos") e a tela diz que é estimativa do Radar, não resultado.
     O Presidente soma os 28 arquivos (precisa de todos terem respondido uma vez e avisa quando usa menos).
   - *Cadeiras* (Deputado Federal, Estadual e Distrital): quem ocupa cada vaga de cada lista com os votos de agora, os dois primeiros
-    de fora e as listas em que a última vaga está apertada (`apuracao-cadeiras.js`). Leitura da contagem, não resultado: vale o "Eleito" do TSE.
-  - *Mapa* (Presidente, Governador, Senador): 27 estados em SVG (`apuracao-mapa.js`; Presidente soma também o arquivo do
+    de fora e as listas em que a última vaga está apertada (`apuracao-cadeiras.ts`). Leitura da contagem, não resultado: vale o "Eleito" do TSE.
+  - *Mapa* (Presidente, Governador, Senador): 27 estados em SVG (`apuracao-mapa.ts`; Presidente soma também o arquivo do
     exterior, `zz`). Modos: quem lidera (cor = partido do líder, tom = % do líder), margem (no Senado, na última vaga),
     andamento da apuração e, para Governador e Senador, contra a pesquisa (líder igual ou diferente; diferente aparece
     hachurado, nunca em cor de "erro"). Estados pequenos (DF, SE, AL) e o exterior têm botão próprio. Tabela dos estados
