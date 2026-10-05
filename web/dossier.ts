@@ -1,10 +1,15 @@
 import { INDICATORS } from "./score.js";
 import { fornecedoresBlock } from "./fornecedores.js";
 import { prevBlock } from "./prev.js";
+import type { ExpPrev } from "./prev.js";
+import type { score } from "./score.js";
+import type { SourceKey } from "./charts.js";
+import type { Candidatura } from "./types.js";
+import type { AgendaConfig } from "../src/radar/camara/agenda";
 import { displayName, ELEICAO, h, int, money, moneyShort, pct, STATUS, titleName } from "./format.js";
 
 // Fixed categorical order: identity never depends on rank.
-const SOURCES = [
+const SOURCES: { key: SourceKey; nome: string; cls: string }[] = [
   { key: "publico", nome: "Fundos públicos", cls: "s1" },
   { key: "partido", nome: "Partido (recurso privado)", cls: "s2" },
   { key: "pf", nome: "Pessoas físicas", cls: "s3" },
@@ -12,7 +17,7 @@ const SOURCES = [
   { key: "outros", nome: "Outros", cls: "s5" },
 ];
 
-function moneyBar(fin) {
+function moneyBar(fin: Candidatura["fin"]) {
   const outros = Math.max(0, fin.total - fin.publico - fin.partido - fin.pf - fin.proprio);
   const vals = { ...fin, outros };
   if (!fin.total) return `<p class="muted">Nenhuma receita declarada até o retrato do TSE.</p>`;
@@ -26,7 +31,7 @@ function moneyBar(fin) {
     </table>`;
 }
 
-function indicatorRows(c) {
+function indicatorRows(c: Candidatura) {
   return INDICATORS.map(({ key, nome, desc }) => {
     const v = c.ind[key];
     const bar = typeof v === "number"
@@ -36,7 +41,7 @@ function indicatorRows(c) {
   }).join("");
 }
 
-function mandateBlock(m) {
+function mandateBlock(m: Candidatura["mandato"]) {
   if (!m) {
     return `<section><h3>Mandato na Câmara</h3><p class="muted">Sem mandato de deputado federal em 2023–2026. Os indicadores de trabalho legislativo não se aplicam, e a nota usa só os dados de campanha.</p></section>`;
   }
@@ -60,7 +65,7 @@ function mandateBlock(m) {
     </section>`;
 }
 
-function agendaBlock(m, agenda) {
+function agendaBlock(m: Candidatura["mandato"], agenda: AgendaConfig | null) {
   if (!agenda) return "";
   if (!m) return `<section><h3>Votos na sua agenda</h3><p class="muted">Sem mandato na Câmara: não há votos para comparar. Na nota, esses indicadores contam como medianos (50).</p></section>`;
   const votos = m.agenda?.votos ?? {};
@@ -74,16 +79,16 @@ function agendaBlock(m, agenda) {
     <div class="scroll"><table class="agenda"><thead><tr><th>Votação</th><th>Votou</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }
 
-function idade(nasc) {
+function idade(nasc: string) {
   const d = new Date(`${nasc}T00:00:00`);
-  if (isNaN(d)) return null;
+  if (isNaN(d as unknown as number)) return null;
   let a = ELEICAO.getFullYear() - d.getFullYear();
   if (ELEICAO < new Date(ELEICAO.getFullYear(), d.getMonth(), d.getDate())) a--;
   return a;
 }
-const ano = (s) => (s ? String(s).slice(0, 4) : "");
+const ano = (s: unknown) => (s ? String(s).slice(0, 4) : "");
 
-function trajetoriaBlock(c) {
+function trajetoriaBlock(c: Candidatura) {
   const bio = c.bio, f = c.ficha;
   const nasc = f?.nascimento || bio?.nascimento;
   const age = nasc ? idade(nasc) : null;
@@ -106,7 +111,7 @@ function trajetoriaBlock(c) {
   </section>`;
 }
 
-function patrimonioBlock(p) {
+function patrimonioBlock(p: Candidatura["patrimonio"]) {
   if (!p) return "";
   const antes = p.total2022;
   const delta = antes !== null && antes > 0 ? (p.total - antes) / antes : null;
@@ -117,14 +122,14 @@ function patrimonioBlock(p) {
     <p class="muted small">Valores autodeclarados, em reais nominais; não passam por auditoria.</p></section>`;
 }
 
-function registroBlock(motivos) {
+function registroBlock(motivos: Candidatura["motivos"]) {
   if (!motivos) return "";
   return `<section><h3>Situação do registro <small>Justiça Eleitoral</small></h3>
     <p class="flag"><b>Para conferir:</b> a candidatura tem fundamento de indeferimento ou impugnação registrado no TSE: ${motivos.map(h).join("; ")}.</p>
     <p class="muted small">Não é condenação nem decisão final: pode haver recurso ou regularização. Confirme o andamento no DivulgaCandContas.</p></section>`;
 }
 
-function atuacaoBlock(bio) {
+function atuacaoBlock(bio: Candidatura["bio"]) {
   const a = bio?.atuacao;
   if (!a) return "";
   const com = a.comissoes.map((c) => `<li><span>${h(c.nome)} <small class="muted">(${h(c.sigla)})</small></span><span class="fonte">${h(c.titulo)}</span></li>`).join("");
@@ -134,23 +139,23 @@ function atuacaoBlock(bio) {
     ${a.frentesDestaque?.length ? `<p class="muted small">Frentes (amostra): ${a.frentesDestaque.map(h).join(" · ")}</p>` : ""}</section>`;
 }
 
-const REDE = { "twitter.com": "X/Twitter", "x.com": "X/Twitter", "facebook.com": "Facebook", "instagram.com": "Instagram", "youtube.com": "YouTube", "tiktok.com": "TikTok", "kwai.com": "Kwai", "threads.net": "Threads" };
-function contatoBlock(bio) {
+const REDE: Record<string, string> = { "twitter.com": "X/Twitter", "x.com": "X/Twitter", "facebook.com": "Facebook", "instagram.com": "Instagram", "youtube.com": "YouTube", "tiktok.com": "TikTok", "kwai.com": "Kwai", "threads.net": "Threads" };
+function contatoBlock(bio: Candidatura["bio"]) {
   const links = [...(bio?.redes ?? [])].map((u) => {
     const host = new URL(u).hostname.replace(/^www\./, "");
     return `<a class="ext" href="${h(u)}" target="_blank" rel="noopener noreferrer">${h(REDE[host] ?? host)} ↗</a>`;
   });
   if (bio?.site) links.unshift(`<a class="ext" href="${h(bio.site)}" target="_blank" rel="noopener noreferrer">Site ↗</a>`);
   if (!links.length && !bio?.escolaridade) return "";
-  return `<section><h3>Contato público</h3><p>${links.join(" · ")}</p>${bio.escolaridade ? `<p class="muted">Escolaridade (Câmara): ${h(bio.escolaridade)}</p>` : ""}</section>`;
+  return `<section><h3>Contato público</h3><p>${links.join(" · ")}</p>${bio!.escolaridade ? `<p class="muted">Escolaridade (Câmara): ${h(bio!.escolaridade)}</p>` : ""}</section>`;
 }
 
-function resumoBlock(bio) {
+function resumoBlock(bio: Candidatura["bio"]) {
   const r = bio?.resumo;
   return r ? `<section><h3>Resumo <a class="ext" href="${h(r.url)}" target="_blank" rel="noopener noreferrer">Wikipédia ↗</a></h3><p>${h(r.texto)}</p><p class="muted small">Texto de enciclopédia colaborativa; confira no link.</p></section>` : "";
 }
 
-export function renderDossier(c, s, inCola, agenda, foto, exp) {
+export function renderDossier(c: Candidatura, s: ReturnType<typeof score>, inCola: boolean, agenda: AgendaConfig | null, foto: string, exp: ExpPrev | null) {
   const f = c.fin;
   return `
     <header class="dhead">

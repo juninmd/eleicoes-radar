@@ -1,16 +1,17 @@
 import { expect, test } from "bun:test";
 import { colaRows, isPicked, normalizeCola, togglePick } from "./cola.js";
+import type { Cola } from "./cola.js";
 
 const BALLOTS = [
   { cargo: "Deputado Estadual", alt: "Deputado Distrital", digits: 5 },
   { cargo: "Senador", digits: 3, seats: 2 },
   { cargo: "Governador", digits: 2 },
 ];
-const cand = (id, cargo = "Senador") => ({ id, cargo, num: id });
-const pick = (id) => ({ id, num: id, nome: `N${id}`, partido: "X" });
+const cand = (id: string, cargo = "Senador") => ({ id, cargo, num: id });
+const pick = (id: string) => ({ id, num: id, nome: `N${id}`, partido: "X" });
 
 test("Senador takes two picks; a third pushes out the oldest", () => {
-  let cola = {};
+  let cola: Cola = {};
   for (const id of ["111", "222", "333"]) cola = togglePick(cola, cand(id), pick(id), 2);
   expect(cola.Senador.map((p) => p.id)).toEqual(["222", "333"]);
 });
@@ -54,5 +55,5 @@ test("rows: Senador gets two numbered votes, other cargos one", () => {
 
 test("rows: the DF alt cargo fills the Deputado Estadual slot", () => {
   const rows = colaRows({ "Deputado Distrital": [pick("12345")] }, BALLOTS);
-  expect(rows[0].pick.id).toBe("12345");
+  expect(rows[0].pick!.id).toBe("12345");
 });

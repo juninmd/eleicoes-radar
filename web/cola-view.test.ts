@@ -5,7 +5,7 @@ import { titleName } from "./format.js";
 const ballots = [{ cargo: "Deputado Federal", digits: 4 }, { cargo: "Presidente", digits: 2 }];
 const pick = { id: "1", num: "1234", nome: "ANA DA SILVA", partido: "PT" };
 const cola = { "Deputado Federal": [pick] };
-const avatar = (p, size) => `<i data-av="${p.id}-${size}"></i>`;
+const avatar = (p: { id: string }, size: string) => `<i data-av="${p.id}-${size}"></i>`;
 
 test("the text to copy lists every ballot, with a dash for the ones left blank", () => {
   const lines = colaText(cola, ballots).split("\n");
@@ -30,12 +30,14 @@ test("a name from the data cannot inject markup into the list", () => {
 });
 
 // A fake page: only the elements mountColaButtons touches, with the clipboard swapped in per test.
-async function clickCopy(clipboard) {
-  const el = (extra = {}) => ({ listeners: {}, addEventListener(t, f) { this.listeners[t] = f; }, textContent: "", value: "", hidden: true, select() { this.selected = true; }, ...extra });
-  const els = { "#copiar": el(), "#limpar": el(), "#imprimir": el(), "#copiar-status": el(), "#cola-texto": el() };
+interface FakeEl { listeners: Record<string, () => void>; addEventListener(t: string, f: () => void): void; textContent: string; value: string; hidden: boolean; selected?: boolean; select(): void }
+
+async function clickCopy(clipboard: unknown) {
+  const el = (extra = {}): FakeEl => ({ listeners: {}, addEventListener(t, f) { this.listeners[t] = f; }, textContent: "", value: "", hidden: true, select() { this.selected = true; }, ...extra });
+  const els: Record<string, FakeEl> = { "#copiar": el(), "#limpar": el(), "#imprimir": el(), "#copiar-status": el(), "#cola-texto": el() };
   const docDesc = Object.getOwnPropertyDescriptor(globalThis, "document");
   const navDesc = Object.getOwnPropertyDescriptor(globalThis, "navigator");
-  Object.defineProperty(globalThis, "document", { value: { querySelector: (s) => els[s] }, configurable: true, writable: true });
+  Object.defineProperty(globalThis, "document", { value: { querySelector: (s: string) => els[s] }, configurable: true, writable: true });
   Object.defineProperty(globalThis, "navigator", { value: { clipboard }, configurable: true, writable: true });
   try {
     mountColaButtons({ get: () => cola, ballots, clear: () => {} });
@@ -43,14 +45,14 @@ async function clickCopy(clipboard) {
     await new Promise((r) => setTimeout(r, 0));
     return els;
   } finally {
-    docDesc ? Object.defineProperty(globalThis, "document", docDesc) : delete globalThis.document;
-    navDesc ? Object.defineProperty(globalThis, "navigator", navDesc) : delete globalThis.navigator;
+    docDesc ? Object.defineProperty(globalThis, "document", docDesc) : delete (globalThis as { document?: unknown }).document;
+    navDesc ? Object.defineProperty(globalThis, "navigator", navDesc) : delete (globalThis as { navigator?: unknown }).navigator;
   }
 }
 
 test("copy uses the clipboard when there is one", async () => {
   let written = "";
-  const els = await clickCopy({ writeText: async (t) => { written = t; } });
+  const els = await clickCopy({ writeText: async (t: string) => { written = t; } });
   expect(written).toBe(colaText(cola, ballots));
   expect(els["#copiar-status"].textContent).toBe("Cola copiada.");
   expect(els["#cola-texto"].hidden).toBe(true);

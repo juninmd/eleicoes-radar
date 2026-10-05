@@ -17,12 +17,12 @@ describe("rede layout", () => {
     }
   });
   test("members of a cluster end up closer to each other than to another cluster", () => {
-    const mk = (h) => [h, ...Array.from({ length: 8 }, (_, i) => `${h}${i}`)];
+    const mk = (h: string) => [h, ...Array.from({ length: 8 }, (_, i) => `${h}${i}`)];
     const ids = [...mk("A"), ...mk("B")];
     const ls = ["A", "B"].flatMap((h) => mk(h).slice(1).map((m) => ({ a: h, b: m })));
     const pts = layout(ids.map((id) => ({ id })), ls);
-    const mean = (xs) => xs.reduce((s, v) => s + v, 0) / xs.length;
-    const dists = (f) => pts.flatMap((p, i) => pts.slice(i + 1).filter((q) => f(p.id[0] === q.id[0])).map((q) => Math.hypot(p.x - q.x, p.y - q.y)));
+    const mean = (xs: number[]) => xs.reduce((s, v) => s + v, 0) / xs.length;
+    const dists = (f: (same: boolean) => boolean) => pts.flatMap((p, i) => pts.slice(i + 1).filter((q) => f(p.id[0] === q.id[0])).map((q) => Math.hypot(p.x - q.x, p.y - q.y)));
     expect(mean(dists((same) => same))).toBeLessThan(mean(dists((same) => !same)));
   });
   test("ego graph keeps the node, its neighbours and links between them only", () => {

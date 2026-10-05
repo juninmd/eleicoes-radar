@@ -2,13 +2,16 @@
 // are candidates voted on the agenda roll calls. Descriptive only: no party ranking of quality.
 import { h, int, money, moneyShort, pct } from "./format.js";
 import { bubbles, heat, hbars } from "./charts.js";
+import type { AgendaAgg, CargoAgg, PartyAgg } from "../src/radar/panorama";
+
+interface Metrica { nome: string; val: (p: PartyAgg) => number | null; fmt: (v: number) => string }
 
 export const MIN_N = 3; // a share over fewer than three candidacies says nothing about a party
 const ONE_SEAT = new Set(["Governador", "Presidente"]);
-const share = (a, b) => (b > 0 ? a / b : null);
-const dec = (v) => v.toFixed(1).replace(".", ",");
+const share = (a: number, b: number) => (b > 0 ? a / b : null);
+const dec = (v: number) => v.toFixed(1).replace(".", ",");
 
-export function metricas(cargo) {
+export function metricas(cargo: string): Record<string, Metrica> {
   const unica = ONE_SEAT.has(cargo);
   return {
     total: { nome: "Arrecadado", val: (p) => p.total, fmt: moneyShort },
@@ -19,7 +22,7 @@ export function metricas(cargo) {
   };
 }
 
-export function partidosView({ data, cargo, label, metrica }) {
+export function partidosView({ data, cargo, label, metrica }: { data: CargoAgg; cargo: string; label: string; metrica: string }) {
   const rows = Object.entries(data.partidos).map(([sigla, p]) => ({ sigla, p }));
   const M = metricas(cargo);
   const temVagas = rows.some((r) => r.p.vagas > 0);
@@ -44,14 +47,14 @@ export function partidosView({ data, cargo, label, metrica }) {
     ${(ativa === "publico" || ativa === "mulheres") ? `<p class="muted small">Partidos com menos de ${MIN_N} candidaturas ficam sem percentual: uma ou duas pessoas não descrevem um partido.${ativa === "mulheres" ? " Também fica sem percentual quando a disputa inteira tem menos de 5 mulheres." : ""}</p>` : ""}
     <h3>Dinheiro × ${h(eixoY)}</h3>
     <p class="muted small">Cada bolha é um partido. Para a direita, mais dinheiro arrecadado (escala logarítmica). Para cima, ${h(eixoY)}${temVagas ? " segundo o modelo, que usa arrecadação, força da lista e ocupação declarada" : ""}. O tamanho é o número de candidaturas. Passe o mouse sobre uma bolha para ver os valores.</p>
-    ${bubbles(pontos, { xFmt: moneyShort, yFmt: (v) => (temVagas && !ONE_SEAT.has(cargo) ? v.toFixed(v < 10 ? 1 : 0).replace(".", ",") : pct(v)) })}
+    ${bubbles(pontos, { xFmt: moneyShort, yFmt: (v: number) => (temVagas && !ONE_SEAT.has(cargo) ? v.toFixed(v < 10 ? 1 : 0).replace(".", ",") : pct(v)) })}
     <details class="how"><summary>Tabela completa (${rows.length} partidos)</summary>
       <div class="scroll"><table class="agenda pan-table"><thead><tr><th>Partido</th><th class="num">Candidaturas</th><th class="num">Arrecadado</th><th class="num">Mediana por campanha</th><th class="num">Fundos públicos</th><th class="num">Mulheres</th>${temVagas ? `<th class="num">${h(M.vagas.nome)}</th>` : ""}</tr></thead><tbody>${tabela}</tbody></table></div>
       <p class="muted small">Mediana: só campanhas com receita declarada. Candidaturas sem prestação de contas não entram nos valores em dinheiro.</p>
     </details>`;
 }
 
-export function agendaView(ag) {
+export function agendaView(ag?: AgendaAgg | null) {
   if (!ag?.votacoes?.length) return "";
   const parts = Object.entries(ag.partidos).filter(([, p]) => p.n >= MIN_N).sort((a, b) => b[1].n - a[1].n);
   if (!parts.length) return "";
@@ -60,9 +63,9 @@ export function agendaView(ag) {
     caption: "Parcela de votos Sim entre os votos Sim e Não de cada partido, por votação",
     rows: parts.map(([k, p]) => ({ key: k, label: k, sub: `${int(p.n)} deputados` })),
     cols: ag.votacoes.map((v) => ({ key: v.id, label: v.proposicao, sub: `${v.tema} · agenda: ${v.posicao}` })),
-    cell: (partido, id) => {
+    cell: (partido: string, id: string) => {
       const [sim, nao, outro] = ag.partidos[partido].votos[id];
-      const v = vot.get(id);
+      const v = vot.get(id)!;
       if (sim + nao === 0) return { text: "–", v: null, title: `${partido}: nenhum voto Sim ou Não registrado em ${v.proposicao}` };
       return { text: pct(sim / (sim + nao)), v: sim / (sim + nao), title: `${partido} em ${v.proposicao}: ${sim} Sim, ${nao} Não${outro ? `, ${outro} outros` : ""}, de ${ag.partidos[partido].n} deputados` };
     },

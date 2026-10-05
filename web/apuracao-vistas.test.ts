@@ -1,16 +1,18 @@
 import { describe, expect, test } from "bun:test";
 import { parseApuracao } from "./apuracao-tse.js";
 import { renderApuracao, semRelogio } from "./apuracao.js";
+import type { RenderProps } from "./apuracao.js";
 import { createCores } from "./apuracao-nacional.js";
 import { PALETA } from "./apuracao-mapa.js";
 import { createProjecao } from "./apuracao-projecao-estado.js";
 import { avatar, byId, cand, dois, file } from "./apuracao-fixtures.js";
+import type { FixAgr } from "./apuracao-fixtures.js";
 
 describe("vistas Projeção e Cadeiras, e o ritmo do TSE", () => {
   const parsed = () => parseApuracao(file({ cands: dois }));
-  const ver = (over = {}) => renderApuracao({ snap: { status: "ok", dados: parsed(), buscadoEm: new Date("2026-10-04T22:45:00Z"), erro: null }, cargo: "Governador", uf: "SP", byId, avatar, limit: 40, cor: createCores(PALETA), ...over });
+  const ver = (over: Partial<RenderProps> = {}) => renderApuracao({ snap: { status: "ok", dados: parsed(), buscadoEm: new Date("2026-10-04T22:45:00Z"), erro: null }, cargo: "Governador", uf: "SP", byId, avatar, limit: 40, cor: createCores(PALETA), ...over });
   // File time is 19:41:07 in Brasília (22:41:07Z). The query at 22:45:00Z is 3 min later; at 23:15:00Z, 34 min.
-  const proporcional = (agr) => parseApuracao(file({ cargo: { cd: "7", nmn: "Deputado Estadual", nv: "3", agr } }));
+  const proporcional = (agr: FixAgr[]) => parseApuracao(file({ cargo: { cd: "7", nmn: "Deputado Estadual", nv: "3", agr } }));
   const agr = [
     { n: "10", nm: "L1", com: "L1", vag: "2", par: [{ n: "10", sg: "L1", cand: [cand("a1", "10123", "ANA", "1", "900", "9,00"), cand("a2", "10124", "ANTONIO", "2", "800", "8,00"), cand("a3", "10125", "ALICE", "3", "790", "7,90")] }] },
     { n: "20", nm: "L2", com: "L2", vag: "1", par: [{ n: "20", sg: "L2", cand: [cand("b1", "20123", "BIA", "1", "500", "5,00")] }] },

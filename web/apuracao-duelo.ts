@@ -2,14 +2,18 @@
 // valid votes, the gap in points and in votes, and what is still to be counted. The runoff banner is the Radar's arithmetic
 // (segundoTurno, apuracao-eleito.js) and says so; every number a bar draws is also printed beside it.
 import { h, int, pct, titleName } from "./format.js";
+import type { Apuracao, Candidato, Cargo } from "./apuracao-tse.js";
 import { pp } from "./prev.js";
 import { segundoTurno } from "./apuracao-eleito.js";
 import { PALETA } from "./apuracao-mapa.js";
 
-const UMA_VAGA = new Set(["Presidente", "Governador"]);
+const UMA_VAGA = new Set<string>(["Presidente", "Governador"]);
+
+// The session colour memory (createCores): a colour per party, plus the shared rest colour when it has one.
+export type CorDoPartido = ((partido: string) => string) & { resto?: string };
 
 // "2,9 milhões", "1,2 milhão", "233 mil": votes in a sentence. 999.500 and up already reads as a million.
-export function extenso(v) {
+export function extenso(v: number): string {
   if (v >= 999500) {
     const m = Math.round(v / 1e5) / 10; // rounded first: 1.999.999 is "2,0 milhões", not "2,0 milhão"
     return `${m.toFixed(1).replace(".", ",")} ${m < 2 ? "milhão" : "milhões"}`;
@@ -17,16 +21,16 @@ export function extenso(v) {
   return v >= 1000 ? `${int(Math.round(v / 1000))} mil` : int(Math.round(v));
 }
 
-const nome = (c) => `<b>${h(titleName(c.nome))}</b> <small>${h(c.partido)}</small>`;
+const nome = (c: Pick<Candidato, "nome" | "partido">) => `<b>${h(titleName(c.nome))}</b> <small>${h(c.partido)}</small>`;
 
 // The two on the bar must tell apart. The session's colour memory runs out after a few parties and hands the rest one grey
 // (or one colour twice): then the bar uses its own pair rather than draw both leaders as "the others".
-function coresDoPar(a, b, cor) {
+function coresDoPar(a: Candidato, b: Candidato, cor: CorDoPartido): [string, string] {
   const [ca, cb] = [cor(a.partido), cor(b.partido)];
   return ca === cor.resto || cb === cor.resto || ca === cb ? [PALETA[0], PALETA[1]] : [ca, cb];
 }
 
-function turno2(d, cargo, uf) {
+function turno2(d: Apuracao, cargo: Cargo, uf: string): string {
   const t = segundoTurno(d, cargo, uf);
   if (!t) return "";
   const [a, b] = [...d.candidatos].sort((x, y) => y.votos - x.votos);
@@ -40,14 +44,14 @@ function turno2(d, cargo, uf) {
     <details data-k="regra-2t"><summary>Como a conta funciona</summary><p>${regra}</p></details></div>`;
 }
 
-export function renderDuelo({ d, cargo, uf, cor }) {
+export function renderDuelo({ d, cargo, uf, cor }: { d: Apuracao | null | undefined; cargo: Cargo; uf: string; cor: CorDoPartido }): string {
   if (!d || !UMA_VAGA.has(cargo) || d.fase === "aguardando") return "";
   const [a, b, ...demais] = [...d.candidatos].sort((x, y) => y.votos - x.votos);
   if (!a || !b || !(a.votos > 0)) return "";
   const resto = Math.max(0, 1 - a.pct - b.pct);
   const falta = d.eleitorado.apto - d.eleitorado.apurado;
   const [corA, corB] = coresDoPar(a, b, cor);
-  const linha = (c, cc) => `<li><i class="key" style="background:${cc}"></i><span class="lg-nm">${nome(c)} <b>${pct(c.pct, 2)}</b></span> <span class="lg-fl">${c.pct > 0.5 ? "acima de 50% dos votos válidos até agora" : `faltam ${pp(0.5 - c.pct)} p.p. para 50%`}</span></li>`;
+  const linha = (c: Candidato, cc: string) => `<li><i class="key" style="background:${cc}"></i><span class="lg-nm">${nome(c)} <b>${pct(c.pct, 2)}</b></span> <span class="lg-fl">${c.pct > 0.5 ? "acima de 50% dos votos válidos até agora" : `faltam ${pp(0.5 - c.pct)} p.p. para 50%`}</span></li>`;
   const aria = `Votos válidos até agora: ${titleName(a.nome)} ${pct(a.pct, 1)}, ${titleName(b.nome)} ${pct(b.pct, 1)}, demais ${pct(resto, 1)}. A linha do meio marca 50%.`;
   return `${turno2(d, cargo, uf)}
     <div class="apu-duelo">

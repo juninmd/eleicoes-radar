@@ -2,24 +2,28 @@
 import { h, int, money, moneyShort, pct } from "./format.js";
 import { legendSources, lorenz, SOURCES, stackRow } from "./charts.js";
 import { sankey } from "./sankey.js";
+import type { SourceKey } from "./charts.js";
+import type { CargoAgg, PartyAgg } from "../src/radar/panorama";
+
+type Fontes = Record<SourceKey, number>;
 
 const ORDEM = ["Deputado Federal", "Deputado Estadual", "Deputado Distrital", "Senador", "Governador", "Presidente"];
 const TOP_ROWS = 12;
 const TOP_FLOW = 10;
-const sum = (o) => SOURCES.reduce((a, s) => a + (o[s.key] ?? 0), 0);
+const sum = (o: Fontes) => SOURCES.reduce((a, s) => a + (o[s.key] ?? 0), 0);
 
-function composicao(fontes, total) {
+function composicao(fontes: Fontes, total: number) {
   const parts = SOURCES.filter((s) => fontes[s.key] > 0);
   return `<div class="stack" role="img" aria-label="Composição da receita">${parts.map((s) => `<span class="seg ${s.cls}" style="flex-grow:${fontes[s.key]}" title="${h(s.nome)}: ${money(fontes[s.key])} (${pct(fontes[s.key] / total)})"></span>`).join("")}</div>
     <table class="kv">${parts.map((s) => `<tr><th><i class="key ${s.cls}"></i>${h(s.nome)}</th><td>${money(fontes[s.key])}</td><td class="muted">${pct(fontes[s.key] / total)}</td></tr>`).join("")}</table>`;
 }
 
 // Sources on the left, the biggest parties on the right, everyone else folded into one node.
-function fluxo(partidos, fontes) {
+function fluxo(partidos: Record<string, PartyAgg>, fontes: Fontes) {
   const ranked = Object.entries(partidos).map(([sigla, p]) => ({ sigla, p, total: sum(p) })).filter((r) => r.total > 0).sort((a, b) => b.total - a.total);
   const top = ranked.slice(0, TOP_FLOW);
   const rest = ranked.slice(TOP_FLOW);
-  const dest = [...top.map((r) => ({ id: r.sigla, label: r.sigla, p: r.p })), ...(rest.length ? [{ id: "_resto", label: `Demais (${rest.length})`, p: Object.fromEntries(SOURCES.map((s) => [s.key, rest.reduce((a, r) => a + r.p[s.key], 0)])) }] : [])];
+  const dest: { id: string; label: string; p: Fontes }[] = [...top.map((r) => ({ id: r.sigla, label: r.sigla, p: r.p })), ...(rest.length ? [{ id: "_resto", label: `Demais (${rest.length})`, p: Object.fromEntries(SOURCES.map((s) => [s.key, rest.reduce((a, r) => a + r.p[s.key], 0)])) as Fontes }] : [])];
   return sankey({
     left: SOURCES.filter((s) => fontes[s.key] > 0).map((s) => ({ id: s.key, label: s.nome, value: dest.reduce((a, d) => a + d.p[s.key], 0), cls: s.cls })),
     right: dest.map((d) => ({ id: d.id, label: d.label, value: sum(d.p) })),
@@ -29,7 +33,7 @@ function fluxo(partidos, fontes) {
   });
 }
 
-export function dinheiroView({ data, cargo, label, escopo }) {
+export function dinheiroView({ data, cargo, label, escopo }: { data: CargoAgg; cargo: string; label: string; escopo: Record<string, CargoAgg> }) {
   const total = sum(data.fontes);
   if (!(total > 0)) return `<p class="empty">Ainda sem receita declarada para ${h(cargo)} em ${h(label)} no retrato do TSE.</p>`;
   const ranked = Object.entries(data.partidos).map(([sigla, p]) => ({ sigla, p, total: sum(p) })).filter((r) => r.total > 0).sort((a, b) => b.total - a.total);

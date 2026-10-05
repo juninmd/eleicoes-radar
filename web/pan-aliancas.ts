@@ -2,25 +2,26 @@
 // registry. Majoritarian races show coalitions; deputies only have federations.
 import { h, int } from "./format.js";
 import { grafoAliancas, MAJORITARIAN } from "./aliancas.js";
+import type { AlCand, Grafo, Lista } from "./aliancas.js";
 import { packLayout } from "./al-layout.js";
 
 const W = 900;
-const radius = (n, max) => 6 + 12 * Math.sqrt(n / Math.max(1, max));
-const lista = (xs) => xs.map(h).join(", ");
+const radius = (n: number, max: number) => 6 + 12 * Math.sqrt(n / Math.max(1, max));
+const lista = (xs: string[]) => xs.map(h).join(", ");
 
-function svg(g) {
+function svg(g: Grafo) {
   const max = Math.max(1, ...g.nodes.map((n) => n.n));
   const { nodes: pos, height } = packLayout(g.nodes, g.links.map((l) => ({ ...l, w: l.kind === "federacao" ? 1.4 : 0.5 })), { width: W, radius: (n) => radius(n.n, max) });
   const at = new Map(pos.map((n) => [n.id, n]));
   const edges = g.links.map((l) => {
-    const a = at.get(l.a), b = at.get(l.b);
+    const a = at.get(l.a)!, b = at.get(l.b)!;
     return `<line class="al-edge ${l.kind}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/>`;
   }).join("");
   const dots = pos.map((n) => `<g class="al-node"><circle cx="${n.x}" cy="${n.y}" r="${radius(n.n, max).toFixed(1)}"/><text x="${n.x}" y="${(n.y - radius(n.n, max) - 4).toFixed(1)}" text-anchor="middle">${h(n.label)}</text><title>${h(n.label)}: ${int(n.n)} ${n.n === 1 ? "candidatura" : "candidaturas"} no escopo</title></g>`).join("");
   return `<svg class="pan-svg al-svg" viewBox="0 0 ${W} ${height}" role="img" aria-label="Grafo de alianças: ${g.nodes.length} partidos e ${g.links.length} ligações">${edges}${dots}</svg>`;
 }
 
-function card(l, deputado) {
+function card(l: Lista, deputado: boolean) {
   const quem = l.candidatos.map((c) => `${h(c.nome)} <span class="muted">(${h(c.partido)})</span>`).join(" · ");
   const fed = l.tipo === "coligacao" ? l.federacoes.map((f) => `<li>${h(f.nome)}: ${lista(f.partidos)}</li>`).join("") : "";
   return `<li class="al-card"><b>${h(l.nome ?? (l.tipo === "federacao" ? "Federação" : "Coligação sem nome"))}</b>
@@ -31,7 +32,7 @@ function card(l, deputado) {
 }
 
 // cands: candidacies of the race on screen. all: every candidacy of the same scope (sizes the parties).
-export function aliancasView({ cands, all, cargo, label }) {
+export function aliancasView({ cands, all, cargo, label }: { cands: AlCand[]; all: AlCand[]; cargo: string; label: string }) {
   if (!cands.length) return `<p class="empty">Sem candidaturas a ${h(cargo)} em ${h(label)} nos dados carregados.</p>`;
   const g = grafoAliancas(cands, all);
   const deputado = !MAJORITARIAN.has(cargo);

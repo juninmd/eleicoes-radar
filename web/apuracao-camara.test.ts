@@ -2,11 +2,12 @@ import { describe, expect, test } from "bun:test";
 import { createCores, linhasUf } from "./apuracao-nacional.js";
 import { PALETA, RESTO } from "./apuracao-mapa.js";
 import { hemiciclo, renderCamara, vagasNacionais } from "./apuracao-camara.js";
+import type { BrasilSnapshot, UfEstado } from "./apuracao-uf.js";
 
-const uf = ({ vagas, listas, feitas = 50, total = 100 }) => ({
+const uf = ({ vagas, listas, feitas = 50, total = 100 }: { vagas: number; listas: [string, number][]; feitas?: number; total?: number }) => ({
   status: "ok", erro: null,
   dados: { fase: feitas === 0 ? "aguardando" : feitas >= total ? "concluida" : "parcial", secoes: { total, totalizadas: feitas }, cargo: { vagas }, candidatos: [], partidos: listas.map(([nome, v]) => ({ nome, vagas: v })), quociente: 1000 },
-});
+}) as unknown as UfEstado;
 const ufs = {
   SP: uf({ vagas: 70, listas: [["PT/PC do B/PV", 20], ["PL", 18], ["UNIÃO", 0]] }),
   RJ: uf({ vagas: 46, listas: [["PL", 14], ["PT/PC do B/PV", 6]], feitas: 100 }),
@@ -28,7 +29,7 @@ describe("vagasNacionais", () => {
   });
 
   test("a state that has not answered adds nothing, and the coverage says so", () => {
-    const parcial = vagasNacionais(linhasUf({ ...ufs, MG: { status: "carregando", dados: null, erro: null } }, "Deputado Federal"));
+    const parcial = vagasNacionais(linhasUf({ ...ufs, MG: { status: "carregando", dados: null, erro: null } as UfEstado }, "Deputado Federal"));
     expect(parcial.emDisputa).toBe(124);
     expect(parcial.cobertura).toEqual({ com: 3, de: 4 });
   });
@@ -50,7 +51,7 @@ describe("hemiciclo", () => {
   });
 
   test("each list gets as many dots as seats, and the seats not yet assigned stay neutral", () => {
-    const n = (fill) => seats.filter((s) => s.fill === fill).length;
+    const n = (fill: string) => seats.filter((s) => s.fill === fill).length;
     expect(n(cor("PL"))).toBe(34);
     expect(n(cor("PT/PC do B/PV"))).toBe(26);
     expect(seats.filter((s) => s.fill === "#d5d9d3")).toHaveLength(40);
@@ -81,7 +82,7 @@ describe("hemiciclo", () => {
     const tamanhos = [...Array.from({ length: 80 }, (_, i) => i + 1), 120, 200, 300, 513, 700];
     for (const n of tamanhos) {
       const s = hemiciclo([], n, cor);
-      const [, , W, H] = s.match(/viewBox="([\d. ]+)"/)[1].split(" ").map(Number);
+      const [, , W, H] = s.match(/viewBox="([\d. ]+)"/)![1].split(" ").map(Number);
       const d = [...s.matchAll(/<circle cx="([\d.]+)" cy="([\d.]+)" r="([\d.]+)"/g)].map((m) => ({ x: Number(m[1]), y: Number(m[2]), r: Number(m[3]) }));
       expect(d).toHaveLength(n);
       const fora = d.filter((p) => p.x - p.r < 0 || p.x + p.r > W || p.y - p.r < 0 || p.y + p.r > H);
@@ -95,7 +96,7 @@ describe("hemiciclo", () => {
 
 describe("renderCamara", () => {
   const cor = createCores(PALETA);
-  const nac = { cargo: "Deputado Federal", ciclo: 1, buscadoEm: new Date("2026-10-04T20:00:00Z"), ufs };
+  const nac: BrasilSnapshot = { cargo: "Deputado Federal", ciclo: 1, buscadoEm: new Date("2026-10-04T20:00:00Z"), ufs };
 
   test("says how many seats are assigned, what that is based on, and that it still changes while the count is open", () => {
     const html = renderCamara({ nac, cor });

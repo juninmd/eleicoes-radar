@@ -1,25 +1,31 @@
 // Deputies: no public poll per candidate, so the chance comes from the model trained on past elections.
 import { displayName, h, int, pct } from "./format.js";
 import { chance, listName, rotulo } from "./prev.js";
+import type { Avatar, Expectativa } from "./expectativa.js";
+import type { Candidatura } from "./types.js";
+import type { Prev } from "../src/radar/expectativa";
+import type { Backtest } from "../src/radar/model/seats";
+
+type Scored = Candidatura & { prev: Prev };
 
 // The 2022 hit rate of the top bands, said as a sentence a voter can weigh.
-function calibracaoTexto(cal) {
+function calibracaoTexto(cal: Backtest["calibracao"]) {
   const top = cal.filter((b) => b.n >= 30 && b.previsto >= 0.5).slice(-2);
   return top.map((b) => `Em 2022, ${pct(b.observado)} das ${int(b.n)} candidaturas que o modelo pôs em ${h(b.faixa)} foram eleitas.`).join(" ");
 }
 
-const why = (c, ano) => {
+const why = (c: Scored, ano: number) => {
   const ex = c.prev.ex;
   if (!ex) return "";
   return `<small class="why">${int(ex.r)}ª arrecadação · dinheiro de ${h(listName(c))} ≈ ${ex.vl.toFixed(1).replace(".", ",")} vagas · ${int(ex.lr)}º na lista${ex.dep ? " · já é deputado(a)" : ""}${ex.el ? ` · eleito(a) em ${h(ano)}` : ""}${ex.rep ? " · número repete o do partido" : ""}</small>`;
 };
 
-export function seats(exp, cargo, uf, cands, avatar, limit) {
+export function seats(exp: Expectativa, cargo: string, uf: string, cands: Candidatura[], avatar: Avatar, limit: number) {
   const m = exp.modelo;
   const vagas = exp.vagas[`${uf}|${cargo.toUpperCase()}`] ?? 0;
-  const list = cands.filter((c) => c.cargo === cargo && c.uf === uf && c.prev).sort((a, b) => b.prev.p - a.prev.p);
+  const list = cands.filter((c) => c.cargo === cargo && c.uf === uf && c.prev).sort((a, b) => b.prev!.p - a.prev!.p) as Scored[];
   if (!m || !list.length) return `<p class="empty">O modelo de deputados ainda não foi gerado (<code>bun run radar:model</code>).</p>`;
-  const bancadas = new Map();
+  const bancadas = new Map<string | undefined, number>();
   for (const c of list) bancadas.set(listName(c), (bancadas.get(listName(c)) ?? 0) + c.prev.p);
   const top = [...bancadas].sort((a, b) => b[1] - a[1]).filter(([, v]) => v >= 0.5).slice(0, 12);
   const maxB = top[0]?.[1] ?? 1;

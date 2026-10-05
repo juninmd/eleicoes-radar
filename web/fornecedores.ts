@@ -1,9 +1,12 @@
 import { h, moneyShort, titleName } from "./format.js";
+import type { Candidatura } from "./types.js";
 
-const VIA = { campanha: "campanha", cota: "cota parlamentar" };
-const dataBr = (iso) => (iso ? iso.split("-").reverse().join("/") : "");
+type Fornecedor = NonNullable<Candidatura["fornecedores"]>[number];
 
-function empresaLine(e) {
+const VIA: Record<string, string> = { campanha: "campanha", cota: "cota parlamentar" };
+const dataBr = (iso: string) => (iso ? iso.split("-").reverse().join("/") : "");
+
+function empresaLine(e: Fornecedor["empresa"]) {
   if (!e) return `<span class="muted">Sem registro na Receita Federal nesta consulta.</span>`;
   const partes = [
     e.situacao && `Situação: <b>${h(titleName(e.situacao))}</b>`,
@@ -14,13 +17,13 @@ function empresaLine(e) {
   return `${partes.join(" · ")}${e.endereco ? `<br><span class="muted">Endereço: ${h(e.endereco)}</span>` : `<br><span class="muted">Endereço não informado.</span>`}`;
 }
 
-function outros(f) {
+function outros(f: Fornecedor) {
   if (!f.outros) return `<span class="muted">Nenhum outro político do levantamento pagou este fornecedor.</span>`;
   const nomes = f.outrosTop.map((p) => `${h(titleName(p.nome))} (${h(p.partido || p.cargo)}-${h(p.uf)})`).join(", ");
   return `Atendeu também <b>${f.outros}</b> ${f.outros === 1 ? "outro político" : "outros políticos"}${nomes ? `: ${nomes}${f.outros > f.outrosTop.length ? " e mais" : ""}` : ""}.`;
 }
 
-export function fornecedoresBlock(list, id) {
+export function fornecedoresBlock(list: Candidatura["fornecedores"] | undefined, id: string) {
   if (!list) return "";
   const rows = list.map((f) => `<li class="forn">
       <div><strong>${h(titleName(f.nome))}</strong>${f.nova ? ` <span class="pill no" title="Aberta menos de um ano antes do primeiro pagamento">empresa nova</span>` : ""} <span class="muted">CNPJ ${h(f.cnpj)}</span><span class="fonte">${moneyShort(f.valor)} · ${f.via.map((v) => VIA[v] ?? v).join(" + ")}</span></div>

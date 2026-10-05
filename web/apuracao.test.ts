@@ -2,12 +2,13 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { parseApuracao } from "./apuracao-tse.js";
 import { renderApuracao, semRelogio, vistasDe } from "./apuracao.js";
+import type { RenderProps, SnapView } from "./apuracao.js";
 import { registrar } from "./apuracao-graficos.js";
 import { createCores } from "./apuracao-nacional.js";
 import { PALETA } from "./apuracao-mapa.js";
 import { avatar, byId, cand, dois, file } from "./apuracao-fixtures.js";
 
-const view = (json, over = {}) => renderApuracao({ snap: { status: "ok", dados: parseApuracao(json), buscadoEm: new Date("2026-10-04T20:15:30"), erro: null, ...over }, cargo: "Governador", uf: "SP", byId, avatar, limit: 40 });
+const view = (json: unknown, over: Partial<SnapView> = {}) => renderApuracao({ snap: { status: "ok", dados: parseApuracao(json), buscadoEm: new Date("2026-10-04T20:15:30"), erro: null, ...over }, cargo: "Governador", uf: "SP", byId, avatar, limit: 40 });
 
 describe("semRelogio", () => {
   test("two renders that differ only by the query time share a key, so the page is not redrawn for a clock tick", () => {
@@ -116,7 +117,7 @@ describe("renderApuracao", () => {
   });
 
   describe("states without numbers", () => {
-    const empty = (snap) => renderApuracao({ snap, cargo: "Governador", uf: "SP", byId, avatar, limit: 40 });
+    const empty = (snap: SnapView) => renderApuracao({ snap, cargo: "Governador", uf: "SP", byId, avatar, limit: 40 });
     test("loading, not published, and failed", () => {
       expect(empty({ status: "carregando", dados: null })).toContain("Consultando o TSE");
       expect(empty({ status: "ausente", dados: null })).toContain("ainda não publicou o arquivo");
@@ -140,10 +141,10 @@ describe("renderApuracao", () => {
   });
 
   describe("comparison with the polls", () => {
-    const prev = (media, lo, hi) => ({ fonte: "pesquisas", media, lo, hi });
+    const prev = (media: number, lo: number, hi: number) => ({ fonte: "pesquisas", media, lo, hi });
     const exp = { corridas: [{ cargo: "Governador", uf: "SP", pesquisas: 7, ultima: "2026-10-03" }] };
-    const ids = new Map([["a1", { id: "a1", prev: prev(0.5, 0.45, 0.55) }], ["b2", { id: "b2", prev: prev(0.4, 0.35, 0.45) }]]);
-    const withPolls = (json, over = {}) => renderApuracao({ snap: { status: "ok", dados: parseApuracao(json), buscadoEm: new Date(), erro: null }, cargo: "Governador", uf: "SP", byId: ids, avatar, limit: 40, exp, ...over });
+    const ids = new Map([["a1", { id: "a1", prev: prev(0.5, 0.45, 0.55) }], ["b2", { id: "b2", prev: prev(0.4, 0.35, 0.45) }]]) as unknown as RenderProps["byId"];
+    const withPolls = (json: unknown, over: Partial<RenderProps> = {}) => renderApuracao({ snap: { status: "ok", dados: parseApuracao(json), buscadoEm: new Date(), erro: null }, cargo: "Governador", uf: "SP", byId: ids, avatar, limit: 40, exp, ...over });
 
     test("each row gets the poll average, the signed difference and whether the count is inside the 90% band", () => {
       const html = withPolls(file({ cands: dois })); // Ana counts 60% vs poll 50% [45-55]; Beto 40% vs 40% [35-45]
@@ -192,7 +193,7 @@ describe("renderApuracao", () => {
     });
 
     test("without poll data there are no poll columns and no comparison text", () => {
-      const html = withPolls(file({ cands: dois }), { byId: new Map([["a1", { id: "a1", prev: { fonte: "modelo", p: 0.7 } }]]), exp: null });
+      const html = withPolls(file({ cands: dois }), { byId: new Map([["a1", { id: "a1", prev: { fonte: "modelo", p: 0.7 } }]]) as unknown as RenderProps["byId"], exp: null });
       expect(html).not.toContain("pq-col");
       expect(html).not.toContain("Comparação com as pesquisas");
     });
@@ -215,7 +216,7 @@ describe("renderApuracao", () => {
 describe("vistas (Placar, Mapa, Gráficos)", () => {
   const mapa = JSON.parse(readFileSync("web/mapa-uf.json", "utf8"));
   const parsed = () => parseApuracao(file({ cands: dois }));
-  const ver = (over = {}) => renderApuracao({ snap: { status: "ok", dados: parsed(), buscadoEm: new Date("2026-10-04T20:15:30"), erro: null }, cargo: "Governador", uf: "SP", byId, avatar, limit: 40, cor: createCores(PALETA), mapa, ...over });
+  const ver = (over: Partial<RenderProps> = {}) => renderApuracao({ snap: { status: "ok", dados: parsed(), buscadoEm: new Date("2026-10-04T20:15:30"), erro: null }, cargo: "Governador", uf: "SP", byId, avatar, limit: 40, cor: createCores(PALETA), mapa, ...over });
 
   test("the map exists for the offices that have a state-by-state race, and the charts for all", () => {
     expect(vistasDe("Presidente")).toEqual(["placar", "mapa", "projecao", "graficos"]);
@@ -253,7 +254,7 @@ describe("vistas (Placar, Mapa, Gráficos)", () => {
   });
 
   test("the charts view explains who voted, compares with the polls and promises the evolution", () => {
-    const ids = new Map([["a1", { id: "a1", prev: { fonte: "pesquisas", media: 0.5, lo: 0.45, hi: 0.55 } }], ["b2", { id: "b2", prev: { fonte: "pesquisas", media: 0.4, lo: 0.35, hi: 0.45 } }]]);
+    const ids = new Map([["a1", { id: "a1", prev: { fonte: "pesquisas", media: 0.5, lo: 0.45, hi: 0.55 } }], ["b2", { id: "b2", prev: { fonte: "pesquisas", media: 0.4, lo: 0.35, hi: 0.45 } }]]) as unknown as RenderProps["byId"];
     const html = ver({ vista: "graficos", byId: ids });
     expect(html).toContain("Votos válidos");
     expect(html).toContain("Apuração e faixa das pesquisas");
@@ -262,10 +263,10 @@ describe("vistas (Placar, Mapa, Gráficos)", () => {
   });
 
   test("the evolution chart appears once two files have been seen", () => {
-    let hist = registrar([], parsed());
+    let hist = registrar([], parsed()!);
     const depois = parseApuracao(file({ s: { st: "600" }, cands: dois }));
-    depois.versao = { data: "04/10/2026", hora: "20:00:00" };
-    hist = registrar(hist, depois);
+    depois!.versao = { data: "04/10/2026", hora: "20:00:00" };
+    hist = registrar(hist, depois!);
     expect(ver({ vista: "graficos", hist })).toContain("apu-evo");
   });
 

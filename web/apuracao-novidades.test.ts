@@ -1,8 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { atualizar, renderNovidades, vazio } from "./apuracao-novidades.js";
+import type { EstadoNovidades } from "./apuracao-novidades.js";
+import type { Apuracao, Cargo } from "./apuracao-tse.js";
 
 // A file of a one-seat race. `secoes` is [totalizadas, total]; votos sum to the valid votes.
-const arq = ({ votos = [400, 380, 100, 20], secoes = [980, 1000], hora = "21:04:25", apto = 1000, apurado = 950, situacao = [], nomes = ["ANA", "BRUNO", "CARLA", "DANI"], vagas = 1 } = {}) => {
+interface ArqOpts { votos?: number[]; secoes?: [number, number]; hora?: string; apto?: number; apurado?: number; situacao?: string[]; nomes?: string[]; vagas?: number }
+const arq = ({ votos = [400, 380, 100, 20], secoes = [980, 1000], hora = "21:04:25", apto = 1000, apurado = 950, situacao = [], nomes = ["ANA", "BRUNO", "CARLA", "DANI"], vagas = 1 }: ArqOpts = {}): Apuracao => {
   const total = votos.reduce((a, v) => a + v, 0);
   return {
     fase: secoes[0] >= secoes[1] ? "concluida" : secoes[0] > 0 ? "parcial" : "aguardando",
@@ -12,11 +15,11 @@ const arq = ({ votos = [400, 380, 100, 20], secoes = [980, 1000], hora = "21:04:
     eleitorado: { apto, apurado },
     votos: { validos: total },
     candidatos: votos.map((v, i) => ({ id: `c${i + 1}`, nome: nomes[i], partido: "P", votos: v, pct: v / total, situacao: situacao[i] ?? "" })),
-  };
+  } as unknown as Apuracao;
 };
-const gov = { cargo: "Governador", uf: "SP" };
-const ler = (est, d, ctx = gov) => atualizar(est, d, ctx);
-const textos = (est) => est.itens.map((i) => i.texto.replace(/<[^>]+>/g, ""));
+const gov: { cargo: Cargo; uf: string } = { cargo: "Governador", uf: "SP" };
+const ler = (est: EstadoNovidades, d: Apuracao | null, ctx = gov) => atualizar(est, d, ctx);
+const textos = (est: EstadoNovidades) => est.itens.map((i) => i.texto.replace(/<[^>]+>/g, ""));
 
 describe("milestones of the count", () => {
   test("the first file seen says where the count stands, with the top two", () => {
@@ -68,7 +71,7 @@ describe("milestones of the count", () => {
   });
 
   test("files that carry no version are all taken: the lack of a key must not freeze the list", () => {
-    const semVersao = (secoes) => ({ ...arq({ secoes }), versao: { data: "", hora: "" } });
+    const semVersao = (secoes: [number, number]) => ({ ...arq({ secoes }), versao: { data: "", hora: "" } });
     let est = ler(vazio(), semVersao([500, 1000]));
     est = ler(est, semVersao([900, 1000]));
     expect(textos(est).map((t) => t.slice(0, 11))).toEqual(["Com 90% das", "Com 50% das"]);
@@ -106,7 +109,7 @@ describe("changes of status", () => {
   });
 
   test("a whole deputy race getting its marks in one file is one line per text, and the milestone survives", () => {
-    const dep = { cargo: "Deputado Federal", uf: "SP" };
+    const dep: typeof gov = { cargo: "Deputado Federal", uf: "SP" };
     const votos = Array.from({ length: 300 }, (_, i) => 300 - i);
     const marcas = Array.from({ length: 300 }, (_, i) => (i < 70 ? "Eleito" : "Suplente"));
     const antes = ler(vazio(), arq({ votos, secoes: [950, 1000], hora: "21:00:00" }), dep);
@@ -120,7 +123,7 @@ describe("changes of status", () => {
   });
 
   test("up to two names are said, more than that is a count", () => {
-    const d = (situacao) => arq({ secoes: [990, 1000], hora: "21:30:00", situacao });
+    const d = (situacao: string[]) => arq({ secoes: [990, 1000], hora: "21:30:00", situacao });
     const antes = ler(vazio(), arq({ secoes: [980, 1000], hora: "21:00:00" }));
     expect(textos(ler(antes, d(["2º turno", "2º turno"])))[0]).toBe('Ana e Bruno: o TSE marcou "2º turno".');
     expect(textos(ler(antes, d(["2º turno", "2º turno", "2º turno"])))[0]).toBe('O TSE marcou "2º turno" em 3 candidatos.');
@@ -132,7 +135,7 @@ describe("changes of status", () => {
   });
 
   test("the same mark in the next file is not repeated", () => {
-    const d = (hora, secoes) => arq({ secoes, hora, situacao: ["", "2º turno"] });
+    const d = (hora: string, secoes: [number, number]) => arq({ secoes, hora, situacao: ["", "2º turno"] });
     let est = ler(vazio(), arq({ secoes: [980, 1000], hora: "21:04:00" }));
     est = ler(est, d("21:05:00", [985, 1000]));
     const n = est.itens.length;
@@ -144,7 +147,7 @@ describe("changes of status", () => {
 describe("the Radar's own proofs are lines too, and say whose they are", () => {
   test("the runoff becoming certain, then the pair becoming closed", () => {
     // 400/300/200/100 with 200 electors left: runoff certain, second place open. Then the third falls back.
-    const aberto = (hora) => arq({ votos: [400, 300, 200, 100], apto: 1200, apurado: 1000, hora, secoes: [830, 1000] });
+    const aberto = (hora: string) => arq({ votos: [400, 300, 200, 100], apto: 1200, apurado: 1000, hora, secoes: [830, 1000] });
     const cedo = arq({ votos: [450, 300, 200, 50], apto: 1200, apurado: 1000, hora: "20:00:00", secoes: [820, 1000] }); // leader 450 + 200 > half
     let est = ler(vazio(), cedo);
     est = ler(est, aberto("20:05:00"));

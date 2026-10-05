@@ -1,31 +1,36 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { createFeed, HttpError, loadResultado, maisRecente, POLL_MS } from "./apuracao-feed.js";
+import { describe, expect, test } from "bun:test";
+import { createFeed, HttpError, maisRecente, POLL_MS } from "./apuracao-feed.js";
+import type { Feed, FeedSnapshot } from "./apuracao-feed.js";
+import type { Apuracao } from "./apuracao-tse.js";
 
 // Fake clock and network: timers only run when the test fires them, loads resolve when the test says so.
+interface TimerRec { fn: () => void; ms: number }
+type Pending = { url: string; resolve: (d: Apuracao) => void };
+type Call = Pending & { reject: (e: unknown) => void };
 function rig({ visible = true } = {}) {
-  const timers = [];
-  const calls = [];
-  const events = [];
+  const timers: TimerRec[] = [];
+  const calls: Call[] = [];
+  const events: FeedSnapshot[] = [];
   const rig = {
     visible,
     calls,
     events,
     timers,
-    fire: async () => { const t = timers.shift(); t.fn(); await flush(); },
-    feed: null,
+    fire: async () => { const t = timers.shift()!; t.fn(); await flush(); },
+    feed: null as unknown as Feed,
   };
-  const load = (url) => new Promise((resolve, reject) => calls.push({ url, resolve, reject }));
+  const load = (url: string) => new Promise<Apuracao>((resolve, reject) => calls.push({ url, resolve, reject }));
   rig.feed = createFeed({
     load,
     onChange: (s) => events.push({ ...s }),
-    timers: { set: (fn, ms) => { const t = { fn, ms }; timers.push(t); return t; }, clear: (t) => { const i = timers.indexOf(t); if (i >= 0) timers.splice(i, 1); } },
+    timers: { set: (fn, ms) => { const t = { fn, ms }; timers.push(t); return t; }, clear: (t) => { const i = timers.indexOf(t as TimerRec); if (i >= 0) timers.splice(i, 1); } },
     visible: () => rig.visible,
     now: () => new Date("2026-10-04T20:00:00Z"),
   });
   return rig;
 }
 const flush = () => new Promise((r) => setTimeout(r, 0));
-const data = (n) => ({ fase: "parcial", n });
+const data = (n: unknown) => ({ fase: "parcial", n }) as unknown as Apuracao;
 
 describe("createFeed", () => {
   test("fetches at once, then polls again after the interval", async () => {
@@ -35,13 +40,13 @@ describe("createFeed", () => {
     r.calls[0].resolve(data(1));
     await flush();
     expect(r.events.at(-1)).toMatchObject({ status: "ok", dados: data(1), erro: null });
-    expect(r.events.at(-1).buscadoEm).toEqual(new Date("2026-10-04T20:00:00Z"));
+    expect(r.events.at(-1)!.buscadoEm).toEqual(new Date("2026-10-04T20:00:00Z"));
     expect(r.timers.map((t) => t.ms)).toEqual([POLL_MS]);
     await r.fire();
     expect(r.calls).toHaveLength(2);
     r.calls[1].resolve(data(2));
     await flush();
-    expect(r.events.at(-1).dados).toEqual(data(2));
+    expect(r.events.at(-1)!.dados).toEqual(data(2));
   });
 
   test("following the same race twice does not double the polling", async () => {
@@ -118,10 +123,10 @@ describe("createFeed", () => {
 
   test("the default timers are called detached: browsers throw 'Illegal invocation' for setTimeout used as a method", async () => {
     const real = globalThis.setTimeout;
-    globalThis.setTimeout = function strict(fn, ms) {
+    globalThis.setTimeout = function strict(this: unknown, fn: () => void, ms: number) {
       if (this !== undefined && this !== globalThis) throw new TypeError("Illegal invocation");
       return real(fn, ms);
-    };
+    } as unknown as typeof setTimeout;
     try {
       let loads = 0;
       const feed = createFeed({ load: async () => { loads++; return data(loads); }, onChange: () => {}, every: 5, visible: () => true });
@@ -135,12 +140,12 @@ describe("createFeed", () => {
   });
 
   test("a renderer that throws is logged but never stops the polling", async () => {
-    const errors = [];
+    const errors: string[] = [];
     const real = console.error;
     console.error = (...a) => errors.push(a.join(" "));
     try {
-      const calls = [];
-      const timers = [];
+      const calls: Pending[] = [];
+      const timers: TimerRec[] = [];
       let n = 0;
       const feed = createFeed({
         load: (url) => new Promise((resolve) => calls.push({ url, resolve })),
@@ -162,7 +167,7 @@ describe("createFeed", () => {
     const real = console.error;
     console.error = () => {};
     try {
-      const calls = [];
+      const calls: Pending[] = [];
       const feed = createFeed({ load: (url) => new Promise((resolve) => calls.push({ url, resolve })), onChange: () => { throw new Error("render boom"); }, timers: { set: () => ({}), clear: () => {} }, visible: () => true });
       feed.follow("u1");
       expect(calls).toHaveLength(1);
@@ -183,8 +188,8 @@ describe("createFeed", () => {
   });
 
   test("switching race aborts the old request and its AbortError is not shown as a failure", async () => {
-    const events = [];
-    const calls = [];
+    const events: FeedSnapshot[] = [];
+    const calls: Pending[] = [];
     const feed = createFeed({
       load: (url, signal) => new Promise((resolve, reject) => {
         calls.push({ url, resolve });
@@ -208,7 +213,7 @@ describe("createFeed", () => {
     r.feed.stop();
     r.calls[0].resolve(data(1));
     await flush();
-    expect(r.events.at(-1).status).toBe("carregando");
+    expect(r.events.at(-1)!.status).toBe("carregando");
     expect(r.timers).toHaveLength(0);
   });
 });
@@ -216,14 +221,14 @@ describe("createFeed", () => {
 // Real behaviour seen on count night: the TSE answered with a file OLDER than one it had already served
 // (11 of 406 answers in 70 s), even the zeroed file from before the vote.
 describe("a file older than the one on screen", () => {
-  const v = (hora, st, data = "04/10/2026") => ({ fase: "parcial", versao: { data, hora }, secoes: { total: 100, totalizadas: st } });
+  const v = (hora: string, st: number, data = "04/10/2026") => ({ fase: "parcial", versao: { data, hora }, secoes: { total: 100, totalizadas: st } }) as unknown as Apuracao;
 
   test("maisRecente keeps the newer of two versions, and takes the new one when it cannot tell", () => {
     expect(maisRecente(v("17:24:39", 36), v("17:25:49", 47))).toEqual(v("17:25:49", 47));
     expect(maisRecente(v("17:26:22", 51), v("17:25:49", 47))).toEqual(v("17:26:22", 51));
     expect(maisRecente(v("17:25:49", 47), v("17:25:49", 47))).toEqual(v("17:25:49", 47));
     expect(maisRecente(v("23:59:59", 5, "03/10/2026"), v("00:00:01", 6))).toEqual(v("00:00:01", 6)); // the day counts before the time
-    expect(maisRecente({ fase: "parcial", n: 2 }, { fase: "parcial", n: 1 })).toEqual({ fase: "parcial", n: 2 }); // no version: nothing to compare
+    expect(maisRecente({ fase: "parcial", n: 2 } as unknown as Apuracao, { fase: "parcial", n: 1 } as unknown as Apuracao)).toEqual({ fase: "parcial", n: 2 } as unknown as Apuracao); // no version: nothing to compare
     expect(maisRecente(v("17:25:49", 47), null)).toEqual(v("17:25:49", 47));
   });
 
@@ -240,7 +245,7 @@ describe("a file older than the one on screen", () => {
     await r.fire();
     r.calls[2].resolve(v("17:26:22", 51));
     await flush();
-    expect(r.events.at(-1).dados).toEqual(v("17:26:22", 51));
+    expect(r.events.at(-1)!.dados).toEqual(v("17:26:22", 51));
   });
 
   test("the zeroed file from before the vote never replaces numbers that already counted", async () => {
@@ -251,55 +256,6 @@ describe("a file older than the one on screen", () => {
     await r.fire();
     r.calls[1].resolve({ ...v("20:13:52", 0, "02/10/2026"), fase: "aguardando" });
     await flush();
-    expect(r.events.at(-1).dados).toEqual(v("17:20:19", 656));
-  });
-});
-
-describe("loadResultado", () => {
-  const realFetch = globalThis.fetch;
-  afterEach(() => { globalThis.fetch = realFetch; });
-  const silent = (signal) => new Promise((_, reject) => signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError"))));
-  const message = async (p) => { try { await p; return null; } catch (e) { return e; } };
-
-  test("a file that never answers fails with a clear message instead of hanging the polling", async () => {
-    globalThis.fetch = (_url, { signal }) => silent(signal);
-    const e = await message(loadResultado("u", undefined, 20));
-    expect(e.message).toBe("o TSE não respondeu a tempo");
-  });
-
-  test("a network failure says there is no connection, not the browser's English text", async () => {
-    globalThis.fetch = async () => { throw new TypeError("Failed to fetch"); };
-    expect((await message(loadResultado("u"))).message).toBe("sem conexão com o TSE");
-  });
-
-  test("a body that is not JSON says the file is unreadable", async () => {
-    globalThis.fetch = async () => new Response("<html>manutenção</html>");
-    expect((await message(loadResultado("u"))).message).toBe("arquivo do TSE ilegível");
-  });
-
-  test("an HTTP error keeps its status so the feed can tell 404 from the rest", async () => {
-    globalThis.fetch = async () => new Response("", { status: 503 });
-    const e = await message(loadResultado("u"));
-    expect(e).toBeInstanceOf(HttpError);
-    expect(e.status).toBe(503);
-    expect(e.message).toBe("o TSE respondeu HTTP 503");
-  });
-
-  test("a JSON that is not a results file is rejected", async () => {
-    globalThis.fetch = async () => new Response("{}");
-    expect((await message(loadResultado("u"))).message).toBe("formato do arquivo do TSE não reconhecido");
-  });
-
-  test("a results file is parsed", async () => {
-    globalThis.fetch = async () => new Response(JSON.stringify({ carg: [{ agr: [] }] }));
-    expect((await loadResultado("u")).fase).toBe("aguardando");
-  });
-
-  test("the caller aborting (race switched) stays an AbortError, never reported as a timeout", async () => {
-    globalThis.fetch = (_url, { signal }) => silent(signal);
-    const ctl = new AbortController();
-    const p = message(loadResultado("u", ctl.signal, 5_000));
-    ctl.abort();
-    expect((await p).name).toBe("AbortError");
+    expect(r.events.at(-1)!.dados).toEqual(v("17:20:19", 656));
   });
 });

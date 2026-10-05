@@ -1,11 +1,11 @@
 import { expect, test } from "bun:test";
 import { packLayout } from "./al-layout.js";
 
-const nodes = (...ids) => ids.map((id) => ({ id, label: id, n: 1 }));
-const clique = (ids) => ids.flatMap((a, i) => ids.slice(i + 1).map((b) => ({ a, b, w: 1 })));
+const nodes = (...ids: string[]) => ids.map((id) => ({ id, label: id, n: 1 }));
+const clique = (ids: string[]) => ids.flatMap((a, i) => ids.slice(i + 1).map((b) => ({ a, b, w: 1 })));
 // Three separate lists, as in a state race: a federation of three, two pairs.
 const G = { nodes: nodes("PT", "PV", "PCDOB", "PP", "UNIAO", "REDE", "PSOL"), links: [...clique(["PT", "PV", "PCDOB"]), ...clique(["PP", "UNIAO"]), ...clique(["REDE", "PSOL"])] };
-const clusterOf = (id) => (["PT", "PV", "PCDOB"].includes(id) ? 0 : ["PP", "UNIAO"].includes(id) ? 1 : 2);
+const clusterOf = (id: string) => (["PT", "PV", "PCDOB"].includes(id) ? 0 : ["PP", "UNIAO"].includes(id) ? 1 : 2);
 
 test("every node is placed exactly once, with finite coordinates, inside the frame", () => {
   const { nodes: pos, height } = packLayout(G.nodes, G.links, { width: 900 });
@@ -63,10 +63,10 @@ test("the busiest real race shape (20 parties: coalitions of 10 and 8, a federat
   const c = ["PSOL", "REDE"];
   const all = [...a, ...b, ...c].map((id, i) => ({ id, label: id, n: 1 + (i % 7) * 6 }));
   const max = Math.max(...all.map((n) => n.n));
-  const radius = (n) => 6 + 12 * Math.sqrt(n.n / max);
+  const radius = (n: { n: number }) => 6 + 12 * Math.sqrt(n.n / max);
   const { nodes: pos, height } = packLayout(all, [...clique(a), ...clique(b), ...clique(c)], { width: 900, radius });
   expect(height).toBeLessThanOrEqual(560); // was ~890 before the cluster frames were tightened
-  const rect = (p) => { const r = radius(p), w = Math.max(2 * r, 6.6 * p.label.length); return { x0: p.x - w / 2, x1: p.x + w / 2, y0: p.y - r - 15, y1: p.y + r }; };
+  const rect = (p: (typeof pos)[number]) => { const r = radius(p), w = Math.max(2 * r, 6.6 * p.label.length); return { x0: p.x - w / 2, x1: p.x + w / 2, y0: p.y - r - 15, y1: p.y + r }; };
   const touching = [];
   for (let i = 0; i < pos.length; i++) for (let j = i + 1; j < pos.length; j++) {
     const p = rect(pos[i]), q = rect(pos[j]);
@@ -78,7 +78,7 @@ test("the busiest real race shape (20 parties: coalitions of 10 and 8, a federat
 test("party names in a crowded coalition do not overlap, whatever the force layout did", () => {
   const names = ["SOLIDARIEDADE", "REPUBLICANOS", "DEMOCRATA", "MOBILIZA", "CIDADANIA", "AVANTE", "PODE", "AGIR", "UNIAO", "MDB", "PL", "PP"];
   const { nodes: pos } = packLayout(nodes(...names), clique(names), { radius: () => 12 });
-  const box = (p) => { const w = Math.max(24, 6.6 * p.label.length); return { x0: p.x - w / 2, x1: p.x + w / 2, y0: p.y - 27, y1: p.y + 12 }; }; // label above a 12px circle
+  const box = (p: (typeof pos)[number]) => { const w = Math.max(24, 6.6 * p.label.length); return { x0: p.x - w / 2, x1: p.x + w / 2, y0: p.y - 27, y1: p.y + 12 }; }; // label above a 12px circle
   const touching = [];
   for (let i = 0; i < pos.length; i++) for (let j = i + 1; j < pos.length; j++) {
     const a = box(pos[i]), b = box(pos[j]);

@@ -2,18 +2,22 @@ import { describe, expect, test } from "bun:test";
 import { createCores, linhasUf } from "./apuracao-nacional.js";
 import { PALETA } from "./apuracao-mapa.js";
 import { painelUf, tabelaUf } from "./apuracao-uf-painel.js";
+import type { Apuracao, Candidato } from "./apuracao-tse.js";
+import type { UfEstado } from "./apuracao-uf.js";
 
-const c = (id, nome, partido, votos, pct) => ({ id, nome, partido, num: `${id}0`, votos, pct, destaque: false, situacao: "" });
-const uf = ({ total = 100, feitas = 40, vagas = 1, cands = [] } = {}) => ({
+type UfOk = UfEstado & { dados: Apuracao };
+
+const c = (id: string, nome: string, partido: string, votos: number, pct: number) => ({ id, nome, partido, num: `${id}0`, votos, pct, destaque: false, situacao: "" }) as Candidato;
+const uf = ({ total = 100, feitas = 40, vagas = 1, cands = [] }: { total?: number; feitas?: number; vagas?: number; cands?: Candidato[] } = {}) => ({
   status: "ok", erro: null,
   dados: { fase: feitas === 0 ? "aguardando" : feitas >= total ? "concluida" : "parcial", secoes: { total, totalizadas: feitas }, cargo: { vagas }, candidatos: cands, versao: { data: "04/10/2026", hora: "19:41:07" } },
-});
+}) as UfOk;
 const cands = [c("1", "ANA SOUZA", "AAA", 6000, 0.6), c("2", "BETO LIMA", "BBB", 3000, 0.3), c("3", "CRIS", "CCC", 1000, 0.1)];
-const ufs = { SP: uf({ cands }), AC: uf({ feitas: 0, cands: [c("1", "ANA", "AAA", 0, 0)] }), AL: { status: "carregando", dados: null, erro: null }, ZZ: uf({ cands }) };
+const ufs = { SP: uf({ cands }), AC: uf({ feitas: 0, cands: [c("1", "ANA", "AAA", 0, 0)] }), AL: { status: "carregando", dados: null, erro: null } as UfEstado, ZZ: uf({ cands }) };
 const linhas = linhasUf(ufs, "Governador");
 const cor = createCores(PALETA);
 const poll = { cargo: "Governador", uf: "SP", vagas: 1, lideres: [{ sq: "1", nome: "ANA SOUZA", partido: "AAA", media: 0.5, lo: 0.41, hi: 0.59 }] };
-const row = (u) => linhas.find((l) => l.uf === u);
+const row = (u: string) => linhas.find((l) => l.uf === u)!;
 
 describe("painelUf", () => {
   test("with nothing selected it says how to select", () => {
@@ -34,7 +38,7 @@ describe("painelUf", () => {
   test("a state that has not started, not answered, or failed says exactly that", () => {
     expect(painelUf(row("AC"), { cor, cargo: "Governador" })).toContain("ainda não começou");
     expect(painelUf(row("AL"), { cor, cargo: "Governador" })).toContain("Consultando o TSE");
-    const falha = linhasUf({ BA: { status: "erro", dados: null, erro: "sem conexão com o TSE" } }, "Governador")[0];
+    const falha = linhasUf({ BA: { status: "erro", dados: null, erro: "sem conexão com o TSE" } as UfEstado }, "Governador")[0];
     expect(painelUf(falha, { cor, cargo: "Governador" })).toContain("sem conexão com o TSE");
   });
 
@@ -77,17 +81,17 @@ describe("tabelaUf", () => {
 
   test("shows the leader and the margin where there are numbers and a dash where there are none", () => {
     const html = tabelaUf(linhas, { cargo: "Governador", corridas: [], sel: null });
-    const sp = html.match(/<tr data-uf="SP"[^]*?<\/tr>/)[0];
+    const sp = html.match(/<tr data-uf="SP"[^]*?<\/tr>/)![0];
     expect(sp).toContain("Ana Souza");
     expect(sp).toContain("30,0 p.p.");
     expect(sp).toContain("40,0%");
-    const ac = html.match(/<tr data-uf="AC"[^]*?<\/tr>/)[0];
+    const ac = html.match(/<tr data-uf="AC"[^]*?<\/tr>/)![0];
     expect(ac).toContain("–");
     expect(ac).not.toContain("Ana");
   });
 
   test("phones get the margin under the leader (the margin column is hidden there), so the table stays narrow", () => {
-    const sp = tabelaUf(linhas, { cargo: "Governador", corridas: [], sel: null }).match(/<tr data-uf="SP"[^]*?<\/tr>/)[0];
+    const sp = tabelaUf(linhas, { cargo: "Governador", corridas: [], sel: null }).match(/<tr data-uf="SP"[^]*?<\/tr>/)![0];
     expect(sp).toContain('class="mg-inline">margem 30,0 p.p.');
     expect(sp).toContain('class="num mg-col"');
   });
@@ -96,7 +100,7 @@ describe("tabelaUf", () => {
     expect(tabelaUf(linhas, { cargo: "Governador", corridas: [], sel: null })).not.toContain("Líder nas pesquisas");
     const html = tabelaUf(linhas, { cargo: "Governador", corridas: [poll], sel: null });
     expect(html).toContain("Líder nas pesquisas");
-    expect(html.match(/<tr data-uf="SP"[^]*?<\/tr>/)[0]).toContain("mesmo líder");
+    expect(html.match(/<tr data-uf="SP"[^]*?<\/tr>/)![0]).toContain("mesmo líder");
   });
 
   test("with several seats the poll line lists the names compared and says so; it never says 'leader'", () => {
@@ -129,21 +133,21 @@ describe("tabelaUf", () => {
 
   test("marks the selected row for assistive tech (aria-current: plain table rows have no selected state)", () => {
     const html = tabelaUf(linhas, { cargo: "Governador", corridas: [], sel: "SP" });
-    expect(html.match(/<tr data-uf="SP"[^>]*>/)[0]).toContain('aria-current="true"');
+    expect(html.match(/<tr data-uf="SP"[^>]*>/)![0]).toContain('aria-current="true"');
   });
 });
 
 describe("decided races", () => {
   // 900 of 1.000 electors counted and 800 valid votes: at most 100 votes can still arrive.
-  const quase = (cs, vagas = 1) => {
+  const quase = (cs: Candidato[], vagas = 1) => {
     const u = uf({ vagas, cands: cs });
-    u.dados.eleitorado = { apto: 1000, apurado: 900 };
-    u.dados.votos = { validos: 800 };
+    u.dados.eleitorado = { apto: 1000, apurado: 900 } as Apuracao["eleitorado"];
+    u.dados.votos = { validos: 800 } as Apuracao["votos"];
     return u;
   };
   const dois = [c("1", "ANA SOUZA", "AAA", 600, 0.75), c("2", "BETO LIMA", "BBB", 200, 0.25)];
   const decidida = linhasUf({ SP: quase(dois), RJ: uf({ cands }) }, "Governador");
-  const de = (u) => decidida.find((l) => l.uf === u);
+  const de = (u: string) => decidida.find((l) => l.uf === u)!;
 
   test("the panel tints the winner's line, labels it, and says whose arithmetic it is", () => {
     const html = painelUf(de("SP"), { cor, cargo: "Governador" });

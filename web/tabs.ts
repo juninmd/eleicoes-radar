@@ -1,7 +1,7 @@
 // WAI-ARIA tabs: one tab stop per tablist, arrow keys move between tabs and activate them.
 
 // Pure so the keyboard rules are testable: the index a key moves to, or null when the key is not ours.
-export function nextIndex(key, current, count) {
+export function nextIndex(key: string, current: number, count: number) {
   if (!count) return null;
   if (key === "Home") return 0;
   if (key === "End") return count - 1;
@@ -11,25 +11,25 @@ export function nextIndex(key, current, count) {
 }
 
 // A saved tab name that no longer exists (stale storage, renamed view) falls back, so one tab is always selected.
-export const knownTab = (saved, known, fallback) => (known.includes(saved) ? saved : fallback);
+export const knownTab = (saved: unknown, known: string[], fallback: string): string => (known.includes(saved as string) ? (saved as string) : fallback);
 
 // Only the selected tab is reachable with Tab; call after anything that changes aria-selected.
-export function syncTabs(list) {
-  for (const t of list.querySelectorAll('[role="tab"]')) t.tabIndex = t.getAttribute("aria-selected") === "true" ? 0 : -1;
+export function syncTabs(list: ParentNode) {
+  for (const t of list.querySelectorAll<HTMLElement>('[role="tab"]')) t.tabIndex = t.getAttribute("aria-selected") === "true" ? 0 : -1;
 }
 
 // Tabs are activated by their own click handler, so arrows just click the target and keep focus on the
 // selected tab (the list may have been re-rendered by that click).
-export function mountTabs(list) {
+export function mountTabs(list: HTMLElement) {
   list.addEventListener("keydown", (e) => {
-    const tabs = [...list.querySelectorAll('[role="tab"]')];
-    const at = tabs.indexOf(document.activeElement);
+    const tabs = [...list.querySelectorAll<HTMLElement>('[role="tab"]')];
+    const at = tabs.indexOf(document.activeElement as HTMLElement);
     if (at < 0) return;
     const to = nextIndex(e.key, at, tabs.length);
     if (to === null) return;
     e.preventDefault();
     tabs[to].click();
     syncTabs(list);
-    list.querySelector('[role="tab"][aria-selected="true"]')?.focus();
+    list.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus();
   });
 }

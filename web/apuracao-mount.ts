@@ -11,22 +11,31 @@ import { idade, relogio, repaint, semRelogio } from "./apuracao-dom.js";
 import { createProjecao } from "./apuracao-projecao-estado.js";
 import { atualizar, vazio } from "./apuracao-novidades.js";
 import { renderApuracao, vistasDe } from "./apuracao.js";
+import type { RenderProps, Vista } from "./apuracao.js";
+import type { FeedSnapshot } from "./apuracao-feed.js";
+import type { BrasilSnapshot } from "./apuracao-uf.js";
+import type { Fonte } from "./apuracao-projecao-estado.js";
+import type { Ponto } from "./apuracao-graficos.js";
+import type { UfMap } from "../src/radar/geo/uf-map";
 
 const PAGE = 40;
 
-export function mountApuracao(el) {
-  let ctx = null;
-  let snap = null;
-  let nac = null;
-  let hist = [];
+// What the page hands over for the race on screen; the rest of the props are the tab's own state.
+export type Contexto = Pick<RenderProps, "cargo" | "uf" | "byId" | "avatar" | "exp"> & { abrirUf?: (uf: string) => void };
+
+export function mountApuracao(el: HTMLElement) {
+  let ctx: Contexto | null = null;
+  let snap: FeedSnapshot | null = null;
+  let nac: BrasilSnapshot | null = null;
+  let hist: Ponto[] = [];
   let novidades = vazio();
   let limit = PAGE;
-  let vista = "placar";
+  let vista: Vista = "placar";
   let modoMapa = "lider";
-  let selUf = null;
-  let mapa; // undefined while loading, null when it failed
+  let selUf: string | null = null;
+  let mapa: UfMap | null | undefined; // undefined while loading, null when it failed
   let buscandoMapa = false;
-  let painted = null;
+  let painted: string | null = null;
   let raf = 0;
   const cor = createCores(PALETA, RESTO);
   const projecao = createProjecao(); // the drift it measures is only seen while this tab is open
@@ -43,9 +52,9 @@ export function mountApuracao(el) {
   const projDe = () => {
     if (vista !== "projecao" || !ctx) return null;
     const presidente = ctx.cargo === "Presidente";
-    if (presidente && !(nac?.ciclo >= 1)) return null;
-    const velha = (s) => s === "erro" || s === "ausente"; // same rule as linhasUf#defasada: the feed keeps the last numbers
-    const fontes = presidente ? Object.entries(nac.ufs).map(([id, u]) => [id, u.dados, velha(u.status)]) : [[ctx.uf, snap?.dados ?? null, velha(snap?.status)]];
+    if (presidente && !(nac?.ciclo! >= 1)) return null;
+    const velha = (s: string | undefined) => s === "erro" || s === "ausente"; // same rule as linhasUf#defasada: the feed keeps the last numbers
+    const fontes: Fonte[] = presidente ? Object.entries(nac!.ufs).map(([id, u]) => [id, u.dados, velha(u.status)]) : [[ctx.uf, snap?.dados ?? null, velha(snap?.status)]];
     return { ...projecao.ler(fontes), esperadas: presidente ? ufsDo(ctx.cargo).length : 1 };
   };
 
@@ -53,10 +62,10 @@ export function mountApuracao(el) {
     if (!ctx) return;
     const html = renderApuracao({ ...ctx, snap, nac, proj: projDe(), hist, novidades: novidades.itens, limit, vista, modoMapa, selUf, mapa, cor: vista === "camara" ? corCamara : cor });
     const key = semRelogio(html);
-    const quando = el.querySelector("#apu-quando");
+    const quando = el.querySelector<HTMLElement>("#apu-quando");
     if (key === painted && quando) {
       quando.textContent = relogio(html) ?? quando.textContent;
-      const i = el.querySelector("#apu-idade");
+      const i = el.querySelector<HTMLElement>("#apu-idade");
       if (i) i.textContent = idade(html) ?? i.textContent;
       return;
     }
@@ -86,32 +95,32 @@ export function mountApuracao(el) {
       .then(() => { buscandoMapa = false; paint(); });
   };
   const seguirMapa = () => {
-    if (nacional()) { if (vista === "mapa") carregarMapa(); brasil.follow(ctx.cargo); } else { brasil.stop(); nac = null; }
+    if (nacional()) { if (vista === "mapa") carregarMapa(); brasil.follow(ctx!.cargo); } else { brasil.stop(); nac = null; }
   };
-  const escolher = (uf) => {
+  const escolher = (uf: string) => {
     selUf = selUf === uf ? null : uf;
     paint();
-    anuncio.textContent = selUf ? el.querySelector(".apu-uf")?.textContent.replace(/\s+/g, " ").trim() ?? "" : "";
+    anuncio.textContent = selUf ? el.querySelector(".apu-uf")?.textContent!.replace(/\s+/g, " ").trim() ?? "" : "";
   };
 
   el.addEventListener("click", (e) => {
-    const t = e.target.closest("[data-vista], [data-modo-mapa], [data-uf], [data-abrir-uf], #apu-mais");
+    const t = (e.target as Element).closest<HTMLElement>("[data-vista], [data-modo-mapa], [data-uf], [data-abrir-uf], #apu-mais");
     if (!t) return;
     if (t.id === "apu-mais") { limit += PAGE; paint(); }
-    else if (t.dataset.vista) { vista = t.dataset.vista; seguirMapa(); paint(); }
+    else if (t.dataset.vista) { vista = t.dataset.vista as Vista; seguirMapa(); paint(); }
     else if (t.dataset.modoMapa) { modoMapa = t.dataset.modoMapa; paint(); }
-    else if (t.dataset.abrirUf) { vista = "placar"; seguirMapa(); ctx.abrirUf?.(t.dataset.abrirUf); }
+    else if (t.dataset.abrirUf) { vista = "placar"; seguirMapa(); ctx!.abrirUf?.(t.dataset.abrirUf); }
     else if (t.dataset.uf) escolher(t.dataset.uf);
   });
   // The shapes are role="button": Enter and Space must work like a click.
   el.addEventListener("keydown", (e) => {
-    const t = e.target.closest?.("path[data-uf]");
-    if (t && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); escolher(t.dataset.uf); }
+    const t = (e.target as Element).closest?.<SVGPathElement>("path[data-uf]");
+    if (t && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); escolher(t.dataset.uf!); }
   });
   document.addEventListener("visibilitychange", () => { if (!document.hidden) { feed.refresh(); if (nacional()) brasil.refresh(); } });
 
   return {
-    show(next) {
+    show(next: Contexto) {
       const outra = !ctx || ctx.cargo !== next.cargo || ctx.uf !== next.uf;
       if (outra) { limit = PAGE; hist = []; novidades = vazio(); projecao.reiniciar(); }
       if (!ctx || ctx.cargo !== next.cargo) selUf = null; // the national map keeps its selection when only the state of the ballot changes

@@ -2,15 +2,19 @@
 // summed over the 27 states, drawn as a hemicycle. Only the TSE's own numbers: no projection.
 import { h, int, pct } from "./format.js";
 import { avancoDe, linhasUf } from "./apuracao-nacional.js";
+import type { Cores, LinhaCom, LinhaUf } from "./apuracao-nacional.js";
+import type { BrasilSnapshot } from "./apuracao-uf.js";
 
 const NEUTRO = "#d5d9d3";
-const chave = (nome) => nome.trim().replace(/\s+/g, " ").toLowerCase();
+const chave = (nome: string) => nome.trim().replace(/\s+/g, " ").toLowerCase();
 
-export function vagasNacionais(linhas) {
-  const soma = new Map();
+export interface Lista { nome: string; vagas: number }
+
+export function vagasNacionais(linhas: LinhaUf[]) {
+  const soma = new Map<string, Lista>();
   let emDisputa = 0;
   const secoes = { total: 0, totalizadas: 0 };
-  const com = linhas.filter((l) => l.dados);
+  const com = linhas.filter((l) => l.dados) as LinhaCom[];
   for (const l of com) {
     emDisputa += l.dados.cargo.vagas;
     secoes.total += l.secoes.total;
@@ -32,7 +36,7 @@ const RO = 300; // outer radius
 const RI = 0.4 * RO;
 
 // Seats on concentric arcs, sorted by angle: filling them in that order makes each list a wedge.
-function posicoes(n) {
+function posicoes(n: number) {
   const k = (2 * n * (RO - RI)) / (Math.PI * (RO + RI));
   const linhas = Math.max(1, Math.round((1 + Math.sqrt(1 + 4 * k)) / 2));
   const raios = Array.from({ length: linhas }, (_, i) => (linhas === 1 ? RO : RI + (i * (RO - RI)) / (linhas - 1)));
@@ -45,10 +49,10 @@ function posicoes(n) {
   return { pts: pts.sort((a, b) => a.fi - b.fi || a.r - b.r), raio: Math.min(14, Math.max(2, 0.42 * passo)) };
 }
 
-export function hemiciclo(listas, emDisputa, cor) {
+export function hemiciclo(listas: Lista[], emDisputa: number, cor: Cores): string {
   if (emDisputa <= 0) return "";
   const { pts, raio } = posicoes(emDisputa);
-  const cores = listas.flatMap((l) => Array(l.vagas).fill(cor(l.nome))).slice(0, emDisputa);
+  const cores = listas.flatMap((l) => Array<string>(l.vagas).fill(cor(l.nome))).slice(0, emDisputa);
   const cx = W / 2;
   const cy = RO + raio + 6;
   const dots = pts.map((p, i) => `<circle cx="${(cx - p.r * Math.cos(p.fi)).toFixed(1)}" cy="${(cy - p.r * Math.sin(p.fi)).toFixed(1)}" r="${raio.toFixed(1)}" fill="${cores[i] ?? NEUTRO}"/>`);
@@ -56,7 +60,7 @@ export function hemiciclo(listas, emDisputa, cor) {
   return `<svg class="apu-camara" viewBox="0 0 ${W} ${Math.ceil(cy + raio + 4)}" role="img" aria-label="Vagas por partido ou federação: ${h(desc)}">${dots.join("")}</svg>`;
 }
 
-export function renderCamara({ nac, cor }) {
+export function renderCamara({ nac, cor }: { nac: BrasilSnapshot | null | undefined; cor: Cores }): string {
   const linhas = linhasUf(nac?.ufs ?? {}, "Deputado Federal");
   if (!linhas.length || linhas.every((l) => !l.dados && l.status === "carregando")) return `<p class="muted">Consultando os 27 estados…</p>`;
   const v = vagasNacionais(linhas);

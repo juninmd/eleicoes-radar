@@ -3,15 +3,19 @@ import { readFileSync } from "node:fs";
 import { createCores } from "./apuracao-nacional.js";
 import { PALETA } from "./apuracao-mapa.js";
 import { renderNacional } from "./apuracao-nacional-view.js";
+import type { NacionalArgs } from "./apuracao-nacional-view.js";
+import type { Apuracao, Candidato } from "./apuracao-tse.js";
+import type { BrasilSnapshot, UfEstado } from "./apuracao-uf.js";
+import type { UfMap } from "../src/radar/geo/uf-map";
 
-const mapa = JSON.parse(readFileSync("web/mapa-uf.json", "utf8"));
-const c = (id, nome, partido, votos, pct) => ({ id, nome, partido, num: `${id}0`, votos, pct, destaque: false, situacao: "" });
-const ok = (over = {}) => ({
+const mapa: UfMap = JSON.parse(readFileSync("web/mapa-uf.json", "utf8"));
+const c = (id: string, nome: string, partido: string, votos: number, pct: number) => ({ id, nome, partido, num: `${id}0`, votos, pct, destaque: false, situacao: "" }) as Candidato;
+const ok = (over: Partial<Apuracao> = {}) => ({
   status: "ok", erro: null, buscadoEm: null,
   dados: { fase: "parcial", secoes: { total: 100, totalizadas: 40 }, cargo: { vagas: 1 }, versao: { data: "04/10/2026", hora: "19:41:07" }, candidatos: [c("1", "ANA SOUZA", "AAA", 600, 0.6), c("2", "BETO LIMA", "BBB", 400, 0.4)], ...over },
-});
-const nac = (ufs) => ({ cargo: "Governador", ciclo: 1, buscadoEm: new Date("2026-10-04T20:00:00Z"), ufs });
-const base = { cargo: "Governador", corridas: [], modo: "lider", sel: null, cor: createCores(PALETA), mapa };
+}) as UfEstado;
+const nac = (ufs: Record<string, UfEstado>): BrasilSnapshot => ({ cargo: "Governador", ciclo: 1, buscadoEm: new Date("2026-10-04T20:00:00Z"), ufs });
+const base: Omit<NacionalArgs, "nac"> = { cargo: "Governador", corridas: [], modo: "lider", sel: null, cor: createCores(PALETA), mapa };
 
 describe("renderNacional", () => {
   test("before the first answer it says it is loading, and still draws the empty map", () => {
@@ -25,8 +29,8 @@ describe("renderNacional", () => {
       SP: ok({ secoes: { total: 10, totalizadas: 10 }, fase: "concluida" }),
       RJ: ok(),
       AC: ok({ fase: "aguardando", secoes: { total: 10, totalizadas: 0 } }),
-      BA: { status: "erro", erro: "sem conexão com o TSE", dados: null },
-      AL: { status: "carregando", dados: null, erro: null },
+      BA: { status: "erro", erro: "sem conexão com o TSE", dados: null } as UfEstado,
+      AL: { status: "carregando", dados: null, erro: null } as UfEstado,
     };
     const html = renderNacional({ ...base, nac: nac(ufs) });
     expect(html).toContain("1 concluído");
@@ -97,7 +101,7 @@ describe("renderNacional", () => {
   test("the swatch of a state that disagrees with the polls uses the hatched class: a CSS image cannot use an SVG pattern", () => {
     const corridas = [{ cargo: "Governador", uf: "AL", vagas: 1, lideres: [{ sq: "9", nome: "OUTRA PESSOA", partido: "ZZZ", media: 0.5, lo: 0.4, hi: 0.6 }] }];
     const html = renderNacional({ ...base, modo: "pesquisa", corridas, nac: nac({ AL: ok() }) });
-    const chip = html.match(/<button[^>]*class="chip"[^>]*data-uf="AL"[^]*?<\/button>/)[0];
+    const chip = html.match(/<button[^>]*class="chip"[^>]*data-uf="AL"[^]*?<\/button>/)![0];
     expect(chip).toContain('class="key dif"');
     expect(chip).not.toContain("url(#");
   });

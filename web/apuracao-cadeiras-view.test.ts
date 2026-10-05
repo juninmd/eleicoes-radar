@@ -1,8 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { renderCadeiras } from "./apuracao-cadeiras-view.js";
+import type { DadosCadeiras } from "./apuracao-cadeiras.js";
+import type { Candidato } from "./apuracao-tse.js";
 
-const c = (id, lista, votos, extra = {}) => ({ id, nome: `${id.toUpperCase()} SILVA`, partido: "PXX", num: "1234", votos, pct: 0, destaque: false, situacao: "", lista, ...extra });
-const dados = (over = {}) => ({
+const c = (id: string, lista: string, votos: number, extra: Partial<Candidato> = {}): Candidato => ({ id, nome: `${id.toUpperCase()} SILVA`, partido: "PXX", num: "1234", votos, pct: 0, destaque: false, situacao: "", lista, ...extra });
+const dados = (over: Partial<DadosCadeiras> = {}): DadosCadeiras => ({
   secoes: { total: 100, totalizadas: 90 },
   partidos: [{ nome: "L1", vagas: 2 }, { nome: "L2", vagas: 1 }],
   candidatos: [c("a", "L1", 1000), c("b", "L1", 900), c("c", "L1", 850), c("d", "L1", 10), c("e", "L2", 500), c("f", "L2", 100)],

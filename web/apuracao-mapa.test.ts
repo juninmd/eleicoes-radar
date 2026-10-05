@@ -2,22 +2,27 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { createCores, linhasUf } from "./apuracao-nacional.js";
 import { descreve, legenda, mapaSvg, modosDe, NOMES, PALETA, RESTO } from "./apuracao-mapa.js";
+import type { MapaArgs } from "./apuracao-mapa.js";
+import type { Comparacao, Corrida } from "./apuracao-nacional.js";
+import type { Candidato } from "./apuracao-tse.js";
+import type { UfEstado } from "./apuracao-uf.js";
+import type { UfMap } from "../src/radar/geo/uf-map";
 
-const mapa = JSON.parse(readFileSync("web/mapa-uf.json", "utf8"));
-const c = (id, nome, partido, votos, pct) => ({ id, nome, partido, num: id, votos, pct, destaque: false, situacao: "" });
-const uf = ({ total = 100, feitas = 40, vagas = 1, cands = [] } = {}) => ({
+const mapa: UfMap = JSON.parse(readFileSync("web/mapa-uf.json", "utf8"));
+const c = (id: string, nome: string, partido: string, votos: number, pct: number) => ({ id, nome, partido, num: id, votos, pct, destaque: false, situacao: "" }) as Candidato;
+const uf = ({ total = 100, feitas = 40, vagas = 1, cands = [] }: { total?: number; feitas?: number; vagas?: number; cands?: Candidato[] } = {}) => ({
   status: "ok", erro: null,
   dados: { fase: feitas === 0 ? "aguardando" : feitas >= total ? "concluida" : "parcial", secoes: { total, totalizadas: feitas }, cargo: { vagas }, candidatos: cands },
-});
+}) as UfEstado;
 const ufs = {
   SP: uf({ cands: [c("1", "ANA SOUZA", "AAA", 600, 0.6), c("2", "BETO LIMA", "BBB", 400, 0.4)] }),
   RJ: uf({ feitas: 100, cands: [c("2", "BETO LIMA", "BBB", 600, 0.6), c("1", "ANA SOUZA", "AAA", 400, 0.4)] }),
   AC: uf({ feitas: 0, cands: [c("1", "ANA SOUZA", "AAA", 0, 0)] }),
-  AL: { status: "carregando", dados: null, erro: null },
+  AL: { status: "carregando", dados: null, erro: null } as UfEstado,
 };
 const linhas = linhasUf(ufs, "Governador");
-const base = { mapa, linhas, modo: "lider", cor: createCores(PALETA), sel: null, corridas: [], cargo: "Governador" };
-const paths = (svg) => [...svg.matchAll(/<path[^>]*data-uf="([A-Z]{2})"[^>]*>/g)].map((m) => ({ uf: m[1], tag: m[0] }));
+const base: MapaArgs = { mapa, linhas, modo: "lider", cor: createCores(PALETA), sel: null, corridas: [], cargo: "Governador" };
+const paths = (svg: string) => [...svg.matchAll(/<path[^>]*data-uf="([A-Z]{2})"[^>]*>/g)].map((m) => ({ uf: m[1], tag: m[0] }));
 
 describe("mapaSvg", () => {
   test("draws one focusable shape per state of the map file, even before any data arrives", () => {
@@ -33,13 +38,13 @@ describe("mapaSvg", () => {
     expect(svg).toContain("<title>São Paulo: Ana Souza lidera");
     expect(svg).toContain('aria-label="Acre: apuração ainda não começou"');
     expect(svg).toContain('aria-label="Alagoas: consultando o TSE"');
-    const falha = mapaSvg({ ...base, linhas: linhasUf({ BA: { status: "erro", dados: null, erro: "sem conexão com o TSE" } }, "Governador") });
+    const falha = mapaSvg({ ...base, linhas: linhasUf({ BA: { status: "erro", dados: null, erro: "sem conexão com o TSE" } as UfEstado }, "Governador") });
     expect(falha).toContain('aria-label="Bahia: não foi possível consultar o TSE agora"');
   });
 
   test("colours by the leader's party: same party same colour, other party another, no data neutral", () => {
     const svg = mapaSvg(base);
-    const fill = (u) => paths(svg).find((p) => p.uf === u).tag.match(/ fill="([^"]+)"/)[1];
+    const fill = (u: string) => paths(svg).find((p) => p.uf === u)!.tag.match(/ fill="([^"]+)"/)![1];
     expect(fill("SP")).not.toBe(fill("RJ"));
     expect(fill("AC")).toBe(fill("AL")); // neither has a leader
     expect(fill("SP")).toBe(PALETA[0]);
@@ -48,7 +53,7 @@ describe("mapaSvg", () => {
   test("a stronger leader gets a stronger tone of the same colour", () => {
     const fortes = linhasUf({ SP: uf({ cands: [c("1", "A", "AAA", 80, 0.8), c("2", "B", "BBB", 20, 0.2)] }), RJ: uf({ cands: [c("1", "A", "AAA", 30, 0.3), c("2", "B", "BBB", 70, 0.7)].reverse() }) }, "Governador");
     const svg = mapaSvg({ ...base, linhas: fortes });
-    const tom = (u) => Number(paths(svg).find((p) => p.uf === u).tag.match(/color-mix\(in srgb, [^ ]+ (\d+)%/)[1]);
+    const tom = (u: string) => Number(paths(svg).find((p) => p.uf === u)!.tag.match(/color-mix\(in srgb, [^ ]+ (\d+)%/)![1]);
     expect(tom("SP")).toBeGreaterThan(tom("RJ"));
   });
 
@@ -56,7 +61,7 @@ describe("mapaSvg", () => {
     const svg = mapaSvg({ ...base, sel: "SP" });
     const ps = paths(svg);
     expect(ps.map((p) => p.uf)).toEqual(paths(mapaSvg(base)).map((p) => p.uf));
-    expect(ps.find((p) => p.uf === "SP").tag).toContain('aria-pressed="true"');
+    expect(ps.find((p) => p.uf === "SP")!.tag).toContain('aria-pressed="true"');
     expect(ps.filter((p) => p.tag.includes('aria-pressed="true"'))).toHaveLength(1);
   });
 
@@ -82,8 +87,8 @@ describe("mapaSvg", () => {
       { cargo: "Governador", uf: "RJ", vagas: 1, lideres: [{ sq: "1", nome: "Ana", partido: "AAA", media: 0.5, lo: 0.4, hi: 0.6 }] },
     ];
     const svg = mapaSvg({ ...base, modo: "pesquisa", corridas });
-    const sp = paths(svg).find((p) => p.uf === "SP").tag; // count leader = poll leader
-    const rj = paths(svg).find((p) => p.uf === "RJ").tag; // count leader differs
+    const sp = paths(svg).find((p) => p.uf === "SP")!.tag; // count leader = poll leader
+    const rj = paths(svg).find((p) => p.uf === "RJ")!.tag; // count leader differs
     expect(rj).toContain("url(#apu-hachura)");
     expect(sp).not.toContain("url(#apu-hachura)");
     expect(svg).toContain('<pattern id="apu-hachura"');
@@ -93,7 +98,7 @@ describe("mapaSvg", () => {
 
   test("margin and progress modes shade by the number they name", () => {
     const larga = linhasUf({ SP: uf({ cands: [c("1", "A", "AAA", 90, 0.9), c("2", "B", "BBB", 10, 0.1)] }), RJ: uf({ feitas: 100, cands: [c("1", "A", "AAA", 55, 0.55), c("2", "B", "BBB", 45, 0.45)] }) }, "Governador");
-    const tom = (svg, u) => Number(paths(svg).find((p) => p.uf === u).tag.match(/color-mix\(in srgb, [^ ]+ (\d+)%/)[1]);
+    const tom = (svg: string, u: string) => Number(paths(svg).find((p) => p.uf === u)!.tag.match(/color-mix\(in srgb, [^ ]+ (\d+)%/)![1]);
     const m = mapaSvg({ ...base, linhas: larga, modo: "margem" });
     const a = mapaSvg({ ...base, linhas: larga, modo: "avanco" });
     expect(tom(m, "SP")).toBeGreaterThan(tom(m, "RJ")); // 80 p.p. against 10 p.p.
@@ -109,13 +114,13 @@ describe("mapaSvg", () => {
 });
 
 describe("modosDe", () => {
-  const com = [{ cargo: "Governador", uf: "SP", lideres: [{ sq: "1" }] }];
+  const com = [{ cargo: "Governador", uf: "SP", lideres: [{ sq: "1" }] }] as Corrida[];
   test("the poll mode exists only for state races whose polls carry a leader", () => {
     expect(modosDe("Governador", com).map((m) => m.id)).toEqual(["lider", "margem", "avanco", "pesquisa"]);
     expect(modosDe("Senador", com).map((m) => m.id)).not.toContain("pesquisa"); // these polls are for another office
-    expect(modosDe("Senador", [{ cargo: "Senador", uf: "SP", lideres: [{ sq: "1" }] }]).map((m) => m.id)).toContain("pesquisa");
+    expect(modosDe("Senador", [{ cargo: "Senador", uf: "SP", lideres: [{ sq: "1" }] }] as Corrida[]).map((m) => m.id)).toContain("pesquisa");
     expect(modosDe("Governador", [{ cargo: "Governador", uf: "SP" }]).map((m) => m.id)).not.toContain("pesquisa"); // older build
-    expect(modosDe("Presidente", [{ cargo: "Presidente", uf: "BR", lideres: [{ sq: "1" }] }]).map((m) => m.id)).not.toContain("pesquisa"); // polls are national only
+    expect(modosDe("Presidente", [{ cargo: "Presidente", uf: "BR", lideres: [{ sq: "1" }] }] as Corrida[]).map((m) => m.id)).not.toContain("pesquisa"); // polls are national only
   });
 });
 
@@ -145,7 +150,7 @@ describe("legenda", () => {
 
 describe("descreve", () => {
   const vazio = linhasUf({ SP: uf({ cands: [c("1", "ANA", "AAA", 0, 0)] }) }, "Governador")[0];
-  const comp = (situacao, n) => ({ situacao, n, pesquisa: { nome: "ANA SOUZA", media: 0.5 } });
+  const comp = (situacao: Comparacao["situacao"], n: number) => ({ situacao, n, pesquisa: { nome: "ANA SOUZA", media: 0.5 } }) as unknown as Comparacao;
 
   test("a count that is open but has no valid vote in the file says so, and does not break the map", () => {
     expect(vazio).toMatchObject({ fase: "parcial", lider: null });

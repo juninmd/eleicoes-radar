@@ -3,13 +3,15 @@ import { h, int, pct, titleName } from "./format.js";
 import { contraPesquisa, rotulosComp } from "./apuracao-nacional.js";
 import { NOMES } from "./apuracao-mapa.js";
 import { pp } from "./prev.js";
+import type { Comparacao, Cores, Corrida, Corridas, LinhaUf } from "./apuracao-nacional.js";
+import type { Cargo, Fase } from "./apuracao-tse.js";
 
-const FASES = { aguardando: "Aguardando início", parcial: "Apuração em andamento", concluida: "Apuração concluída" };
-const TOM = { aguardando: "baixa", parcial: "aberta", concluida: "alta" };
+const FASES: Record<Fase, string> = { aguardando: "Aguardando início", parcial: "Apuração em andamento", concluida: "Apuração concluída" };
+const TOM: Record<Fase, string> = { aguardando: "baixa", parcial: "aberta", concluida: "alta" };
 
-const chipMat = (n) => `<span class="rot alta mat">Matematicamente ${n > 1 ? "eleitos" : "eleito(a)"}</span>`;
+const chipMat = (n: number) => `<span class="rot alta mat">Matematicamente ${n > 1 ? "eleitos" : "eleito(a)"}</span>`;
 
-const pesquisaTxt = (comp) => {
+const pesquisaTxt = (comp: Comparacao | null) => {
   if (!comp?.pesquisa) return "";
   const [p, ...outros] = comp.lista?.length ? comp.lista : [comp.pesquisa];
   const quem = `<b>${h(titleName(p.nome))}</b> (${h(p.partido)}) com ${pct(p.media, 1)}, faixa de ${pct(p.lo, 0)}–${pct(p.hi, 0)}`;
@@ -19,9 +21,9 @@ const pesquisaTxt = (comp) => {
   return `<p class="exp-read">Pesquisas: ${[quem, ...mais].join("; ")}${cmp ? `. ${cmp}` : ""}.</p>`;
 };
 
-const decididoTxt = (l) => (l.dec.size ? `<p class="exp-read">Matematicamente eleito é uma conta do Radar sobre os números do TSE: mesmo que todos os eleitores das seções que faltam votassem no adversário, o resultado não mudaria. Não é a marcação do TSE nem a diplomação.</p>` : "");
+const decididoTxt = (l: LinhaUf) => (l.dec.size ? `<p class="exp-read">Matematicamente eleito é uma conta do Radar sobre os números do TSE: mesmo que todos os eleitores das seções que faltam votassem no adversário, o resultado não mudaria. Não é a marcação do TSE nem a diplomação.</p>` : "");
 
-function candidatos(l, cor) {
+function candidatos(l: LinhaUf, cor: Cores) {
   const max = l.top[0]?.pct || 1;
   return `<ol class="apu-top">${l.top.map((c) => `<li${l.dec.has(c.id) ? ' class="eleito"' : ""}><i class="key" style="background:${cor(c.partido)}" aria-hidden="true"></i>
     <span>${h(titleName(c.nome))} <small>${h(c.partido)} · ${h(c.num)}</small>${l.dec.has(c.id) ? chipMat(1) : ""}</span>
@@ -29,10 +31,10 @@ function candidatos(l, cor) {
     <b>${pct(c.pct, 2)}</b><small>${int(c.votos)}</small></li>`).join("")}</ol>`;
 }
 
-export function painelUf(l, { cor, cargo, corrida }) {
+export function painelUf(l: LinhaUf | null, { cor, cargo, corrida }: { cor: Cores; cargo: Cargo; corrida?: Corrida }): string {
   if (!l) return `<section class="apu-uf"><p class="muted">Toque em um estado, ou em uma linha da tabela, para ver os candidatos dele.</p></section>`;
   const nome = NOMES[l.uf] ?? l.uf;
-  const cab = (fase) => `<h3>${h(nome)}${fase ? ` <span class="rot ${TOM[fase]}">${FASES[fase]}</span>` : ""}</h3>`;
+  const cab = (fase: Fase | null) => `<h3>${h(nome)}${fase ? ` <span class="rot ${TOM[fase]}">${FASES[fase]}</span>` : ""}</h3>`;
   if (!l.dados) {
     const msg = l.status === "erro" ? `Não foi possível consultar o TSE agora: ${h(l.erro)}.` : l.status === "ausente" ? "O TSE ainda não publicou o arquivo de resultados deste estado." : "Consultando o TSE…";
     return `<section class="apu-uf">${cab(null)}<p class="muted">${msg}</p></section>`;
@@ -50,16 +52,16 @@ export function painelUf(l, { cor, cargo, corrida }) {
 }
 
 // Name order, with the exterior last: it is not a state.
-const porNome = (a, b) => (a.uf === "ZZ") - (b.uf === "ZZ") || (NOMES[a.uf] ?? a.uf).localeCompare(NOMES[b.uf] ?? b.uf, "pt-BR");
+const porNome = (a: LinhaUf, b: LinhaUf) => ((a.uf === "ZZ") as unknown as number) - ((b.uf === "ZZ") as unknown as number) || (NOMES[a.uf] ?? a.uf).localeCompare(NOMES[b.uf] ?? b.uf, "pt-BR");
 
-export function tabelaUf(linhas, { cargo, corridas, sel }) {
-  const corridaDe = (uf) => corridas?.find((x) => x.cargo === cargo && x.uf === uf);
+export function tabelaUf(linhas: LinhaUf[], { cargo, corridas, sel }: { cargo: Cargo; corridas: Corridas; sel: string | null }): string {
+  const corridaDe = (uf: string) => corridas?.find((x) => x.cargo === cargo && x.uf === uf);
   const temPesquisa = cargo !== "Presidente" && (corridas ?? []).some((x) => x.cargo === cargo && x.lideres?.length);
   const ultima = linhas.some((l) => l.vagas > 1); // with several seats the margin is measured at the last one
   const linhasHtml = [...linhas].sort(porNome).map((l) => {
     const comp = temPesquisa ? contraPesquisa(l, corridaDe(l.uf)) : null;
     const lider = l.lider ? `${h(titleName(l.lider.nome))} <small>${h(l.lider.partido)} · ${pct(l.lider.pct, 1)}</small>${l.margem === null ? "" : `<small class="mg-inline">margem${ultima ? " na última vaga" : ""} ${pp(l.margem)} p.p.</small>`}${l.defasada ? ` <small class="vel">desatualizado</small>` : ""}${l.dec.size ? chipMat(l.dec.size) : ""}` : "–";
-    const r = rotulosComp(comp?.n);
+    const r = rotulosComp(comp?.n as number);
     const pesq = !temPesquisa ? "" : comp?.pesquisa
       ? `<td>${h(titleName(comp.pesquisa.nome))} <small>${pct(comp.pesquisa.media, 1)}${comp.situacao === "igual" ? ` · ${r.igual}${r.onde}` : comp.situacao === "diverge" ? ` · ${r.dif}${r.onde}` : ""}</small></td>`
       : `<td>–</td>`;

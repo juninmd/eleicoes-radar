@@ -1,22 +1,27 @@
 import { describe, expect, test } from "bun:test";
 import { contraPesquisa, createCores, linhasUf, rotulosComp, totalNacional } from "./apuracao-nacional.js";
+import type { Corrida, LinhaUf } from "./apuracao-nacional.js";
+import type { Apuracao, Candidato } from "./apuracao-tse.js";
+import type { UfEstado } from "./apuracao-uf.js";
+
+type UfOk = UfEstado & { dados: Apuracao };
 
 // A parsed state file (the shape parseApuracao returns), reduced to what the aggregation reads.
-const c = (id, nome, partido, votos, pct) => ({ id, nome, partido, num: id, votos, pct, destaque: false, situacao: "" });
-const uf = ({ total = 100, feitas = 40, vagas = 1, cands = [] } = {}) => ({
+const c = (id: string, nome: string, partido: string, votos: number, pct: number) => ({ id, nome, partido, num: id, votos, pct, destaque: false, situacao: "" }) as Candidato;
+const uf = ({ total = 100, feitas = 40, vagas = 1, cands = [] }: { total?: number; feitas?: number; vagas?: number; cands?: Candidato[] } = {}) => ({
   status: "ok", erro: null,
   dados: { fase: feitas === 0 ? "aguardando" : feitas >= total ? "concluida" : "parcial", secoes: { total, totalizadas: feitas }, cargo: { vagas }, candidatos: cands },
-});
-const snap = (o) => o;
+}) as UfOk;
+const snap = (o: Record<string, UfEstado>) => o;
 
 describe("linhasUf", () => {
   const ufs = {
     SP: uf({ cands: [c("1", "ANA", "AAA", 600, 0.6), c("2", "BETO", "BBB", 300, 0.3), c("3", "CRIS", "CCC", 100, 0.1)] }),
     AC: uf({ feitas: 0, cands: [c("1", "ANA", "AAA", 0, 0), c("2", "BETO", "BBB", 0, 0)] }),
-    AL: { status: "carregando", dados: null, erro: null },
-    BA: { status: "erro", dados: null, erro: "sem conexão com o TSE" },
+    AL: { status: "carregando", dados: null, erro: null } as UfEstado,
+    BA: { status: "erro", dados: null, erro: "sem conexão com o TSE" } as UfEstado,
   };
-  const rows = Object.fromEntries(linhasUf(snap(ufs), "Governador").map((r) => [r.uf, r]));
+  const rows = Object.fromEntries(linhasUf(snap(ufs), "Governador").map((r): [string, LinhaUf] => [r.uf, r]));
 
   test("who leads, the runner-up and the margin, from the votes the TSE counted", () => {
     expect(rows.SP.lider).toMatchObject({ id: "1", nome: "ANA", partido: "AAA", pct: 0.6 });
@@ -50,7 +55,7 @@ describe("linhasUf", () => {
 
   test("a race with a single candidate has a leader and no margin", () => {
     const so = linhasUf({ SP: uf({ cands: [c("1", "A", "X", 5, 1)] }) }, "Governador")[0];
-    expect(so.lider.id).toBe("1");
+    expect(so.lider!.id).toBe("1");
     expect(so.margem).toBeNull();
   });
 });
@@ -60,7 +65,7 @@ describe("totalNacional", () => {
     SP: uf({ total: 100, feitas: 100, cands: [c("1", "ANA", "AAA", 600, 0.6), c("2", "BETO", "BBB", 400, 0.4)] }),
     RJ: uf({ total: 50, feitas: 25, cands: [c("1", "ANA", "AAA", 100, 0.25), c("2", "BETO", "BBB", 300, 0.75)] }),
     ZZ: uf({ total: 5, feitas: 5, cands: [c("1", "ANA", "AAA", 50, 0.5), c("2", "BETO", "BBB", 50, 0.5)] }),
-    AC: { status: "carregando", dados: null, erro: null },
+    AC: { status: "carregando", dados: null, erro: null } as UfEstado,
   };
   const t = totalNacional(linhasUf(ufs, "Presidente"));
 
@@ -114,8 +119,8 @@ describe("createCores", () => {
 });
 
 describe("contraPesquisa", () => {
-  const corrida = (ids, vagas = 1) => ({ vagas, lideres: ids.map((sq, i) => ({ sq, nome: `N${sq}`, partido: `P${sq}`, media: 0.5 - i * 0.1, lo: 0.4 - i * 0.1, hi: 0.6 - i * 0.1 })) });
-  const linha = (ids, vagas = 1, fase = "parcial") => ({ fase, vagas, lider: ids[0] ? { id: ids[0] } : null, top: ids.map((id) => ({ id })) });
+  const corrida = (ids: string[], vagas = 1) => ({ vagas, lideres: ids.map((sq, i) => ({ sq, nome: `N${sq}`, partido: `P${sq}`, media: 0.5 - i * 0.1, lo: 0.4 - i * 0.1, hi: 0.6 - i * 0.1 })) }) as unknown as Corrida;
+  const linha = (ids: string[], vagas = 1, fase = "parcial") => ({ fase, vagas, lider: ids[0] ? { id: ids[0] } : null, top: ids.map((id) => ({ id })) }) as unknown as LinhaUf;
 
   test("same leader in the count and in the polls", () => {
     expect(contraPesquisa(linha(["1", "2"]), corrida(["1", "2"]))).toMatchObject({ situacao: "igual", pesquisa: { sq: "1" } });
@@ -132,7 +137,7 @@ describe("contraPesquisa", () => {
 
   test("no poll data or no count yet is its own state", () => {
     expect(contraPesquisa(linha(["1"]), undefined).situacao).toBe("sem-pesquisa");
-    expect(contraPesquisa(linha(["1"]), { vagas: 1 }).situacao).toBe("sem-pesquisa"); // build older than the lideres field
+    expect(contraPesquisa(linha(["1"]), { vagas: 1 } as unknown as Corrida).situacao).toBe("sem-pesquisa"); // build older than the lideres field
     expect(contraPesquisa(linha([]), corrida(["1"])).situacao).toBe("sem-apuracao");
   });
 
@@ -162,8 +167,8 @@ describe("linhasUf, stale numbers", () => {
     SP: { ...uf({ cands }), status: "erro", erro: "sem conexão com o TSE" },
     RJ: { ...uf({ cands }), status: "ausente" },
     MG: uf({ cands }),
-    BA: { status: "erro", dados: null, erro: "x" },
-  }, "Governador").map((r) => [r.uf, r]));
+    BA: { status: "erro", dados: null, erro: "x" } as UfEstado,
+  }, "Governador").map((r): [string, LinhaUf] => [r.uf, r]));
 
   test("a state that failed or went missing after answering keeps its numbers but is flagged as not current", () => {
     expect(rows.SP).toMatchObject({ defasada: true, lider: { id: "1" } });
@@ -178,10 +183,10 @@ describe("linhasUf, stale numbers", () => {
 
 describe("linhasUf, races no split of the remaining votes can change", () => {
   // 900 of 1.000 electors counted and 800 valid votes: at most 100 votes can still arrive.
-  const quase = (cands, vagas = 1) => {
+  const quase = (cands: Candidato[], vagas = 1) => {
     const u = uf({ vagas, cands });
-    u.dados.eleitorado = { apto: 1000, apurado: 900 };
-    u.dados.votos = { validos: 800 };
+    u.dados.eleitorado = { apto: 1000, apurado: 900 } as Apuracao["eleitorado"];
+    u.dados.votos = { validos: 800 } as Apuracao["votos"];
     return u;
   };
   const dois = [c("1", "ANA", "AAA", 600, 0.75), c("2", "BETO", "BBB", 200, 0.25)];
@@ -201,8 +206,8 @@ describe("linhasUf, races no split of the remaining votes can change", () => {
 
   test("no numbers, a count far from done, and proportional offices: nobody", () => {
     const longe = quase(dois);
-    longe.dados.eleitorado = { apto: 5000, apurado: 900 };
-    expect(linhasUf({ AL: { status: "carregando", dados: null, erro: null }, SP: longe }, "Governador").map((r) => r.dec.size)).toEqual([0, 0]);
+    longe.dados.eleitorado = { apto: 5000, apurado: 900 } as Apuracao["eleitorado"];
+    expect(linhasUf({ AL: { status: "carregando", dados: null, erro: null } as UfEstado, SP: longe }, "Governador").map((r) => r.dec.size)).toEqual([0, 0]);
     expect(linhasUf({ SP: quase(dois) }, "Deputado Federal")[0].dec.size).toBe(0);
   });
 

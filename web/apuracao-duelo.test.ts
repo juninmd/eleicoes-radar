@@ -1,10 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { extenso, renderDuelo } from "./apuracao-duelo.js";
 import { PALETA } from "./apuracao-mapa.js";
+import type { Apuracao, Cargo, Fase } from "./apuracao-tse.js";
 
-const cor = (partido) => (partido === "AAA" ? "#111111" : partido === "BBB" ? "#222222" : "#333333");
+const cor = (partido: string) => (partido === "AAA" ? "#111111" : partido === "BBB" ? "#222222" : "#333333");
 // votos sum to the valid votes; pct is the fraction of them, like the parser hands over.
-const arq = ({ votos, apto = 1000, apurado = 800, fase = "parcial", vagas = 1, situacao = [], nomes = [] } = {}) => {
+interface ArqOpts { votos: number[]; apto?: number; apurado?: number; fase?: Fase; vagas?: number; situacao?: string[]; nomes?: string[] }
+const arq = ({ votos, apto = 1000, apurado = 800, fase = "parcial", vagas = 1, situacao = [], nomes = [] }: ArqOpts = {} as ArqOpts): Apuracao => {
   const total = votos.reduce((a, v) => a + v, 0);
   return {
     fase,
@@ -12,9 +14,9 @@ const arq = ({ votos, apto = 1000, apurado = 800, fase = "parcial", vagas = 1, s
     eleitorado: { apto, apurado },
     votos: { validos: total },
     candidatos: votos.map((v, i) => ({ id: `c${i + 1}`, nome: nomes[i] ?? `CAND ${i + 1}`, partido: ["AAA", "BBB", "CCC", "DDD"][i] ?? "EEE", votos: v, pct: v / total, situacao: situacao[i] ?? "" })),
-  };
+  } as unknown as Apuracao;
 };
-const html = (d, cargo = "Presidente", uf = "BR") => renderDuelo({ d, cargo, uf, cor });
+const html = (d: Apuracao | null, cargo = "Presidente", uf = "BR") => renderDuelo({ d, cargo: cargo as Cargo, uf, cor });
 
 describe("votes in a sentence", () => {
   test("millions, with the singular below two, thousands, and small numbers as they are", () => {
@@ -158,7 +160,7 @@ describe("where it shows nothing", () => {
   });
   test("no file, before the count, one candidate, or no votes yet", () => {
     expect(html(null)).toBe("");
-    expect(html({ ...d, fase: "aguardando" })).toBe("");
+    expect(html({ ...d, fase: "aguardando" as const })).toBe("");
     expect(html(arq({ votos: [400] }))).toBe("");
     expect(html(arq({ votos: [0, 0, 0], apurado: 0 }))).toBe("");
   });

@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { bubbles, heat, hbars, legendSources, lorenz, SOURCES, stackRow } from "./charts.js";
 import { sankey } from "./sankey.js";
 
-const nums = (s) => [...s.matchAll(/-?\d+(?:\.\d+)?/g)].map((m) => Number(m[0]));
+const nums = (s: string) => [...s.matchAll(/-?\d+(?:\.\d+)?/g)].map((m) => Number(m[0]));
 
 test("bars are proportional, and a zero value never draws a sliver that reads as data", () => {
   const html = hbars([{ label: "A", value: 50, text: "50" }, { label: "B", value: 25, text: "25" }, { label: "C", value: 0, text: "0" }]);
@@ -79,7 +79,7 @@ test("bubbles on the first and last decade stay whole inside the frame instead o
 
 test("concentration curve: eleven points from the origin, none when there is nothing to show", () => {
   const svg = lorenz([0.5, 0.7, 0.8, 0.85, 0.9, 0.93, 0.96, 0.98, 0.99, 1]);
-  expect(nums(svg.match(/<polyline class="curve" points="([^"]+)"/)[1])).toHaveLength(22);
+  expect(nums(svg.match(/<polyline class="curve" points="([^"]+)"/)![1])).toHaveLength(22);
   expect(svg).toContain("10% que mais arrecadam ficam com 50%");
   expect(lorenz([])).toBe("");
   expect(lorenz(undefined)).toBe("");

@@ -1,8 +1,9 @@
 import { expect, test } from "bun:test";
 import { fold, matches, SORTS, semEvidencia } from "./lista.js";
+import type { Row } from "./lista.js";
 
 const cand = (o = {}) => ({ nome: "JOSÉ DA SILVA", urna: "ZÉ DO POVO", num: "1234", partido: "PC do B", fin: { total: 0 }, ...o });
-const row = (nota, cobertura, total = 0) => ({ s: { nota, cobertura }, c: { num: "1", fin: { total } } });
+const row = (nota: number | null, cobertura: number, total = 0) => ({ s: { nota, cobertura }, c: { num: "1", fin: { total } } }) as unknown as Row;
 
 test("search ignores accents and case in both directions", () => {
   expect(matches(cand(), "jose")).toBe(true);

@@ -3,39 +3,48 @@
 // the other politicians they served. Only companies, parties and candidates appear.
 import { displayName, h, int, moneyShort, titleName } from "./format.js";
 import { egoOf, layout, ringLayout } from "./rede-layout.js";
+import type { Link, Placed } from "./rede-layout.js";
+import type { Candidatura } from "./types.js";
+import type { Rede, RedeFornecedor } from "../src/radar/suppliers/graph";
+
+type Kind = "party" | "sup" | "cand" | "pol";
+type Supplier = Pick<RedeFornecedor, "nome" | "cnpj" | "situacao" | "endereco" | "politicos" | "total" | "flags">;
+interface RNode { id: string; kind: Kind; label: string; total: number; f?: Supplier; r?: number; party?: string; sub?: string }
+interface RLink extends Link { w: number }
+interface Graph { nodes: RNode[]; links: RLink[]; ring?: boolean; all?: RLink[] }
 
 const W = 900, H = 620;
-const KIND = { party: "partido", sup: "fornecedor", cand: "candidato", pol: "político" };
-const memo = new Map();
+const KIND: Record<Kind, string> = { party: "partido", sup: "fornecedor", cand: "candidato", pol: "político" };
+const memo = new Map<string, { g: Graph; pos: (RNode & Placed)[] }>();
 
 // Log scale between the smallest and largest supplier, so one R$ 200 mi supplier neither
 // shrinks the rest to dots nor makes every mid-sized one look alike.
-const sizeOf = (total, max, min = 1) => {
+const sizeOf = (total: number, max: number, min = 1) => {
   const lo = Math.log10(1 + Math.max(0, min)), hi = Math.log10(1 + Math.max(1, max));
   const t = hi > lo ? (Math.log10(1 + Math.max(0, total)) - lo) / (hi - lo) : 0.5;
   return 3.5 + 11 * Math.pow(Math.max(0, Math.min(1, t)), 1.6);
 };
 
-function overview(rede) {
+function overview(rede: Rede): Graph {
   const max = Math.max(1, ...rede.fornecedores.map((f) => f.total));
   const min = Math.min(max, ...rede.fornecedores.map((f) => f.total));
-  const nodes = [
-    ...rede.partidos.map((p) => ({ id: `p:${p.id}`, kind: "party", label: p.id, total: p.total })),
-    ...rede.fornecedores.map((f) => ({ id: `s:${f.id}`, kind: "sup", label: titleName(f.nome), total: f.total, f, r: sizeOf(f.total, max, min) })),
+  const nodes: RNode[] = [
+    ...rede.partidos.map((p): RNode => ({ id: `p:${p.id}`, kind: "party", label: p.id, total: p.total })),
+    ...rede.fornecedores.map((f): RNode => ({ id: `s:${f.id}`, kind: "sup", label: titleName(f.nome), total: f.total, f, r: sizeOf(f.total, max, min) })),
   ];
-  const all = rede.arestas.map((e) => ({ a: `p:${e.p}`, b: `s:${e.f}`, w: Math.log10(e.valor + 10) / 4, valor: e.valor }));
+  const all: (RLink & { valor: number })[] = rede.arestas.map((e) => ({ a: `p:${e.p}`, b: `s:${e.f}`, w: Math.log10(e.valor + 10) / 4, valor: e.valor }));
   // Drawing every edge is a hairball: keep each supplier's three biggest payers.
-  const bySup = new Map();
-  for (const l of all) (bySup.get(l.b) ?? bySup.set(l.b, []).get(l.b)).push(l);
+  const bySup = new Map<string, typeof all>();
+  for (const l of all) (bySup.get(l.b) ?? bySup.set(l.b, []).get(l.b)!).push(l);
   const links = [...bySup.values()].flatMap((ls) => ls.sort((x, y) => y.valor - x.valor).slice(0, 3));
   return { nodes, links, ring: true, all };
 }
 
-function focus(c) {
-  const nodes = [{ id: `c:${c.id}`, kind: "cand", label: displayName(c), total: 0 }, { id: `p:${c.partido}`, kind: "party", label: c.partido, total: 0 }];
-  const links = [{ a: `c:${c.id}`, b: `p:${c.partido}`, w: 1 }];
+function focus(c: Candidatura): Graph {
+  const nodes: RNode[] = [{ id: `c:${c.id}`, kind: "cand", label: displayName(c), total: 0 }, { id: `p:${c.partido}`, kind: "party", label: c.partido, total: 0 }];
+  const links: RLink[] = [{ a: `c:${c.id}`, b: `p:${c.partido}`, w: 1 }];
   const seen = new Set(nodes.map((n) => n.id));
-  const add = (n) => { if (!seen.has(n.id)) { seen.add(n.id); nodes.push(n); } };
+  const add = (n: RNode) => { if (!seen.has(n.id)) { seen.add(n.id); nodes.push(n); } };
   for (const f of c.fornecedores ?? []) {
     const sid = `s:${f.cnpj}`;
     add({ id: sid, kind: "sup", label: titleName(f.nome), total: f.valor, f: { nome: f.nome, cnpj: f.cnpj, situacao: f.empresa?.situacao ?? "", endereco: f.empresa?.endereco ?? "", politicos: f.outros + 1, total: f.valor, flags: f.flags } });
@@ -52,12 +61,12 @@ function focus(c) {
   return { nodes, links };
 }
 
-const radius = (n, max, pmax) => (n.r ?? (n.kind === "cand" ? 15 : n.kind === "party" ? 9 + 9 * Math.sqrt((n.total || 0) / (pmax || 1)) : sizeOf(n.total, max)));
+const radius = (n: RNode, max: number, pmax: number) => (n.r ?? (n.kind === "cand" ? 15 : n.kind === "party" ? 9 + 9 * Math.sqrt((n.total || 0) / (pmax || 1)) : sizeOf(n.total, max)));
 
-function detail(n, rede) {
+function detail(n: (RNode & Placed) | null | undefined, rede: Rede | null) {
   if (!n) return `<p class="muted">Clique num nó para ver os detalhes. Azul: partidos · laranja: fornecedores (CNPJ) · verde: candidato em foco · rosa: outros políticos atendidos.</p>`;
   if (n.kind === "sup") {
-    const f = n.f;
+    const f = n.f!;
     const partidos = rede ? rede.arestas.filter((e) => `s:${e.f}` === n.id).sort((a, b) => b.valor - a.valor).slice(0, 8) : [];
     return `<h4>${h(titleName(f.nome))}</h4><p class="muted">CNPJ ${h(f.cnpj)}${f.situacao ? ` · situação ${h(titleName(f.situacao))}` : ""}</p>
       ${f.endereco ? `<p class="small">Endereço: ${h(f.endereco)}</p>` : ""}
@@ -67,23 +76,23 @@ function detail(n, rede) {
   }
   if (n.kind === "party") {
     const forn = rede ? rede.arestas.filter((e) => `p:${e.p}` === n.id).sort((a, b) => b.valor - a.valor).slice(0, 6) : [];
-    const nome = (id) => rede.fornecedores.find((f) => f.id === id)?.nome ?? id;
+    const nome = (id: string) => rede!.fornecedores.find((f) => f.id === id)?.nome ?? id;
     return `<h4>${h(n.label)}</h4>${forn.length ? `<p class="small">Fornecedores mais pagos por candidatos do partido (entre os mais compartilhados): ${forn.map((e) => `${h(titleName(nome(e.f)))} ${moneyShort(e.valor)}`).join(" · ")}</p>` : `<p class="muted">Partido.</p>`}`;
   }
   return `<h4>${h(n.label)}</h4><p class="muted">${h(n.sub ?? "Candidato em foco")}${n.party ? ` · ${h(n.party)}` : ""}</p>`;
 }
 
-export function renderRede({ rede, cand, sel }) {
+export function renderRede({ rede, cand, sel }: { rede: Rede | null; cand?: Candidatura | null; sel?: string | null }) {
   if (!rede) return `<p class="empty">Os dados da rede ainda não foram gerados (<code>bun run radar:suppliers</code> e <code>radar:build</code>).</p>`;
   const key = cand ? `f:${cand.id}` : "geral";
   if (!memo.has(key)) {
     const g = cand ? focus(cand) : overview(rede);
     const pos = g.ring
-      ? ringLayout(g.nodes.filter((n) => n.kind === "party"), g.nodes.filter((n) => n.kind === "sup"), g.all, { width: W, height: H })
+      ? ringLayout(g.nodes.filter((n) => n.kind === "party"), g.nodes.filter((n) => n.kind === "sup"), g.all!, { width: W, height: H })
       : layout(g.nodes, g.links, { width: W, height: H });
     memo.set(key, { g, pos });
   }
-  const { g, pos } = memo.get(key);
+  const { g, pos } = memo.get(key)!;
   const byId = new Map(pos.map((n) => [n.id, n]));
   const max = Math.max(1, ...pos.filter((n) => n.kind === "sup" || n.kind === "pol").map((n) => n.total || 0));
   const pmax = Math.max(1, ...pos.filter((n) => n.kind === "party").map((n) => n.total || 0));
@@ -108,7 +117,7 @@ export function renderRede({ rede, cand, sel }) {
       <circle cx="${n.x}" cy="${n.y}" r="${r.toFixed(1)}"/>${labelIds.has(n.id) ? `<text x="${n.x}" y="${(n.y - r - 4).toFixed(1)}" text-anchor="middle">${h(n.label.length > 26 ? `${n.label.slice(0, 25)}…` : n.label)}</text>` : ""}
       <title>${h(n.label)}${n.total ? ` · ${moneyShort(n.total)}` : ""}</title></g>`;
   }).join("");
-  const dataBr = (iso) => iso.split("-").reverse().join("/");
+  const dataBr = (iso: string) => iso.split("-").reverse().join("/");
   const novas = (rede.novas ?? []).map((f) => `<tr><td>${h(titleName(f.nome))}<br><small class="muted">${h(f.cnpj)} · ${h(f.endereco)}</small></td><td>${dataBr(f.abertura)}<br><small class="muted">${f.diasAntes} dias antes do 1º pagamento</small></td><td>${int(f.politicos)}</td><td>${moneyShort(f.total)}</td></tr>`).join("");
   const top = rede.fornecedores.slice(0, 10).map((f) => `<tr><td>${h(titleName(f.nome))}<br><small class="muted">${h(f.cnpj)}</small></td><td>${int(f.politicos)}</td><td>${moneyShort(f.total)}</td><td>${f.flags.length ? `<span class="pill no">${f.flags.length} sinal(is)</span>` : ""}</td></tr>`).join("");
   return `<section class="exp-card rede">

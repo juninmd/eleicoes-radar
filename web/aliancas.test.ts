@@ -4,24 +4,24 @@ import { canon, grafoAliancas, parseColigacao } from "./aliancas.js";
 // Shapes copied from the registry: coalition with nested federations, lone federation, nothing.
 const GOV = "CORAGEM PARA SEGUIR AVANÇANDO: REPUBLICANOS / PL / MDB / FEDERAÇÃO RENOVAÇÃO SOLIDÁRIA (25-PRD / 77-SOLIDARIEDADE) / FEDERAÇÃO UNIÃO PROGRESSISTA (44-UNIÃO / 11-PP) / AVANTE";
 const FED = "FEDERAÇÃO: FEDERAÇÃO PSDB CIDADANIA (45-PSDB / 23-CIDADANIA)";
-const c = (id, cargo, partido, coligacao = "", federacao = "") => ({ id, cargo, partido, nome: `N ${id}`, ficha: { coligacao, federacao } });
+const c = (id: string, cargo: string, partido: string, coligacao = "", federacao = "") => ({ id, cargo, partido, nome: `N ${id}`, ficha: { coligacao, federacao } });
 
 test("a coalition is split on top-level slashes only, so federations keep their members", () => {
-  const p = parseColigacao(GOV);
+  const p = parseColigacao(GOV)!;
   expect(p.nome).toBe("CORAGEM PARA SEGUIR AVANÇANDO");
   expect(p.partidos).toEqual(["REPUBLICANOS", "PL", "MDB", "PRD", "SOLIDARIEDADE", "UNIÃO", "PP", "AVANTE"]);
   expect(p.federacoes.map((f) => f.partidos)).toEqual([["PRD", "SOLIDARIEDADE"], ["UNIÃO", "PP"]]);
 });
 
 test("registry party numbers are stripped and a lone federation has no coalition name", () => {
-  const p = parseColigacao(FED);
+  const p = parseColigacao(FED)!;
   expect(p.partidos).toEqual(["PSDB", "CIDADANIA"]);
   expect(p.nome).toBeNull();
   expect(p.federacoes).toHaveLength(1);
 });
 
 test("a coalition name that itself contains a colon does not leak into the party list", () => {
-  const p = parseColigacao("UNIDOS POR RONDÔNIA: RONDÔNIA FORTE DE VERDADE: PDT / PL / FEDERAÇÃO X (1-AAA / 2-BBB)");
+  const p = parseColigacao("UNIDOS POR RONDÔNIA: RONDÔNIA FORTE DE VERDADE: PDT / PL / FEDERAÇÃO X (1-AAA / 2-BBB)")!;
   expect(p.nome).toBe("UNIDOS POR RONDÔNIA: RONDÔNIA FORTE DE VERDADE");
   expect(p.partidos).toEqual(["PDT", "PL", "AAA", "BBB"]);
 });
@@ -50,7 +50,7 @@ test("a coalition of k parties is a clique, and federation pairs are stronger th
   const g = grafoAliancas(all, all);
   expect(g.nodes).toHaveLength(8);
   expect(g.links).toHaveLength((8 * 7) / 2);
-  const by = (a, b) => g.links.find((l) => [l.a, l.b].sort().join() === [canon(a), canon(b)].sort().join());
+  const by = (a: string, b: string) => g.links.find((l) => [l.a, l.b].sort().join() === [canon(a), canon(b)].sort().join());
   expect(by("UNIÃO", "PP")).toMatchObject({ kind: "federacao", w: 2 });
   expect(by("PL", "MDB")).toMatchObject({ kind: "coligacao", w: 1 });
   expect(by("PRD", "UNIÃO")).toMatchObject({ kind: "coligacao", w: 1 }); // different federations of one coalition
@@ -97,7 +97,7 @@ test("a coalition text on a deputy is ignored: proportional coalitions do not ex
 test("party size counts candidacies in every cargo, and the display name follows the registry spelling", () => {
   const all = [c("1", "Senador", "PC do B", "X: PC do B / PT"), c("2", "Deputado Federal", "PCdoB"), c("3", "Deputado Federal", "PCdoB"), c("4", "Deputado Federal", "PT")];
   const g = grafoAliancas([all[0]], all);
-  const pc = g.nodes.find((n) => n.id === "PCDOB");
+  const pc = g.nodes.find((n) => n.id === "PCDOB")!;
   expect(pc.n).toBe(3);
   expect(pc.label).toMatch(/^PC/);
 });

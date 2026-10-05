@@ -2,10 +2,11 @@ import { describe, expect, test } from "bun:test";
 import { parseApuracao } from "./apuracao-tse.js";
 import { renderApuracao } from "./apuracao.js";
 import { atualizar, vazio } from "./apuracao-novidades.js";
+import type { RenderProps } from "./apuracao.js";
 
 // A raw TSE file of a governor's race: te/est decide how many electors are left, vap/pvap are the candidates' numbers.
-const cand = (sqcand, n, nmu, seq, vap, pvap, st = "") => ({ n, sqcand, nm: nmu, nmu, seq, e: "n", st, vap, pvap });
-const arquivo = ({ votos, te = "1000", est = "950", st = "950", cargo = "Governador", hg = "21:04:25" }) => {
+const cand = (sqcand: string, n: string, nmu: string, seq: string, vap: string, pvap: string, st = "") => ({ n, sqcand, nm: nmu, nmu, seq, e: "n", st, vap, pvap });
+const arquivo = ({ votos, te = "1000", est = "950", st = "950", cargo = "Governador", hg = "21:04:25" }: { votos: number[]; te?: string; est?: string; st?: string; cargo?: string; hg?: string }) => {
   const total = votos.reduce((a, v) => a + v, 0);
   const cands = votos.map((v, i) => cand(`c${i + 1}`, String(10 * (i + 1)), `CAND ${"ABCD"[i]}`, String(i + 1), String(v), ((v / total) * 100).toFixed(2).replace(".", ",")));
   return {
@@ -16,7 +17,7 @@ const arquivo = ({ votos, te = "1000", est = "950", st = "950", cargo = "Governa
     carg: [{ cd: "3", nmn: cargo, nv: "1", agr: [{ n: "1", nm: "A", com: "AAA", par: [{ n: "10", sg: "AAA", cand: cands }] }] }],
   };
 };
-const placar = (json, over = {}) => renderApuracao({
+const placar = (json: unknown, over: Partial<RenderProps> = {}) => renderApuracao({
   snap: { status: "ok", dados: parseApuracao(json), buscadoEm: new Date("2026-10-04T21:05:00"), erro: null },
   cargo: "Governador", uf: "SP", byId: new Map(), avatar: () => "", limit: 40, ...over,
 });

@@ -1,14 +1,18 @@
+export interface Link { a: string; b: string; w?: number }
+export interface Placed { x: number; y: number }
+interface Frame { width?: number; height?: number }
+
 // Deterministic force layout (no animation, no dependencies): nodes are placed once
 // by repulsion + spring + centre pull, so the picture is identical on every load.
-export function layout(nodes, links, { width = 900, height = 620, iterations = 400 } = {}) {
+export function layout<N extends { id: string }>(nodes: N[], links: Link[], { width = 900, height = 620, iterations = 400 }: Frame & { iterations?: number } = {}): (N & Placed)[] {
   const n = nodes.length;
-  const idx = new Map(nodes.map((d, i) => [d.id, i]));
+  const idx = new Map<string, number>(nodes.map((d, i) => [d.id, i]));
   const pos = nodes.map((_, i) => {
     const a = i * 2.399963; // golden angle: reproducible, well spread start
     const r = Math.min(width, height) * 0.42 * Math.sqrt((i + 0.5) / Math.max(1, n));
     return { x: width / 2 + Math.cos(a) * r, y: height / 2 + Math.sin(a) * r };
   });
-  const edges = links.map((l) => [idx.get(l.a), idx.get(l.b), l.w ?? 1]).filter(([a, b]) => a !== undefined && b !== undefined && a !== b);
+  const edges = links.map((l) => [idx.get(l.a), idx.get(l.b), l.w ?? 1]).filter(([a, b]) => a !== undefined && b !== undefined && a !== b) as [number, number, number][];
   // Fruchterman-Reingold: repulsion k^2/d, attraction d^2/k, cooling temperature.
   const k = Math.sqrt((width * height) / Math.max(1, n)) * 0.75;
   const pad = 24;
@@ -42,7 +46,7 @@ export function layout(nodes, links, { width = 900, height = 620, iterations = 4
 }
 
 // Neighbourhood of a node: itself, direct neighbours and the links between them.
-export function egoOf(id, nodes, links) {
+export function egoOf<N extends { id: string }, L extends Link>(id: string, nodes: N[], links: L[]): { nodes: N[]; links: L[] } {
   const near = new Set([id]);
   for (const l of links) { if (l.a === id) near.add(l.b); if (l.b === id) near.add(l.a); }
   return { nodes: nodes.filter((d) => near.has(d.id)), links: links.filter((l) => near.has(l.a) && near.has(l.b)) };
@@ -51,15 +55,15 @@ export function egoOf(id, nodes, links) {
 // Two-tier layout for dense bipartite data: hubs (parties) on an outer ring, members
 // (suppliers) at the weighted centroid of their hubs, then pushed apart until they no
 // longer overlap. Deterministic, and readable where a force layout collapses into a ball.
-export function ringLayout(hubs, members, links, { width = 900, height = 620, gap = 3 } = {}) {
+export function ringLayout<H extends { id: string }, M extends { id: string; r?: number }>(hubs: H[], members: M[], links: Link[], { width = 900, height = 620, gap = 3 }: Frame & { gap?: number } = {}): ((H | M) & Placed)[] {
   const cx = width / 2, cy = height / 2;
   const R = Math.min(width, height) / 2 - 34;
   const ring = hubs.map((d, i) => {
     const a = (i / Math.max(1, hubs.length)) * Math.PI * 2 - Math.PI / 2;
     return { ...d, x: cx + Math.cos(a) * R, y: cy + Math.sin(a) * R };
   });
-  const at = new Map(ring.map((d) => [d.id, d]));
-  const pull = new Map();
+  const at = new Map<string, H & Placed>(ring.map((d) => [d.id, d]));
+  const pull = new Map<string, { x: number; y: number; w: number }>();
   for (const l of links) {
     const hub = at.get(l.a) ?? at.get(l.b);
     const mem = hub === at.get(l.a) ? l.b : l.a;
@@ -95,6 +99,6 @@ export function ringLayout(hubs, members, links, { width = 900, height = 620, ga
       if (d > max) { p.x = cx + (dx / d) * max; p.y = cy + (dy / d) * max; }
     }
   }
-  const round = (d) => ({ ...d, x: Math.round(d.x * 10) / 10, y: Math.round(d.y * 10) / 10 });
+  const round = <T extends Placed>(d: T) => ({ ...d, x: Math.round(d.x * 10) / 10, y: Math.round(d.y * 10) / 10 });
   return [...ring.map(round), ...inner.map(round)];
 }

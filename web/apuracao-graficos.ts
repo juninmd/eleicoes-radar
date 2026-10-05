@@ -3,8 +3,11 @@
 import { h, int, pct, titleName } from "./format.js";
 import { avancoDe } from "./apuracao-nacional.js";
 import { pp } from "./prev.js";
+import type { Apuracao, Candidato, Fase } from "./apuracao-tse.js";
+import type { Comparacao } from "./apuracao-pesquisa.js";
 
-const COMP = [
+type Parte = "validos" | "brancos" | "nulos" | "abstencao";
+const COMP: { key: Parte; nome: string; cls: string }[] = [
   { key: "validos", nome: "Votos válidos", cls: "c1" },
   { key: "brancos", nome: "Brancos", cls: "c2" },
   { key: "nulos", nome: "Nulos", cls: "c3" },
@@ -12,8 +15,8 @@ const COMP = [
 ];
 
 // The electorate of the sections already counted, split into what became a valid vote and what did not.
-export function composicao(d) {
-  const v = { validos: d.votos.validos, brancos: d.votos.brancos, nulos: d.votos.nulos, abstencao: d.eleitorado.abstencao };
+export function composicao(d: Apuracao): string {
+  const v: Record<Parte, number> = { validos: d.votos.validos, brancos: d.votos.brancos, nulos: d.votos.nulos, abstencao: d.eleitorado.abstencao };
   const total = COMP.reduce((a, s) => a + v[s.key], 0);
   if (d.eleitorado.apurado <= 0 || total <= 0) return "";
   const desc = COMP.map((s) => `${s.nome} ${pct(v[s.key] / total, 1)}`).join(", ");
@@ -22,12 +25,14 @@ export function composicao(d) {
 }
 
 // Count against the 90% band of the polls, on one shared scale. Rows without a poll are left out.
-export function faixaVsApuracao(rows, fase) {
-  const com = rows.filter((r) => r.cmp);
+export interface LinhaFaixa { c: Pick<Candidato, "nome" | "partido" | "pct">; cmp: Comparacao | null }
+
+export function faixaVsApuracao(rows: LinhaFaixa[], fase: Fase): string {
+  const com = rows.filter((r) => r.cmp) as (LinhaFaixa & { cmp: Required<Comparacao> })[];
   if (!com.length) return "";
   const topo = Math.max(...com.flatMap((r) => [r.c.pct, r.cmp.hi, r.cmp.media]));
   const max = Math.max(0.1, Math.ceil((topo * 1.05) / 0.05) * 0.05);
-  const at = (x) => Math.max(0, Math.min(100, (x / max) * 100));
+  const at = (x: number) => Math.max(0, Math.min(100, (x / max) * 100));
   const por = fase === "concluida" ? "" : " por enquanto";
   return `<ul class="apu-dumb" aria-label="Apuração e faixa das pesquisas por candidato">${com.map(({ c, cmp }) => {
     const dentro = cmp.dentro === null ? "" : `${cmp.dentro ? "dentro" : "fora"} da faixa${por}`;
@@ -42,17 +47,19 @@ const MAX_PONTOS = 120;
 const TOP_SALVO = 8;
 
 // One point per TSE file version, kept in memory only while the tab is open ("nothing is stored").
-export function registrar(hist, d) {
+export interface Ponto { chave: string; rotulo: string; avanco: number; pcts: Record<string, number> }
+
+export function registrar(hist: Ponto[], d: Apuracao): Ponto[] {
   if (d.secoes.totalizadas <= 0) return hist;
   const chave = `${d.versao.data} ${d.versao.hora}`;
   if (hist.some((p) => p.chave === chave)) return hist;
   const pcts = Object.fromEntries(d.candidatos.slice(0, TOP_SALVO).map((c) => [c.id, c.pct]));
-  const ponto = { chave, rotulo: d.versao.hora, avanco: avancoDe(d.secoes), pcts }; // rounded down like everywhere else: 99,96% is never "100%" while open
+  const ponto: Ponto = { chave, rotulo: d.versao.hora, avanco: avancoDe(d.secoes), pcts }; // rounded down like everywhere else: 99,96% is never "100%" while open
   return [...hist, ponto].slice(-MAX_PONTOS);
 }
 
 // Change of one candidate's share since the first file seen. Neutral arrow: a fall is not "bad" while the count is open.
-function variacao(diff) {
+function variacao(diff: number) {
   if (Math.abs(diff) < 0.0005) return { seta: "▬", txt: "0,0 p.p.", sr: "estável desde o primeiro arquivo visto" };
   const up = diff > 0;
   return { seta: up ? "▲" : "▼", txt: `${pp(diff)} p.p.`, sr: `${up ? "subiu" : "caiu"} ${pp(diff)} p.p. desde o primeiro arquivo visto` };
@@ -62,15 +69,17 @@ const W = 640;
 const H = 250;
 const M = { l: 44, r: 12, t: 12, b: 34 };
 
-export function evolucao(hist, quem, cor) {
+type Leitura = Pick<Ponto, "rotulo" | "avanco" | "pcts">;
+
+export function evolucao(hist: Leitura[], quem: Record<string, Pick<Candidato, "nome" | "partido">>, cor: (key: string) => string): string {
   if (hist.length < 2) return `<p class="muted small">A evolução aparece conforme chegam novos arquivos do TSE enquanto esta aba está aberta. Nada fica guardado: ao fechar a aba, o histórico some.</p>`;
-  const ultimo = hist.at(-1);
+  const ultimo = hist.at(-1)!;
   const ids = Object.keys(ultimo.pcts).sort((a, b) => ultimo.pcts[b] - ultimo.pcts[a]).filter((id) => quem[id]).slice(0, 4);
   const maxPct = Math.max(...hist.flatMap((p) => ids.map((id) => p.pcts[id] ?? 0)), 0.1);
   const ymax = Math.ceil((maxPct * 1.1) / 0.1) * 0.1;
   // Evenly spaced by arrival order: files that report the same section count must not stack on one x.
-  const x = (p) => M.l + (hist.indexOf(p) / (hist.length - 1)) * (W - M.l - M.r);
-  const y = (v) => H - M.b - (v / ymax) * (H - M.t - M.b);
+  const x = (p: Leitura) => M.l + (hist.indexOf(p) / (hist.length - 1)) * (W - M.l - M.r);
+  const y = (v: number) => H - M.b - (v / ymax) * (H - M.t - M.b);
   const grade = [0, ymax / 2, ymax].map((v) => `<line x1="${M.l}" x2="${W - M.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" class="grade"/><text x="${M.l - 6}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end" class="eixo">${pct(v, 0)}</text>`).join("");
   const linhas = ids.map((id) => {
     const cor_ = cor(quem[id].partido);
@@ -78,7 +87,7 @@ export function evolucao(hist, quem, cor) {
     return `<polyline points="${pts}" fill="none" stroke="${cor_}" stroke-width="2.5" stroke-linejoin="round"/>`;
   });
   const resumo = ids.map((id) => {
-    const primeiro = hist.find((p) => id in p.pcts).pcts[id];
+    const primeiro = hist.find((p) => id in p.pcts)!.pcts[id];
     const fim = ultimo.pcts[id];
     const dl = variacao(fim - primeiro);
     return `<li><i class="key" style="background:${cor(quem[id].partido)}"></i>${h(titleName(quem[id].nome))} <small>${h(quem[id].partido)}</small> <b>${pct(primeiro, 1)} → ${pct(fim, 1)}</b> <span class="dif"><span aria-hidden="true">${dl.seta}</span> ${dl.txt}</span><span class="sr"> (${h(dl.sr)})</span></li>`;

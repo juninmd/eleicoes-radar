@@ -1,25 +1,29 @@
 import { describe, expect, test } from "bun:test";
 import { parseApuracao } from "./apuracao-tse.js";
 import { renderApuracao } from "./apuracao.js";
+import type { RenderProps, SnapView } from "./apuracao.js";
+import type { Candidatura } from "./types.js";
 
 // Rendering of the "Matematicamente eleito" label on the single-race table; the proof itself is in apuracao-eleito.test.js.
-const cand = (sqcand, n, nmu, seq, vap, pvap, e = "n", st = "") => ({ n, sqcand, nm: nmu, nmu, seq, e, st, vap, pvap });
-const file = ({ cargo = {}, s = {}, e = {}, v = {}, cands = [] } = {}) => ({
+type Campos = Record<string, string | null | undefined>;
+const cand = (sqcand: string, n: string, nmu: string, seq: string, vap: string, pvap: string, e = "n", st = "") => ({ n, sqcand, nm: nmu, nmu, seq, e, st, vap, pvap });
+interface FileOver { cargo?: Record<string, unknown>; s?: Campos; e?: Campos; v?: Campos; cands?: ReturnType<typeof cand>[] }
+const file = ({ cargo = {}, s = {}, e = {}, v = {}, cands = [] }: FileOver = {}) => ({
   dg: "04/10/2026", hg: "19:41:07",
   s: { ts: "1000", st: "400", ...s },
   e: { te: "500000", est: "200000", c: "160000", a: "40000", ...e },
   v: { tv: "160000", vvc: "140000", vv: "140000", vb: "8000", tvn: "12000", ...v },
   carg: [{ cd: "3", nmn: "Governador", nv: "1", agr: [{ n: "1", nm: "A", com: "AAA", par: [{ n: "10", sg: "AAA", cand: cands }] }], ...cargo }],
 });
-const avatar = (c) => `<i class="av">${c.id}</i>`;
-const byId = new Map([["a1", { id: "a1" }]]);
-const view = (json, over = {}, extra = {}) => renderApuracao({ snap: { status: "ok", dados: parseApuracao(json), buscadoEm: new Date("2026-10-04T20:15:30"), erro: null, ...over }, cargo: "Governador", uf: "SP", byId, avatar, limit: 40, ...extra });
+const avatar = (c: { id: string }) => `<i class="av">${c.id}</i>`;
+const byId = new Map<string, Candidatura>([["a1", { id: "a1" } as Candidatura]]);
+const view = (json: unknown, over: Partial<SnapView> = {}, extra: Partial<RenderProps> = {}) => renderApuracao({ snap: { status: "ok", dados: parseApuracao(json), buscadoEm: new Date("2026-10-04T20:15:30"), erro: null, ...over }, cargo: "Governador", uf: "SP", byId, avatar, limit: 40, ...extra });
 
 describe("matematicamente eleito", () => {
   // 900 of 1.000 electors already counted: at most 100 votes can still arrive, on top of the 800 valid ones.
-  const quase = (cands, extra = {}) => file({ e: { te: "1000", est: "900", c: "800", a: "100" }, v: { tv: "800", vvc: "800", vv: "800", vb: "0", tvn: "0" }, cands, ...extra });
-  const sem = (st) => [cand("a1", "10", "ANA SOUZA", "1", "600", "75,00", "n", st), cand("b2", "20", "BETO LIMA", "2", "200", "25,00")];
-  const mat = (html) => (html.match(/class="rot alta mat"/g) ?? []).length;
+  const quase = (cands: ReturnType<typeof cand>[], extra: FileOver = {}) => file({ e: { te: "1000", est: "900", c: "800", a: "100" }, v: { tv: "800", vvc: "800", vv: "800", vb: "0", tvn: "0" }, cands, ...extra });
+  const sem = (st: string) => [cand("a1", "10", "ANA SOUZA", "1", "600", "75,00", "n", st), cand("b2", "20", "BETO LIMA", "2", "200", "25,00")];
+  const mat = (html: string) => (html.match(/class="rot alta mat"/g) ?? []).length;
 
   test("a leader no split of the remaining votes can overtake gets the label, the row highlight and the explanation", () => {
     const html = view(quase(sem("")));
@@ -32,7 +36,7 @@ describe("matematicamente eleito", () => {
   });
 
   test("the label follows the candidate's gender when we know it, and stays neutral when we do not", () => {
-    const own = (genero) => new Map([["a1", { id: "a1", genero }]]);
+    const own = (genero: string) => new Map<string, Candidatura>([["a1", { id: "a1", genero } as Candidatura]]);
     expect(view(quase(sem("")), {}, { byId: own("Feminino") })).toContain("Matematicamente eleita</span>");
     expect(view(quase(sem("")), {}, { byId: own("Masculino") })).toContain("Matematicamente eleito</span>");
     expect(view(quase(sem("")), {}, { byId: own("Não informado") })).toContain("Matematicamente eleito(a)</span>");

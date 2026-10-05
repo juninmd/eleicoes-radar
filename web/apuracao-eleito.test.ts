@@ -1,15 +1,17 @@
 import { describe, expect, test } from "bun:test";
 import { decididos } from "./apuracao-eleito.js";
+import type { Apuracao, Cargo, Fase } from "./apuracao-tse.js";
 
 // Only the fields the proof reads. falta = apto - apurado: the electors of sections not yet totalized.
-const arq = ({ votos, apto = 1000, apurado = 800, vagas = 1, fase = "parcial", validos, situacao = [] } = {}) => ({
+interface ArqOpts { votos: number[]; apto?: number; apurado?: number; vagas?: number; fase?: Fase; validos?: number; situacao?: string[] }
+const arq = ({ votos, apto = 1000, apurado = 800, vagas = 1, fase = "parcial", validos, situacao = [] }: ArqOpts = {} as ArqOpts): Apuracao => ({
   fase,
   cargo: { vagas },
   eleitorado: { apto, apurado },
   votos: { validos: validos ?? votos.reduce((a, v) => a + v, 0) },
   candidatos: votos.map((v, i) => ({ id: `c${i + 1}`, votos: v, situacao: situacao[i] ?? "" })),
-});
-const ids = (s) => [...s].sort();
+}) as unknown as Apuracao;
+const ids = (s: Set<string>) => [...s].sort();
 
 describe("one seat: more than half of the valid votes that can still exist", () => {
   // 600 + 150 + 50 = 800 valid votes, 200 electors still to count: at most 1.000 valid votes, half is 500.
@@ -68,7 +70,7 @@ describe("what it refuses to claim", () => {
   const ok = arq({ votos: [600, 150, 50] });
 
   test("proportional offices: seats go to lists first, there is no such proof here", () => {
-    for (const cargo of ["Deputado Federal", "Deputado Estadual", "Deputado Distrital"]) expect(decididos(ok, cargo).size).toBe(0);
+    for (const cargo of ["Deputado Federal", "Deputado Estadual", "Deputado Distrital"] as Cargo[]) expect(decididos(ok, cargo).size).toBe(0);
   });
 
   test("before the count starts, or with no file", () => {
@@ -81,19 +83,19 @@ describe("what it refuses to claim", () => {
     expect(decididos(arq({ votos: [600, 150, 50], apto: 700, apurado: 800 }), "Governador").size).toBe(0);
     expect(decididos(arq({ votos: [0, 0], validos: 0 }), "Governador").size).toBe(0);
     expect(decididos(arq({ votos: [600, 150, 50], vagas: 0 }), "Governador").size).toBe(0);
-    expect(decididos({ ...ok, eleitorado: { apto: NaN, apurado: 800 } }, "Governador").size).toBe(0);
+    expect(decididos({ ...ok, eleitorado: { apto: NaN, apurado: 800 } } as Apuracao, "Governador").size).toBe(0);
   });
 
   test("a file without the electorate or valid-vote fields is not trusted either", () => {
     const { eleitorado, ...semEleitorado } = ok;
     const { votos, ...semVotos } = ok;
-    expect(decididos(semEleitorado, "Governador").size).toBe(0);
-    expect(decididos(semVotos, "Governador").size).toBe(0);
+    expect(decididos(semEleitorado as Apuracao, "Governador").size).toBe(0);
+    expect(decididos(semVotos as Apuracao, "Governador").size).toBe(0);
   });
 
   test("the TSE disagreeing about a candidate the proof picked: claim nothing, not even about the others", () => {
     // 300 / 280 / 100 / 20 with 2 seats is decided; the TSE saying the 2nd is "Não eleito" means one of the two is wrong.
-    const d = (situacao) => arq({ votos: [300, 280, 100, 20], vagas: 2, apurado: 850, situacao });
+    const d = (situacao: string[]) => arq({ votos: [300, 280, 100, 20], vagas: 2, apurado: 850, situacao });
     expect(decididos(d(["Eleito", "Eleito"]), "Senador").size).toBe(2);
     expect(decididos(d(["Eleito", "Não eleito"]), "Senador").size).toBe(0);
     expect(decididos(d(["", "2º turno"]), "Senador").size).toBe(0);

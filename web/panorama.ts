@@ -5,12 +5,20 @@ import { aliancasView } from "./pan-aliancas.js";
 import { dinheiroView } from "./pan-dinheiro.js";
 import { agendaView, partidosView } from "./pan-partidos.js";
 import { perfilView } from "./pan-perfil.js";
+import type { AlCand } from "./aliancas.js";
+import type { build } from "../src/radar/panorama";
 
-export const PAN_MODES = { partidos: "Partidos", dinheiro: "Dinheiro", aliancas: "Alianças", perfil: "Perfil" };
+export type Panorama = ReturnType<typeof build>;
+export interface PanCtx {
+  modo: string; pan: Panorama | null; cargo: string; uf: string; escopo?: string; metrica?: string;
+  cands?: (AlCand & { uf: string })[];
+}
 
-const seg = (attr, value, items) => items.map(([k, nome]) => `<button type="button" data-${attr}="${k}" aria-pressed="${k === value}">${h(nome)}</button>`).join("");
+export const PAN_MODES: Record<string, string> = { partidos: "Partidos", dinheiro: "Dinheiro", aliancas: "Alianças", perfil: "Perfil" };
 
-function body({ modo, pan, cargo, uf, key, label, cands, metrica }) {
+const seg = (attr: string, value: string, items: [string, string][]) => items.map(([k, nome]) => `<button type="button" data-${attr}="${k}" aria-pressed="${k === value}">${h(nome)}</button>`).join("");
+
+function body({ modo, pan, cargo, uf, key, label, cands, metrica }: Required<Omit<PanCtx, "pan" | "escopo">> & { pan: Panorama; key: string; label: string }) {
   const escopo = pan.escopos[key];
   if (modo === "aliancas") {
     const all = cands.filter((c) => c.uf === uf);
@@ -24,7 +32,7 @@ function body({ modo, pan, cargo, uf, key, label, cands, metrica }) {
 }
 
 // uf is "BR" for the presidential race. Alliances are built per state, so that tab ignores `escopo`.
-export function renderPanorama({ modo, pan, cargo, uf, escopo = "uf", metrica = "total", cands = [] }) {
+export function renderPanorama({ modo, pan, cargo, uf, escopo = "uf", metrica = "total", cands = [] }: PanCtx) {
   const titulo = `<h2 id="pan-t">${h(PAN_MODES[modo] ?? "")} <small>${h(cargo)}</small></h2>`;
   if (!pan) return `<section class="exp-card pan">${titulo}<p class="empty">Os dados do panorama ainda não foram gerados (<code>bun run radar:panorama</code> depois de <code>radar:build</code>).</p></section>`;
   const nacional = uf === "BR";
@@ -35,16 +43,16 @@ export function renderPanorama({ modo, pan, cargo, uf, escopo = "uf", metrica = 
     <p class="muted small">Totais por partido e por perfil, calculados na geração dos dados com as mesmas fontes do Radar. Não há nota nem recomendação aqui: é um retrato do conjunto de candidaturas.</p></section>`;
 }
 
-export function mountPanorama(root) {
-  const st = { escopo: "uf", metrica: "total", ctx: null };
-  const draw = (focus) => {
-    root.innerHTML = renderPanorama({ ...st.ctx, escopo: st.escopo, metrica: st.metrica });
-    if (focus) root.querySelector(focus)?.focus(); // a redraw drops focus; keyboard users keep their place
+export function mountPanorama(root: HTMLElement) {
+  const st: { escopo: string; metrica: string; ctx: PanCtx | null } = { escopo: "uf", metrica: "total", ctx: null };
+  const draw = (focus?: string) => {
+    root.innerHTML = renderPanorama({ ...st.ctx!, escopo: st.escopo, metrica: st.metrica });
+    if (focus) root.querySelector<HTMLElement>(focus)?.focus(); // a redraw drops focus; keyboard users keep their place
   };
   root.addEventListener("click", (e) => {
-    const m = e.target.closest("[data-pan-metrica]"), s = e.target.closest("[data-pan-escopo]");
-    if (m) { st.metrica = m.dataset.panMetrica; draw(`[data-pan-metrica="${CSS.escape(st.metrica)}"]`); }
-    else if (s) { st.escopo = s.dataset.panEscopo; draw(`[data-pan-escopo="${CSS.escape(st.escopo)}"]`); }
+    const m = (e.target as HTMLElement).closest<HTMLElement>("[data-pan-metrica]"), s = (e.target as HTMLElement).closest<HTMLElement>("[data-pan-escopo]");
+    if (m) { st.metrica = m.dataset.panMetrica!; draw(`[data-pan-metrica="${CSS.escape(st.metrica)}"]`); }
+    else if (s) { st.escopo = s.dataset.panEscopo!; draw(`[data-pan-escopo="${CSS.escape(st.escopo)}"]`); }
   });
-  return { show(ctx) { st.ctx = ctx; draw(); } };
+  return { show(ctx: PanCtx) { st.ctx = ctx; draw(); } };
 }

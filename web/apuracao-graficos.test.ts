@@ -1,8 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { composicao, evolucao, faixaVsApuracao, registrar } from "./apuracao-graficos.js";
 import { createCores } from "./apuracao-nacional.js";
+import type { Ponto } from "./apuracao-graficos.js";
+import type { Apuracao } from "./apuracao-tse.js";
 
-const dados = (over = {}) => ({
+const dados = (over: Partial<Apuracao> = {}) => ({
   versao: { data: "04/10/2026", hora: "19:41:07" },
   secoes: { total: 100, totalizadas: 40 },
   eleitorado: { apto: 5000, apurado: 2000, comparecimento: 1600, abstencao: 400 },
@@ -13,7 +15,7 @@ const dados = (over = {}) => ({
     { id: "3", nome: "CRIS", partido: "CCC", votos: 140, pct: 0.1 },
   ],
   ...over,
-});
+}) as Apuracao;
 
 describe("composicao", () => {
   test("splits the electorate of the counted sections into valid, blank, null and abstention, as text and as bar", () => {
@@ -68,7 +70,7 @@ describe("faixaVsApuracao", () => {
 
   test("the scale grows to fit the biggest value, so a leader above the band is not cut off", () => {
     const html = faixaVsApuracao([{ c: { nome: "A", partido: "X", pct: 0.8 }, cmp: { media: 0.3, lo: 0.2, hi: 0.4, dentro: false, diff: 0.5 } }], "parcial");
-    const dot = Number(html.match(/class="dot" style="left:([\d.]+)%/)[1]);
+    const dot = Number(html.match(/class="dot" style="left:([\d.]+)%/)![1]);
     expect(dot).toBeLessThanOrEqual(100);
     expect(dot).toBeGreaterThan(50);
   });
@@ -94,20 +96,20 @@ describe("registrar", () => {
   });
 
   test("it never grows without bound", () => {
-    let h = [];
+    let h: Ponto[] = [];
     for (let i = 0; i < 300; i++) h = registrar(h, dados({ versao: { data: "04/10/2026", hora: `20:${String(i).padStart(4, "0")}` } }));
     expect(h.length).toBeLessThanOrEqual(120);
-    expect(h.at(-1).rotulo).toBe("20:0299");
+    expect(h.at(-1)!.rotulo).toBe("20:0299");
   });
 });
 
 describe("evolucao", () => {
   const cor = createCores(["#a", "#b", "#c"]);
-  const pts = (n) => Array.from({ length: n }, (_, i) => ({ rotulo: `19:${40 + i}`, avanco: 0.2 * (i + 1), pcts: { 1: 0.5 - 0.02 * i, 2: 0.4 + 0.02 * i, 3: 0.1 } }));
+  const pts = (n: number) => Array.from({ length: n }, (_, i) => ({ rotulo: `19:${40 + i}`, avanco: 0.2 * (i + 1), pcts: { 1: 0.5 - 0.02 * i, 2: 0.4 + 0.02 * i, 3: 0.1 } }));
   const quem = { 1: { nome: "ANA SOUZA", partido: "AAA" }, 2: { nome: "BETO LIMA", partido: "BBB" }, 3: { nome: "CRIS", partido: "CCC" } };
 
   test("the axis and the description never say 100% while the count is still open", () => {
-    const arquivo = (hora, feitas) => dados({ versao: { data: "04/10/2026", hora }, secoes: { total: 10000, totalizadas: feitas } });
+    const arquivo = (hora: string, feitas: number) => dados({ versao: { data: "04/10/2026", hora }, secoes: { total: 10000, totalizadas: feitas } });
     const hist = registrar(registrar([], arquivo("20:00:00", 9990)), arquivo("20:01:00", 9996));
     const html = evolucao(hist, quem, cor);
     expect(html).not.toContain("100%");

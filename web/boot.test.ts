@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 
-const read = (f) => Bun.file(new URL(`./${f}`, import.meta.url)).text();
+const read = (f: string) => Bun.file(new URL(`./${f}`, import.meta.url)).text();
 
 // The tabs are found with [data-modo] (aria-selected, and the document click handler's closest()).
 // If <body> carried that attribute too, aria-selected would land on the body and a click on empty
@@ -19,8 +19,8 @@ test("the CSS that hides radar-only controls reads the same attribute the script
 
 // boot.js is a classic script that runs before first paint: run it for real against a fake storage.
 test("the saved view is used, and an empty, corrupt or blocked storage falls back to the radar", async () => {
-  const src = await read("boot.ts");
-  const run = (storage) => { const body = { dataset: {} }; new Function("document", "localStorage", src)({ body }, storage); return body.dataset.visao; };
+  const src = new Bun.Transpiler({ loader: "ts" }).transformSync(await read("boot.ts")); // same transpile the server applies
+  const run = (storage: unknown) => { const body = { dataset: {} as Record<string, string> }; new Function("document", "localStorage", src)({ body }, storage); return body.dataset.visao; };
   expect(run({ getItem: () => '"rede"' })).toBe("rede");
   expect(run({ getItem: () => null })).toBe("radar");
   expect(run({ getItem: () => "{oops" })).toBe("radar");

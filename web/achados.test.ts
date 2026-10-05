@@ -1,9 +1,10 @@
 import { expect, test } from "bun:test";
 import { achados } from "./achados.js";
+import type { Candidatura } from "./types.js";
 
-const c = (o = {}) => ({ fin: { total: 0, publico: 0, doadoresPF: 0 }, ...o });
-const withVotes = (votou, possiveis) => c({ mandato: { votos: { votou, possiveis } } });
-const text = (html) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+const c = (o = {}) => ({ fin: { total: 0, publico: 0, doadoresPF: 0 }, ...o }) as unknown as Candidatura;
+const withVotes = (votou: number, possiveis: number) => c({ mandato: { votos: { votou, possiveis } } });
+const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
 
 test("the first card counts every candidacy and says how many of them declared income", () => {
   const out = text(achados([c({ fin: { total: 100, publico: 0, doadoresPF: 1 } }), c(), c()]));

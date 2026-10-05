@@ -22,25 +22,28 @@ test("an empty tablist handles nothing", () => {
 });
 
 // A fake tablist: tabs know whether they are selected, clicking one selects it (as the app's click handler does).
-function tablist(count, selected = 0) {
-  const tabs = Array.from({ length: count }, (_, i) => ({
+interface FakeTab { attrs: Record<string, string>; tabIndex: number; getAttribute(n: string): string | undefined; click(): void; focus(): void }
+type Keydown = (e: { key: string; preventDefault: () => void }) => void;
+
+function tablist(count: number, selected = 0) {
+  const tabs: FakeTab[] & { focused?: FakeTab } = Array.from({ length: count }, (_, i): FakeTab => ({
     attrs: { "aria-selected": String(i === selected) }, tabIndex: -2,
     getAttribute(n) { return this.attrs[n]; },
     click() { tabs.forEach((t) => { t.attrs["aria-selected"] = String(t === this); }); },
     focus() { tabs.focused = this; },
   }));
-  const handlers = {};
+  const handlers: Record<string, Keydown> = {};
   const list = {
-    addEventListener: (t, f) => { handlers[t] = f; },
+    addEventListener: (t: string, f: Keydown) => { handlers[t] = f; },
     querySelectorAll: () => tabs,
     querySelector: () => tabs.find((t) => t.attrs["aria-selected"] === "true"),
-  };
+  } as unknown as HTMLElement;
   return { tabs, list, handlers };
 }
-const withActive = (active, fn) => {
+const withActive = (active: unknown, fn: () => void) => {
   const prev = Object.getOwnPropertyDescriptor(globalThis, "document");
   Object.defineProperty(globalThis, "document", { value: { activeElement: active }, configurable: true, writable: true });
-  try { fn(); } finally { prev ? Object.defineProperty(globalThis, "document", prev) : delete globalThis.document; }
+  try { fn(); } finally { prev ? Object.defineProperty(globalThis, "document", prev) : delete (globalThis as { document?: unknown }).document; }
 };
 
 test("only the selected tab is a Tab stop", () => {
@@ -64,7 +67,7 @@ test("keys that are not ours, or pressed outside the tabs, are not swallowed", (
   const { tabs, list, handlers } = tablist(3, 0);
   mountTabs(list);
   let prevented = false;
-  const e = (key) => ({ key, preventDefault: () => { prevented = true; } });
+  const e = (key: string) => ({ key, preventDefault: () => { prevented = true; } });
   withActive(tabs[0], () => handlers.keydown(e("Tab")));
   withActive({}, () => handlers.keydown(e("ArrowRight"))); // focus is on something else inside the list
   expect(prevented).toBe(false);

@@ -3,7 +3,13 @@
 import { h, pct } from "./format.js";
 
 // Same order and colours as the dossier money bar, so a source never changes colour.
-export const SOURCES = [
+export type SourceKey = "publico" | "partido" | "pf" | "proprio" | "outros";
+type Labelled = { label: string; sub?: string };
+type HBarRow = Labelled & { value: number; marker?: number; text: string };
+type Bubble = { id: string; label: string; x: number; y: number; r: number; title: string };
+type HeatCell = { text: string; v: number | null; title: string };
+
+export const SOURCES: { key: SourceKey; nome: string; cls: string }[] = [
   { key: "publico", nome: "Fundos públicos", cls: "s1" },
   { key: "partido", nome: "Partido (recurso privado)", cls: "s2" },
   { key: "pf", nome: "Pessoas físicas", cls: "s3" },
@@ -14,26 +20,26 @@ export const SOURCES = [
 export const legendSources = () =>
   `<ul class="pan-legend" aria-label="Fontes do dinheiro">${SOURCES.map((s) => `<li><i class="key ${s.cls}"></i>${h(s.nome)}</li>`).join("")}</ul>`;
 
-const label = (r) => `<span class="pan-l">${h(r.label)}${r.sub ? `<small>${h(r.sub)}</small>` : ""}</span>`;
+const label = (r: Labelled) => `<span class="pan-l">${h(r.label)}${r.sub ? `<small>${h(r.sub)}</small>` : ""}</span>`;
 
 // Row split by source; the bar length is total/max, so rows stay comparable with each other.
-export function stackRow({ label: name, sub, vals, total, max, text }) {
-  const parts = SOURCES.filter((s) => vals[s.key] > 0);
+export function stackRow({ label: name, sub, vals, total, max, text }: Labelled & { vals: Partial<Record<SourceKey, number>>; total: number; max: number; text: string }) {
+  const parts = SOURCES.filter((s) => vals[s.key]! > 0);
   if (!total || !parts.length) return `<li class="pan-row">${label({ label: name, sub })}<span class="pan-track"></span><b class="pan-v">${h(text)}</b></li>`;
   const width = max > 0 ? Math.max(1, (total / max) * 100) : 0;
-  const desc = parts.map((s) => `${s.nome} ${pct(vals[s.key] / total)}`).join(", ");
-  return `<li class="pan-row">${label({ label: name, sub })}<span class="pan-track"><span class="stack" style="width:${width.toFixed(1)}%" role="img" aria-label="${h(name)}: ${h(desc)}">${parts.map((s) => `<span class="seg ${s.cls}" style="flex-grow:${vals[s.key]}" title="${h(s.nome)}: ${pct(vals[s.key] / total)}"></span>`).join("")}</span></span><b class="pan-v">${h(text)}</b></li>`;
+  const desc = parts.map((s) => `${s.nome} ${pct(vals[s.key]! / total)}`).join(", ");
+  return `<li class="pan-row">${label({ label: name, sub })}<span class="pan-track"><span class="stack" style="width:${width.toFixed(1)}%" role="img" aria-label="${h(name)}: ${h(desc)}">${parts.map((s) => `<span class="seg ${s.cls}" style="flex-grow:${vals[s.key]}" title="${h(s.nome)}: ${pct(vals[s.key]! / total)}"></span>`).join("")}</span></span><b class="pan-v">${h(text)}</b></li>`;
 }
 
 // Plain bars. `marker` (optional) draws a second reference value on the same scale.
-export function hbars(rows, { max } = {}) {
+export function hbars(rows: HBarRow[], { max }: { max?: number } = {}) {
   const top = max ?? Math.max(0, ...rows.flatMap((r) => [r.value ?? 0, r.marker ?? 0]));
-  const at = (v) => (top > 0 && v > 0 ? Math.min(100, (v / top) * 100) : 0);
-  return `<ul class="pan-bars">${rows.map((r) => `<li class="pan-row">${label(r)}<span class="pan-track"><i style="width:${Math.max(r.value > 0 ? 1 : 0, at(r.value)).toFixed(1)}%"></i>${r.marker > 0 ? `<em style="left:${at(r.marker).toFixed(1)}%"></em>` : ""}</span><b class="pan-v">${h(r.text)}</b></li>`).join("")}</ul>`;
+  const at = (v: number) => (top > 0 && v > 0 ? Math.min(100, (v / top) * 100) : 0);
+  return `<ul class="pan-bars">${rows.map((r) => `<li class="pan-row">${label(r)}<span class="pan-track"><i style="width:${Math.max(r.value > 0 ? 1 : 0, at(r.value)).toFixed(1)}%"></i>${r.marker! > 0 ? `<em style="left:${at(r.marker!).toFixed(1)}%"></em>` : ""}</span><b class="pan-v">${h(r.text)}</b></li>`).join("")}</ul>`;
 }
 
 // Bubble chart, log x. Points with x <= 0 cannot sit on a log axis and are left out.
-export function bubbles(points, { w = 640, height = 380, xFmt, yFmt, nLabels = 8 }) {
+export function bubbles(points: Bubble[], { w = 640, height = 380, xFmt, yFmt, nLabels = 8 }: { w?: number; height?: number; xFmt: (v: number) => string; yFmt: (v: number) => string; nLabels?: number }) {
   const pts = points.filter((p) => p.x > 0);
   if (!pts.length) return "";
   const m = { l: 52, r: 16, t: 14, b: 40 };
@@ -41,10 +47,10 @@ export function bubbles(points, { w = 640, height = 380, xFmt, yFmt, nLabels = 8
   const hi = Math.max(Math.ceil(Math.log10(Math.max(...pts.map((p) => p.x)))), lo + 1);
   const ymax = Math.max(1e-9, ...pts.map((p) => p.y)) * 1.15;
   const pad = 0.25; // decades of margin, so a value sitting on a gridline is not cut by the frame
-  const X = (v) => m.l + ((Math.log10(v) - lo + pad) / (hi - lo + 2 * pad)) * (w - m.l - m.r);
-  const Y = (v) => height - m.b - (v / ymax) * (height - m.t - m.b);
+  const X = (v: number) => m.l + ((Math.log10(v) - lo + pad) / (hi - lo + 2 * pad)) * (w - m.l - m.r);
+  const Y = (v: number) => height - m.b - (v / ymax) * (height - m.t - m.b);
   const rmax = Math.max(...pts.map((p) => p.r));
-  const R = (v) => 5 + 15 * Math.sqrt(v / rmax);
+  const R = (v: number) => 5 + 15 * Math.sqrt(v / rmax);
   const named = new Set([...pts].sort((a, b) => b.y - a.y).slice(0, nLabels).map((p) => p.id));
   const gx = Array.from({ length: hi - lo + 1 }, (_, i) => 10 ** (lo + i));
   const gy = [0, 1, 2, 3, 4].map((i) => (ymax * i) / 4);
@@ -56,11 +62,11 @@ export function bubbles(points, { w = 640, height = 380, xFmt, yFmt, nLabels = 8
 }
 
 // Cumulative share of money held by the top 10%, 20%, ... of candidacies, against equality.
-export function lorenz(conc, { w = 420, height = 300 } = {}) {
+export function lorenz(conc: number[] | null | undefined, { w = 420, height = 300 }: { w?: number; height?: number } = {}) {
   if (!conc?.length) return "";
   const m = { l: 44, r: 14, t: 14, b: 36 };
-  const X = (v) => m.l + v * (w - m.l - m.r);
-  const Y = (v) => height - m.b - v * (height - m.t - m.b);
+  const X = (v: number) => m.l + v * (w - m.l - m.r);
+  const Y = (v: number) => height - m.b - v * (height - m.t - m.b);
   const pts = [[0, 0], ...conc.map((v, i) => [(i + 1) / 10, v])];
   const line = pts.map(([x, y]) => `${X(x).toFixed(1)},${Y(y).toFixed(1)}`).join(" ");
   const ticks = [0, 0.5, 1];
@@ -74,7 +80,7 @@ export function lorenz(conc, { w = 420, height = 300 } = {}) {
 }
 
 // Table heat map. cell(rowKey, colKey) -> { text, v (0..1 or null), title }.
-export function heat({ rows, cols, cell, caption }) {
+export function heat({ rows, cols, cell, caption }: { rows: (Labelled & { key: string })[]; cols: (Labelled & { key: string })[]; cell: (row: string, col: string) => HeatCell; caption: string }) {
   return `<div class="scroll"><table class="pan-heat"><caption class="sr">${h(caption)}</caption>
     <thead><tr><th scope="col"></th>${cols.map((c) => `<th scope="col">${h(c.label)}${c.sub ? `<small>${h(c.sub)}</small>` : ""}</th>`).join("")}</tr></thead>
     <tbody>${rows.map((r) => `<tr><th scope="row">${h(r.label)}${r.sub ? `<small>${h(r.sub)}</small>` : ""}</th>${cols.map((c) => {

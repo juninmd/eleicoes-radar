@@ -1,27 +1,31 @@
 import { expect, test } from "bun:test";
 import { PAN_MODES, renderPanorama } from "./panorama.js";
+import type { PanCtx, Panorama } from "./panorama.js";
+import type { CargoAgg, PartyAgg, Perfil } from "../src/radar/panorama";
 import { FACETS, MIN_CELL, MIN_PERFIL, OUTRAS } from "./pan-perfil.js";
 import { agendaView } from "./pan-partidos.js";
-import { cor, genero, idade, instrucao, MIN_CELL as AGG_MIN_CELL, MIN_PERFIL as AGG_MIN_PERFIL, OUTRAS as AGG_OUTRAS } from "../src/radar/panorama.ts";
+import { cor, genero, idade, instrucao, MIN_CELL as AGG_MIN_CELL, MIN_PERFIL as AGG_MIN_PERFIL, OUTRAS as AGG_OUTRAS } from "../src/radar/panorama.js";
 
-const party = (o = {}) => ({ n: 5, comReceita: 4, total: 1000, publico: 600, partido: 200, pf: 200, proprio: 0, outros: 0, mediana: 250, mulheres: 2, vagas: 1.5, ...o });
+type Cand = Parameters<typeof genero>[0];
+
+const party = (o: Partial<PartyAgg> = {}): PartyAgg => ({ n: 5, comReceita: 4, total: 1000, publico: 600, partido: 200, pf: 200, proprio: 0, outros: 0, mediana: 250, mulheres: 2, vagas: 1.5, ...o });
 const CONC = [0.5, 0.7, 0.8, 0.9, 0.95, 0.97, 0.98, 0.99, 1, 1];
-const agg = (o = {}) => ({
+const agg = (o: Partial<CargoAgg> = {}): CargoAgg => ({
   n: 40, comReceita: 30, fontes: { publico: 1600, partido: 500, pf: 400, proprio: 0, outros: 0 },
   partidos: { AAA: party(), BBB: party({ n: 2, total: 500, publico: 100, partido: 400, pf: 0, mulheres: 1, vagas: 0.5 }), CCC: party({ n: 0, total: 0, publico: 0, partido: 0, pf: 0, mediana: 0, mulheres: 0, vagas: 0 }) },
   conc: CONC, perfil: null, ...o,
 });
-const perfil = (esperado) => ({
+const perfil = (esperado: Perfil["esperado"]): Perfil => ({
   genero: { Feminino: 12, Masculino: 28 }, cor: { Branca: 20, Parda: 20 }, instrucao: { "Superior completo": 40 }, idade: { "35–44": 30, "45–54": 10 }, esperado,
 });
-const pan = (o = {}) => ({
+const pan = (o: Partial<Panorama> = {}): Panorama => ({
   geradoEm: "2026-10-04T12:00:00Z",
   escopos: { SP: { "Deputado Federal": agg({ perfil: perfil(null) }), Governador: agg() }, BR: { "Deputado Federal": agg({ n: 513, perfil: perfil(null) }), Presidente: agg({ n: 9 }) } },
   agenda: { votacoes: [{ id: "v1", tema: "Impostos", proposicao: "PL 1/2025", resumo: "Resumo", posicao: "Não" }], partidos: { AAA: { n: 6, votos: { v1: [4, 1, 1] } }, BBB: { n: 3, votos: { v1: [0, 0, 3] } } } },
   ...o,
 });
-const ctx = (o = {}) => ({ modo: "partidos", pan: pan(), cargo: "Deputado Federal", uf: "SP", cands: [], ...o });
-const cand = (id, cargo, partido, coligacao = "", federacao = "") => ({ id, cargo, partido, uf: "SP", nome: `Fulano ${id}`, ficha: { coligacao, federacao } });
+const ctx = (o: Partial<PanCtx> = {}): PanCtx => ({ modo: "partidos", pan: pan(), cargo: "Deputado Federal", uf: "SP", cands: [], ...o });
+const cand = (id: string, cargo: string, partido: string, coligacao = "", federacao = "") => ({ id, cargo, partido, uf: "SP", nome: `Fulano ${id}`, ficha: { coligacao, federacao } });
 
 test("without the aggregate file every tab says how to generate it instead of failing", () => {
   for (const modo of Object.keys(PAN_MODES)) expect(renderPanorama(ctx({ modo, pan: null }))).toContain("radar:panorama");
@@ -67,7 +71,7 @@ test("no tab prints NaN, undefined or Infinity, even with empty parties and a si
 
 test("a party with fewer than three candidacies gets no percentage: one or two people do not describe a party", () => {
   const html = renderPanorama(ctx({ metrica: "mulheres" }));
-  const row = html.match(/<li class="pan-row">(?:(?!<\/li>).)*BBB(?:(?!<\/li>).)*<\/li>/s)[0];
+  const row = html.match(/<li class="pan-row">(?:(?!<\/li>).)*BBB(?:(?!<\/li>).)*<\/li>/s)![0];
   expect(row).toContain(">–<");
   expect(html).toContain("menos de 3 candidaturas");
 });
@@ -76,9 +80,9 @@ test("a withheld women count (null, or missing in an older export) shows a dash,
   const p = pan();
   const parties = p.escopos.SP["Deputado Federal"].partidos;
   parties.AAA.mulheres = null; // n = 5, so only the file's withholding can explain the dash
-  delete parties.BBB.mulheres;
+  delete (parties.BBB as Partial<PartyAgg>).mulheres;
   const html = renderPanorama(ctx({ pan: p, metrica: "mulheres" }));
-  const row = html.match(/<li class="pan-row">(?:(?!<\/li>).)*AAA(?:(?!<\/li>).)*<\/li>/s)[0];
+  const row = html.match(/<li class="pan-row">(?:(?!<\/li>).)*AAA(?:(?!<\/li>).)*<\/li>/s)![0];
   expect(row).toContain('<b class="pan-v">–</b>'); // the printed value, not the bar's width
   expect(html).toContain("menos de 5 mulheres");
   expect(html).not.toMatch(/NaN|undefined|Infinity/);
@@ -100,7 +104,7 @@ test("single-seat races call the model output a chance, deputies call it expecte
 
 test("an agenda cell with no Sim or Não vote is blank, not 0% or NaN", () => {
   const html = agendaView(pan().agenda);
-  const bbb = html.match(/<tr><th scope="row">BBB.*?<\/tr>/s)[0];
+  const bbb = html.match(/<tr><th scope="row">BBB.*?<\/tr>/s)![0];
   expect(bbb).toContain('class="nd"');
   expect(bbb).not.toMatch(/0%|NaN/);
   expect(html).toContain("80%"); // AAA: 4 Sim of 5 Sim+Não; the lone "outro" vote is not counted against it
@@ -187,10 +191,10 @@ test("profile: the thresholds and the bucket label on screen are the ones the ag
 
 test("profile labels are the ones the aggregator writes, so no group is ever dropped from a chart", () => {
   const written = {
-    genero: [genero({ genero: "FEMININO" }), genero({ genero: "masculino" }), genero({})],
-    cor: [cor({ corRaca: "BRANCA" }), cor({ corRaca: "PARDA" }), cor({ corRaca: "PRETA" }), cor({ corRaca: "AMARELA" }), cor({ corRaca: "INDÍGENA" }), cor({})],
-    instrucao: ["SUPERIOR COMPLETO", "SUPERIOR INCOMPLETO", "ENSINO MÉDIO COMPLETO", "ENSINO FUNDAMENTAL INCOMPLETO", "LÊ E ESCREVE", "ANALFABETO", ""].map((s) => instrucao({ ficha: { instrucao: s } })),
-    idade: ["2010-01-01", "2000-01-01", "1990-01-01", "1980-01-01", "1970-01-01", "1960-01-01", "1950-01-01", "x"].map((n) => idade({ ficha: { nascimento: n } })),
+    genero: [genero({ genero: "FEMININO" } as Cand), genero({ genero: "masculino" } as Cand), genero({} as Cand)],
+    cor: [cor({ corRaca: "BRANCA" } as Cand), cor({ corRaca: "PARDA" } as Cand), cor({ corRaca: "PRETA" } as Cand), cor({ corRaca: "AMARELA" } as Cand), cor({ corRaca: "INDÍGENA" } as Cand), cor({} as Cand)],
+    instrucao: ["SUPERIOR COMPLETO", "SUPERIOR INCOMPLETO", "ENSINO MÉDIO COMPLETO", "ENSINO FUNDAMENTAL INCOMPLETO", "LÊ E ESCREVE", "ANALFABETO", ""].map((s) => instrucao({ ficha: { instrucao: s } } as Cand)),
+    idade: ["2010-01-01", "2000-01-01", "1990-01-01", "1980-01-01", "1970-01-01", "1960-01-01", "1950-01-01", "x"].map((n) => idade({ ficha: { nascimento: n } } as Cand)),
   };
   for (const f of FACETS) {
     const known = new Set(f.ordem);
