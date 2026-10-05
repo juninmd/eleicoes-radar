@@ -49,8 +49,8 @@ describe("static server", () => {
   test("nothing the page or its templates emit relies on an inline script, handler or javascript: URL", async () => {
     const dir = new URL("../../web/", import.meta.url);
     const sources = [await (await get("/")).text()];
-    for (const f of new Bun.Glob("*.js").scanSync({ cwd: dir.pathname.replace(/^\/([A-Za-z]:)/, "$1") })) {
-      if (!f.endsWith(".test.js")) sources.push(await Bun.file(new URL(f, dir)).text());
+    for (const f of new Bun.Glob("*.ts").scanSync({ cwd: dir.pathname.replace(/^\/([A-Za-z]:)/, "$1") })) {
+      if (!f.endsWith(".test.ts")) sources.push(await Bun.file(new URL(f, dir)).text());
     }
     expect(sources.length).toBeGreaterThan(20);
     for (const s of sources) {
