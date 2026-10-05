@@ -140,6 +140,12 @@ enquanto a aba está aberta e visível.
   últimos números e a hora deles. Cada consulta tem limite de 20 s; um erro ao desenhar não interrompe a consulta seguinte.
 - **Só mostra o que o TSE publica:** a coluna Situação é o texto `st` do arquivo. `e: "s"` não quer dizer "eleito"
   (no 1º turno de 2024 os dois mais votados vinham `e=s` com `st="2º turno"`), e o Radar não projeta vencedor.
+- **"Matematicamente eleito"** (`apuracao-eleito.js`): a única etiqueta do Radar, e é prova, não projeção. Falta no pior caso
+  `apto - apurado` (eleitores das seções ainda não totalizadas, abstenção inclusa, todos votando no rival). Presidente e
+  Governador: mais da metade dos votos válidos que ainda podem existir (`base + falta`, com `base` = o maior entre `vv` e a soma dos candidatos). Senado: o último eleito segue
+  à frente do primeiro de fora mesmo que ele leve todos os votos que faltam. Proporcionais nunca; arquivo de estado do
+  Presidente nunca (é uma fatia). O texto do TSE ("Eleito") sempre vale mais: se ele existe, a etiqueta do Radar não aparece,
+  e se o TSE diz outra coisa sobre quem a conta escolheu, o Radar não afirma nada.
 - **Comparação com pesquisas** (`apuracao-pesquisa.js`): Presidente, Governador e Senador. Mesma base (votos válidos),
   seta sem cor (acima ou abaixo da pesquisa não é bom nem ruim) e "dentro/fora da faixa de 90%". Com a apuração parcial a
   tela diz que a diferença pode refletir quais urnas já entraram, além do erro da pesquisa ("dentro/fora da faixa por

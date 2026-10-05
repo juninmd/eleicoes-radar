@@ -7,6 +7,8 @@ import { pp } from "./prev.js";
 const FASES = { aguardando: "Aguardando início", parcial: "Apuração em andamento", concluida: "Apuração concluída" };
 const TOM = { aguardando: "baixa", parcial: "aberta", concluida: "alta" };
 
+const chipMat = (n) => `<span class="rot alta mat">Matematicamente ${n > 1 ? "eleitos" : "eleito(a)"}</span>`;
+
 const pesquisaTxt = (comp) => {
   if (!comp?.pesquisa) return "";
   const [p, ...outros] = comp.lista?.length ? comp.lista : [comp.pesquisa];
@@ -17,10 +19,12 @@ const pesquisaTxt = (comp) => {
   return `<p class="exp-read">Pesquisas: ${[quem, ...mais].join("; ")}${cmp ? `. ${cmp}` : ""}.</p>`;
 };
 
+const decididoTxt = (l) => (l.dec.size ? `<p class="exp-read">Matematicamente eleito é uma conta do Radar sobre os números do TSE: mesmo que todos os eleitores das seções que faltam votassem no adversário, o resultado não mudaria. Não é a marcação do TSE nem a diplomação.</p>` : "");
+
 function candidatos(l, cor) {
   const max = l.top[0]?.pct || 1;
-  return `<ol class="apu-top">${l.top.map((c) => `<li><i class="key" style="background:${cor(c.partido)}" aria-hidden="true"></i>
-    <span>${h(titleName(c.nome))} <small>${h(c.partido)} · ${h(c.num)}</small></span>
+  return `<ol class="apu-top">${l.top.map((c) => `<li${l.dec.has(c.id) ? ' class="eleito"' : ""}><i class="key" style="background:${cor(c.partido)}" aria-hidden="true"></i>
+    <span>${h(titleName(c.nome))} <small>${h(c.partido)} · ${h(c.num)}</small>${l.dec.has(c.id) ? chipMat(1) : ""}</span>
     <span class="bar" aria-hidden="true"><span style="width:${Math.max(0, Math.min(100, (c.pct / max) * 100))}%;background:${cor(c.partido)}"></span></span>
     <b>${pct(c.pct, 2)}</b><small>${int(c.votos)}</small></li>`).join("")}</ol>`;
 }
@@ -39,7 +43,7 @@ export function painelUf(l, { cor, cargo, corrida }) {
   const velha = l.defasada ? `<p class="exp-read">Atenção: o TSE não respondeu na última consulta; estes são os números do arquivo de ${h(d.versao.data)} ${h(d.versao.hora)}.</p>` : "";
   const corpo = l.fase === "aguardando"
     ? `<p class="muted">A apuração deste estado ainda não começou.</p>`
-    : `${candidatos(l, cor)}${pesquisaTxt(comp)}`;
+    : `${candidatos(l, cor)}${decididoTxt(l)}${pesquisaTxt(comp)}`;
   return `<section class="apu-uf">${cab(l.fase)}
     <p class="exp-meta"><b>${int(l.secoes.totalizadas)} de ${int(l.secoes.total)} seções totalizadas (${pct(l.avanco, 1)})</b> · arquivo do TSE de ${h(d.versao.data)} ${h(d.versao.hora)}</p>
     ${velha}${corpo}${abrir}</section>`;
@@ -54,13 +58,13 @@ export function tabelaUf(linhas, { cargo, corridas, sel }) {
   const ultima = linhas.some((l) => l.vagas > 1); // with several seats the margin is measured at the last one
   const linhasHtml = [...linhas].sort(porNome).map((l) => {
     const comp = temPesquisa ? contraPesquisa(l, corridaDe(l.uf)) : null;
-    const lider = l.lider ? `${h(titleName(l.lider.nome))} <small>${h(l.lider.partido)} · ${pct(l.lider.pct, 1)}</small>${l.margem === null ? "" : `<small class="mg-inline">margem${ultima ? " na última vaga" : ""} ${pp(l.margem)} p.p.</small>`}${l.defasada ? ` <small class="vel">desatualizado</small>` : ""}` : "–";
+    const lider = l.lider ? `${h(titleName(l.lider.nome))} <small>${h(l.lider.partido)} · ${pct(l.lider.pct, 1)}</small>${l.margem === null ? "" : `<small class="mg-inline">margem${ultima ? " na última vaga" : ""} ${pp(l.margem)} p.p.</small>`}${l.defasada ? ` <small class="vel">desatualizado</small>` : ""}${l.dec.size ? chipMat(l.dec.size) : ""}` : "–";
     const r = rotulosComp(comp?.n);
     const pesq = !temPesquisa ? "" : comp?.pesquisa
       ? `<td>${h(titleName(comp.pesquisa.nome))} <small>${pct(comp.pesquisa.media, 1)}${comp.situacao === "igual" ? ` · ${r.igual}${r.onde}` : comp.situacao === "diverge" ? ` · ${r.dif}${r.onde}` : ""}</small></td>`
       : `<td>–</td>`;
     const avanco = l.avanco === null ? "–" : `<div class="rangewrap"><div class="apu-bar" aria-hidden="true"><span style="width:${(l.avanco * 100).toFixed(1)}%"></span></div><b class="rv">${pct(l.avanco, 1)}</b></div>`;
-    return `<tr data-uf="${h(l.uf)}"${l.uf === sel ? ' aria-current="true"' : ""}>
+    return `<tr data-uf="${h(l.uf)}"${l.dec.size ? ' class="eleito"' : ""}${l.uf === sel ? ' aria-current="true"' : ""}>
       <th scope="row"><button type="button" class="linkish" data-uf="${h(l.uf)}">${h(NOMES[l.uf] ?? l.uf)}</button></th>
       <td>${avanco}</td><td>${lider}</td>
       <td class="num mg-col">${l.margem === null ? "–" : `${pp(l.margem)} p.p.`}</td>${pesq}</tr>`;

@@ -121,3 +121,13 @@
 }
 .apu-camara { width: 100%; max-width: 640px; height: auto; margin: 0 auto; }
 .apu-listas th .key { margin-right: 8px; vertical-align: -1px; }
+
+/* "Matematicamente eleito" (the Radar's own arithmetic) and the TSE's "Eleito": both tint the row; only the TSE text is a solid chip */
+.apu .exp-bars tbody tr.eleito > th, .apu .exp-bars tbody tr.eleito > td { background: color-mix(in srgb, var(--confirma) 11%, var(--surface)); }
+.apu .exp-bars tbody tr.eleito > th:first-child { box-shadow: inset 4px 0 0 var(--confirma); }
+.apu .rot.mat { background: color-mix(in srgb, var(--confirma) 14%, var(--surface)); border-color: var(--confirma); color: var(--ink); }
+.apu .rot.mat::before { content: "✓ "; content: "✓ " / ""; color: var(--confirma); } /* decorative: the alt text keeps screen readers from saying "check mark" */
+.apu-ufs .rot.mat { display: block; width: fit-content; }
+.apu .mat-nome { display: block; }
+.apu-top li.eleito { padding: 4px 6px 4px 10px; background: color-mix(in srgb, var(--confirma) 11%, var(--surface)); box-shadow: inset 4px 0 0 var(--confirma); border-radius: 4px; }
+.apu-decidido { margin: 0; padding: 10px 12px; font-size: 14px; background: var(--sunk); border-left: 4px solid var(--confirma); border-radius: 0 6px 6px 0; }

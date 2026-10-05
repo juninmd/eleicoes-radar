@@ -175,3 +175,38 @@ describe("linhasUf, stale numbers", () => {
     expect(rows.BA.defasada).toBe(false);
   });
 });
+
+describe("linhasUf, races no split of the remaining votes can change", () => {
+  // 900 of 1.000 electors counted and 800 valid votes: at most 100 votes can still arrive.
+  const quase = (cands, vagas = 1) => {
+    const u = uf({ vagas, cands });
+    u.dados.eleitorado = { apto: 1000, apurado: 900 };
+    u.dados.votos = { validos: 800 };
+    return u;
+  };
+  const dois = [c("1", "ANA", "AAA", 600, 0.75), c("2", "BETO", "BBB", 200, 0.25)];
+
+  test("a governor's row carries the ids already decided", () => {
+    expect([...linhasUf({ SP: quase(dois) }, "Governador")[0].dec]).toEqual(["1"]);
+  });
+
+  test("a state's slice of the presidential race decides nothing, however lopsided", () => {
+    expect(linhasUf({ SP: quase(dois) }, "Presidente")[0].dec.size).toBe(0);
+  });
+
+  test("Senate: every seat holder once the last one is out of reach", () => {
+    const tres = [c("1", "ANA", "AAA", 300, 0.43), c("2", "BETO", "BBB", 280, 0.4), c("3", "CRIS", "CCC", 100, 0.14), c("4", "DUDU", "DDD", 20, 0.03)];
+    expect([...linhasUf({ SP: quase(tres, 2) }, "Senador")[0].dec].sort()).toEqual(["1", "2"]);
+  });
+
+  test("no numbers, a count far from done, and proportional offices: nobody", () => {
+    const longe = quase(dois);
+    longe.dados.eleitorado = { apto: 5000, apurado: 900 };
+    expect(linhasUf({ AL: { status: "carregando", dados: null, erro: null }, SP: longe }, "Governador").map((r) => r.dec.size)).toEqual([0, 0]);
+    expect(linhasUf({ SP: quase(dois) }, "Deputado Federal")[0].dec.size).toBe(0);
+  });
+
+  test("state fixtures that carry no electorate fields are simply not claimed", () => {
+    expect(linhasUf({ SP: uf({ cands: dois }) }, "Governador")[0].dec.size).toBe(0);
+  });
+});

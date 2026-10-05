@@ -1,5 +1,7 @@
 // Pure aggregation for the national views (map, state table, national tally). It only reads what the
 // TSE published; it never projects a result.
+import { decididos } from "./apuracao-eleito.js";
+
 const TOP = 5;
 
 // Rounded down: 9.996 of 10.000 sections is 99,9%, never a "100%" while the count is open.
@@ -9,7 +11,7 @@ export const avancoDe = ({ total, totalizadas }) => (total <= 0 ? 0 : totalizada
 export function linhasUf(ufs, cargo) {
   return Object.entries(ufs).map(([uf, u]) => {
     const d = u.dados;
-    if (!d) return { uf, cargo, status: u.status, erro: u.erro ?? null, defasada: false, fase: null, vagas: 1, secoes: null, avanco: null, lider: null, segundo: null, margem: null, top: [], dados: null };
+    if (!d) return { uf, cargo, status: u.status, erro: u.erro ?? null, defasada: false, fase: null, vagas: 1, secoes: null, avanco: null, lider: null, segundo: null, margem: null, top: [], dados: null, dec: new Set() };
     const vagas = Math.max(1, d.cargo.vagas);
     const contou = d.fase !== "aguardando" && (d.candidatos[0]?.votos ?? 0) > 0;
     const ranking = contou ? d.candidatos : [];
@@ -22,6 +24,8 @@ export function linhasUf(ufs, cargo) {
       fase: d.fase, vagas, secoes: d.secoes, avanco: avancoDe(d.secoes),
       lider: ranking[0] ?? null, segundo: ranking[1] ?? null, margem: ult && prox ? ult.pct - prox.pct : null,
       top: ranking.slice(0, TOP), dados: d,
+      // For the presidential race a state file is a slice of the national result: decididos refuses it.
+      dec: decididos(d, cargo, uf),
     };
   });
 }
