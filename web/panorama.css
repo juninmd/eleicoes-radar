@@ -6,7 +6,7 @@
 #modos button + button { border-left: 0; }
 
 .pan-seg { display: flex; flex-wrap: wrap; gap: 6px; }
-.pan-seg button { font: 600 13px var(--body); background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 6px 10px; cursor: pointer; }
+.pan-seg button { font: 600 13px var(--body); background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-md); padding: 6px 10px; cursor: pointer; }
 .pan-seg button:hover { border-color: var(--ink-2); }
 .pan-seg button[aria-pressed="true"] { background: var(--panel); color: var(--panel-ink); border-color: var(--panel); }
 
@@ -23,7 +23,7 @@
 .pan-track > .stack { height: 100%; }
 .pan-v { font: 500 13px var(--mono); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 
-.pan-svg { display: block; width: 100%; height: auto; background: var(--sunk); border: 1px solid var(--line); border-radius: 6px; }
+.pan-svg { display: block; width: 100%; height: auto; background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-lg); }
 .pan-svg .grid { stroke: var(--line); stroke-width: 1; }
 .pan-svg .tick { font: 500 10px var(--mono); fill: var(--muted); }
 .pan-svg .eq { stroke: var(--muted); stroke-dasharray: 4 4; }
@@ -67,7 +67,7 @@
 .al-k.col { height: 2px; margin-top: 8px; background: var(--muted); }
 .al-k.dot { border-radius: 50%; background: var(--s1); }
 .al-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
-.al-card { display: flex; flex-direction: column; gap: 4px; padding: 12px; background: var(--sunk); border: 1px solid var(--line); border-radius: 6px; font-size: 14px; }
+.al-card { display: flex; flex-direction: column; gap: 4px; padding: 12px; background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-lg); font-size: 14px; }
 .al-card ul { margin: 0; padding-left: 16px; }
 
 @media (max-width: 700px) {

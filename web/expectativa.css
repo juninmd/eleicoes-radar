@@ -1,10 +1,10 @@
 /* Expectativa view (loaded after the inline urna styles, reuses their tokens) */
-#modos { display: flex; gap: 0; margin-bottom: 12px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; width: fit-content; max-width: 100%; }
+#modos { display: flex; gap: 0; margin-bottom: 12px; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; width: fit-content; max-width: 100%; }
 #modos button { font: 700 14px var(--body); text-transform: uppercase; letter-spacing: 0.06em; background: var(--surface); color: var(--ink-2); border: 0; padding: 10px 16px; cursor: pointer; }
 #modos button + button { border-left: 1px solid var(--line); }
 #modos button[aria-selected="true"] { background: var(--confirma); color: var(--confirma-ink); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.exp-card { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 20px; margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+.exp-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 20px; margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
 .exp-card h2 { font: 900 30px/1 var(--display); text-transform: uppercase; margin: 0; }
 .exp-card h3 { font: 700 13px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.1em; margin: 8px 0 0; color: var(--ink-2); display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
 .exp-card h3 small { text-transform: none; letter-spacing: 0; font-weight: 500; color: var(--muted); }
@@ -21,8 +21,8 @@
 .exp-bars tbody th { font-weight: 600; text-align: left; min-width: 180px; }
 .exp-bars td.bar { width: 40%; min-width: 160px; }
 /* Range bar: shared by the race table and the dossier */
-.rangebar { position: relative; height: 22px; background: var(--sunk); border-radius: 4px; }
-.rangebar .range { position: absolute; top: 5px; height: 12px; background: color-mix(in srgb, var(--s1) 35%, transparent); border-radius: 4px; }
+.rangebar { position: relative; height: 22px; background: var(--sunk); border-radius: var(--r-md); }
+.rangebar .range { position: absolute; top: 5px; height: 12px; background: color-mix(in srgb, var(--s1) 35%, transparent); border-radius: var(--r-md); }
 .rangebar .mean { position: absolute; top: 2px; width: 3px; height: 18px; margin-left: -1px; background: var(--s1); border-radius: 2px; }
 .rangewrap { display: flex; align-items: center; gap: 8px; }
 .rangewrap .rangebar { flex: 1; min-width: 0; }
@@ -42,7 +42,7 @@
 .tend.down { color: color-mix(in srgb, var(--corrige) 70%, var(--ink)); } /* plain --corrige is ~4:1 on the light surface */
 .tend.flat { color: var(--muted); }
 .exp-read { margin: 0; font-size: 14px; max-width: 75ch; padding-left: 10px; border-left: 3px solid var(--s1); }
-.legenda { list-style: none; margin: 0; padding: 10px 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 8px 16px; background: var(--sunk); border-radius: 6px; font-size: 12px; color: var(--ink-2); }
+.legenda { list-style: none; margin: 0; padding: 10px 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 8px 16px; background: var(--sunk); border-radius: var(--r-lg); font-size: 12px; color: var(--ink-2); }
 .legenda li { display: flex; gap: 8px; align-items: flex-start; }
 .legenda .k { flex: none; width: 14px; height: 14px; margin-top: 2px; border-radius: 3px; background: var(--line); }
 .legenda .k.mean { width: 4px; margin-inline: 5px; background: var(--s1); }
@@ -54,7 +54,7 @@
 .bancadas, .exp-seats { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
 .bancadas li { display: grid; grid-template-columns: 140px minmax(0, 1fr) 48px; gap: 10px; align-items: center; }
 .bancadas b, .exp-seats b { font: 700 14px var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
-.bancadas .bar, .exp-seats .bar { height: 10px; background: var(--sunk); border-radius: 4px; overflow: hidden; }
+.bancadas .bar, .exp-seats .bar { height: 10px; background: var(--sunk); border-radius: var(--r-md); overflow: hidden; }
 .bancadas .fill { display: block; height: 100%; background: var(--s1); border-radius: 0 4px 4px 0; }
 .exp-seats li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(80px, 200px) 56px; gap: 10px; align-items: center; padding: 4px 0; }
 .exp-seats .fill { display: block; height: 100%; background: var(--confirma); border-radius: 0 4px 4px 0; }
