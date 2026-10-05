@@ -41,6 +41,8 @@ export function parseApuracao(json) {
       votos: brNumber(x.vap), pct: share(x.pvap),
       // "e" only highlights the row. What it means ("Eleito", "2º turno"...) is the TSE's own text in "st".
       destaque: str(x.e).toLowerCase() === "s", situacao: str(x.st), seq: brNumber(x.seq),
+      // Same key as `partidos`: it ties a candidate to the list that holds the seats.
+      lista: str(a.com || a.nm),
     }))))
     .sort((a, b) => b.votos - a.votos || a.seq - b.seq)
     .map(({ seq, ...rest }) => rest);

@@ -1,13 +1,15 @@
 // Owns the polling and the view state of the Apuração tab; app.js only says which race is on screen.
 // One feed follows the open race (scoreboard and charts); a second one follows every state while the
-// map is open, so a closed map costs no requests.
+// map, the Chamber or the president's Projeção is open, so a closed one costs no requests.
 import { createFeed } from "./apuracao-feed.js";
-import { createBrasilFeed } from "./apuracao-uf.js";
+import { createBrasilFeed, ufsDo } from "./apuracao-uf.js";
 import { tseUrl } from "./apuracao-tse.js";
 import { registrar } from "./apuracao-graficos.js";
 import { createCores } from "./apuracao-nacional.js";
 import { PALETA, RESTO } from "./apuracao-mapa.js";
-import { relogio, repaint, semRelogio } from "./apuracao-dom.js";
+import { idade, relogio, repaint, semRelogio } from "./apuracao-dom.js";
+import { createProjecao } from "./apuracao-projecao-estado.js";
+import { atualizar, vazio } from "./apuracao-novidades.js";
 import { renderApuracao, vistasDe } from "./apuracao.js";
 
 const PAGE = 40;
@@ -17,6 +19,7 @@ export function mountApuracao(el) {
   let snap = null;
   let nac = null;
   let hist = [];
+  let novidades = vazio();
   let limit = PAGE;
   let vista = "placar";
   let modoMapa = "lider";
@@ -26,6 +29,7 @@ export function mountApuracao(el) {
   let painted = null;
   let raf = 0;
   const cor = createCores(PALETA, RESTO);
+  const projecao = createProjecao(); // the drift it measures is only seen while this tab is open
   const corCamara = createCores(PALETA, RESTO); // its own memory: lists are named differently from parties and would eat the map's colours
   // A live region must exist before its text changes, so it lives outside the redrawn area.
   const anuncio = document.createElement("div");
@@ -33,19 +37,42 @@ export function mountApuracao(el) {
   anuncio.setAttribute("aria-live", "polite");
   el.after(anuncio);
 
+  const nacional = () => !!ctx && (vista === "mapa" || vista === "camara" || (vista === "projecao" && ctx.cargo === "Presidente"));
+  // The president's projection sums the 28 state files, so it waits for every one to answer once: fewer would pass a few
+  // states off as the country. A governor's is its one file.
+  const projDe = () => {
+    if (vista !== "projecao" || !ctx) return null;
+    const presidente = ctx.cargo === "Presidente";
+    if (presidente && !(nac?.ciclo >= 1)) return null;
+    const velha = (s) => s === "erro" || s === "ausente"; // same rule as linhasUf#defasada: the feed keeps the last numbers
+    const fontes = presidente ? Object.entries(nac.ufs).map(([id, u]) => [id, u.dados, velha(u.status)]) : [[ctx.uf, snap?.dados ?? null, velha(snap?.status)]];
+    return { ...projecao.ler(fontes), esperadas: presidente ? ufsDo(ctx.cargo).length : 1 };
+  };
+
   const paint = () => {
     if (!ctx) return;
-    const html = renderApuracao({ ...ctx, snap, nac, hist, limit, vista, modoMapa, selUf, mapa, cor: vista === "camara" ? corCamara : cor });
+    const html = renderApuracao({ ...ctx, snap, nac, proj: projDe(), hist, novidades: novidades.itens, limit, vista, modoMapa, selUf, mapa, cor: vista === "camara" ? corCamara : cor });
     const key = semRelogio(html);
     const quando = el.querySelector("#apu-quando");
-    if (key === painted && quando) { quando.textContent = relogio(html) ?? quando.textContent; return; }
+    if (key === painted && quando) {
+      quando.textContent = relogio(html) ?? quando.textContent;
+      const i = el.querySelector("#apu-idade");
+      if (i) i.textContent = idade(html) ?? i.textContent;
+      return;
+    }
     painted = key;
     repaint(el, html);
   };
   // The national feed reports once per state: draw at most once per frame.
   const agendar = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; paint(); }); };
 
-  const feed = createFeed({ onChange: (s) => { snap = s; if (s.dados && s.status === "ok") hist = registrar(hist, s.dados); paint(); } });
+  const feed = createFeed({
+    onChange: (s) => {
+      snap = s;
+      if (s.dados && s.status === "ok") { hist = registrar(hist, s.dados); if (ctx) novidades = atualizar(novidades, s.dados, ctx); }
+      paint();
+    },
+  });
   const brasil = createBrasilFeed({ onChange: (s) => { nac = s; agendar(); } });
 
   const carregarMapa = () => {
@@ -59,7 +86,7 @@ export function mountApuracao(el) {
       .then(() => { buscandoMapa = false; paint(); });
   };
   const seguirMapa = () => {
-    if ((vista === "mapa" || vista === "camara") && ctx) { if (vista === "mapa") carregarMapa(); brasil.follow(ctx.cargo); } else { brasil.stop(); nac = null; }
+    if (nacional()) { if (vista === "mapa") carregarMapa(); brasil.follow(ctx.cargo); } else { brasil.stop(); nac = null; }
   };
   const escolher = (uf) => {
     selUf = selUf === uf ? null : uf;
@@ -81,12 +108,12 @@ export function mountApuracao(el) {
     const t = e.target.closest?.("path[data-uf]");
     if (t && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); escolher(t.dataset.uf); }
   });
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) { feed.refresh(); if (vista === "mapa" || vista === "camara") brasil.refresh(); } });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { feed.refresh(); if (nacional()) brasil.refresh(); } });
 
   return {
     show(next) {
       const outra = !ctx || ctx.cargo !== next.cargo || ctx.uf !== next.uf;
-      if (outra) { limit = PAGE; hist = []; }
+      if (outra) { limit = PAGE; hist = []; novidades = vazio(); projecao.reiniciar(); }
       if (!ctx || ctx.cargo !== next.cargo) selUf = null; // the national map keeps its selection when only the state of the ballot changes
       ctx = next;
       if (!vistasDe(next.cargo).includes(vista)) vista = "placar";

@@ -5,18 +5,8 @@ import { renderApuracao, semRelogio, vistasDe } from "./apuracao.js";
 import { registrar } from "./apuracao-graficos.js";
 import { createCores } from "./apuracao-nacional.js";
 import { PALETA } from "./apuracao-mapa.js";
+import { avatar, byId, cand, dois, file } from "./apuracao-fixtures.js";
 
-const cand = (sqcand, n, nmu, seq, vap, pvap, e = "n", st = "") => ({ n, sqcand, nm: nmu, nmu, seq, e, st, vap, pvap });
-const file = ({ cargo = {}, s = {}, v = {}, cands = [], agr } = {}) => ({
-  dg: "04/10/2026", hg: "19:41:07",
-  s: { ts: "1000", st: "400", ...s },
-  e: { te: "500000", est: "200000", c: "160000", a: "40000" },
-  v: { tv: "160000", vvc: "140000", vv: "140000", vb: "8000", tvn: "12000", ...v },
-  carg: [{ cd: "3", nmn: "Governador", nv: "1", agr: agr ?? [{ n: "1", nm: "A", com: "AAA", par: [{ n: "10", sg: "AAA", cand: cands }] }], ...cargo }],
-});
-const dois = [cand("a1", "10", "ANA SOUZA", "1", "6000", "60,00", "s", "Eleito"), cand("b2", "20", "BETO LIMA", "2", "4000", "40,00", "n", "Não eleito")];
-const avatar = (c) => `<i class="av">${c.id}</i>`;
-const byId = new Map([["a1", { id: "a1" }]]);
 const view = (json, over = {}) => renderApuracao({ snap: { status: "ok", dados: parseApuracao(json), buscadoEm: new Date("2026-10-04T20:15:30"), erro: null, ...over }, cargo: "Governador", uf: "SP", byId, avatar, limit: 40 });
 
 describe("semRelogio", () => {
@@ -70,7 +60,7 @@ describe("renderApuracao", () => {
     const html = view(file({ cands: [cand("a1", "10", "ANA", "1", "6000", "60,00", "s", "2º turno"), cand("b2", "20", "BETO", "2", "4000", "40,00", "s", "")] }));
     expect(html).toContain(">2º turno</span>");
     expect(html.match(/class="rot (alta|baixa)"/g)).toHaveLength(2); // one row with text, printed under the name and in its column; the empty row has none
-    expect(html.split("<details")[0]).not.toMatch(/venceu|vencedor|eleit[oa]/i); // the how-to-read text below may mention them
+    expect(html.split("<details")[0]).not.toMatch(/venceu|vencedor|\beleit[oa]s?\b/i); // the how-to-read text below may mention them; "eleitores" (voters) is not a winner
   });
 
   test("the status column exists only once the TSE has marked someone", () => {
@@ -183,6 +173,7 @@ describe("renderApuracao", () => {
       expect(html).toContain("fora da faixa por enquanto");
       expect(html).toContain("dentro da faixa por enquanto");
       expect(html).toContain("1 de 2 candidatos com 3% ou mais nas pesquisas está dentro da faixa de 90%");
+      expect(html).toContain('<span class="faixa-txt">dentro da faixa por enquanto</span>'); // its own line under the name on a phone
     });
 
     test("a concluded count reads the gap as the result against the polls", () => {
@@ -227,11 +218,12 @@ describe("vistas (Placar, Mapa, Gráficos)", () => {
   const ver = (over = {}) => renderApuracao({ snap: { status: "ok", dados: parsed(), buscadoEm: new Date("2026-10-04T20:15:30"), erro: null }, cargo: "Governador", uf: "SP", byId, avatar, limit: 40, cor: createCores(PALETA), mapa, ...over });
 
   test("the map exists for the offices that have a state-by-state race, and the charts for all", () => {
-    expect(vistasDe("Presidente")).toEqual(["placar", "mapa", "graficos"]);
-    expect(vistasDe("Governador")).toEqual(["placar", "mapa", "graficos"]);
-    expect(vistasDe("Senador")).toEqual(["placar", "mapa", "graficos"]);
-    expect(vistasDe("Deputado Federal")).toEqual(["placar", "camara", "graficos"]); // the Chamber is the one national picture for deputies
-    expect(vistasDe("Deputado Estadual")).toEqual(["placar", "graficos"]);
+    expect(vistasDe("Presidente")).toEqual(["placar", "mapa", "projecao", "graficos"]);
+    expect(vistasDe("Governador")).toEqual(["placar", "mapa", "projecao", "graficos"]);
+    expect(vistasDe("Senador")).toEqual(["placar", "mapa", "graficos"]); // two votes per voter: the one-seat arithmetic does not apply
+    expect(vistasDe("Deputado Federal")).toEqual(["placar", "cadeiras", "camara", "graficos"]); // the Chamber is the one national picture for deputies
+    expect(vistasDe("Deputado Estadual")).toEqual(["placar", "cadeiras", "graficos"]);
+    expect(vistasDe("Deputado Distrital")).toEqual(["placar", "cadeiras", "graficos"]);
   });
 
   test("the sub-navigation marks the open view; the default is the scoreboard", () => {

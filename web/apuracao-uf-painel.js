@@ -71,6 +71,6 @@ export function tabelaUf(linhas, { cargo, corridas, sel }) {
   });
   return `<div class="scroll"><table class="exp-bars apu-ufs">
     <caption class="sr">Resultado por estado, em ordem alfabética</caption>
-    <thead><tr><th scope="col">Estado</th><th scope="col">Seções totalizadas</th><th scope="col">Líder</th><th scope="col" class="num mg-col">${ultima ? "Margem na última vaga" : "Margem"}</th>${temPesquisa ? `<th scope="col">Líder nas pesquisas</th>` : ""}</tr></thead>
+    <thead><tr><th scope="col">Estado</th><th scope="col">Seções<span class="sr"> totalizadas</span></th><th scope="col">Líder</th><th scope="col" class="num mg-col">${ultima ? "Margem na última vaga" : "Margem"}</th>${temPesquisa ? `<th scope="col">Líder nas pesquisas</th>` : ""}</tr></thead>
     <tbody>${linhasHtml.join("")}</tbody></table></div>`;
 }

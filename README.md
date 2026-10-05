@@ -146,13 +146,35 @@ enquanto a aba está aberta e visível.
   à frente do primeiro de fora mesmo que ele leve todos os votos que faltam. Proporcionais nunca; arquivo de estado do
   Presidente nunca (é uma fatia). O texto do TSE ("Eleito") sempre vale mais: se ele existe, a etiqueta do Radar não aparece,
   e se o TSE diz outra coisa sobre quem a conta escolheu, o Radar não afirma nada.
+- **"Segundo turno garantido"** (`apuracao-eleito.js#segundoTurno`, Presidente nacional e Governador): a mesma prova do pior caso
+  para o 1º turno. O mais votado não passa de 50% dos votos válidos nem se todos os eleitores das seções que faltam votassem
+  nele (`votos + falta ≤ (base + falta) / 2`, com `base` = o **menor** entre `vv` e a soma dos candidatos: aqui a base menor é a
+  segura). A dupla só é dada como fechada se o terceiro não alcança o segundo nem com todos os votos que faltam
+  (`votos 2º − votos 3º > falta`); senão a tela diz que o 2º turno é certo mas o segundo lugar está aberto. Se o TSE marcou
+  "Eleito" em alguém, ou "2º turno" em quem a conta não escolheu (ou enquanto a dupla ainda está em aberto: o TSE já sabe
+  mais que a conta), o Radar não afirma nada. É sempre "conta do Radar, não é a
+  marcação do TSE", e a tela cita o arquivo do TSE em que a conta vale (não diz "às 20h55").
 - **Comparação com pesquisas** (`apuracao-pesquisa.js`): Presidente, Governador e Senador. Mesma base (votos válidos),
   seta sem cor (acima ou abaixo da pesquisa não é bom nem ruim) e "dentro/fora da faixa de 90%". Com a apuração parcial a
   tela diz que a diferença pode refletir quais urnas já entraram, além do erro da pesquisa ("dentro/fora da faixa por
   enquanto"). No Senado cada eleitor vota em até 2 nomes: a nota avisa que as % são de votos, não de eleitores.
   Deputados não têm pesquisa.
-- **Visões** (botões Placar / Mapa / Câmara / Gráficos dentro da aba):
-  - *Placar*: a tabela de candidatos da disputa aberta, com a comparação com as pesquisas.
+- **Visões** (botões Placar / Mapa / Projeção / Cadeiras / Câmara / Gráficos dentro da aba):
+  - *Placar*: a tabela de candidatos da disputa aberta, com a comparação com as pesquisas. Mostra a idade do arquivo do TSE
+    ("há 2 min") e, com a apuração aberta e mais de 10 min sem arquivo novo, um aviso de que a pausa é do TSE (`apuracao-ritmo.js`).
+    Em Presidente e Governador traz o **duelo** (`apuracao-duelo.js`): os dois mais votados numa barra com a linha dos 50% dos
+    votos válidos, quanto falta a cada um para 50%, a diferença em pontos e em votos e os eleitores das seções que faltam
+    (a barra tem o texto equivalente ao lado). E **Últimas atualizações** (`apuracao-novidades.js`): uma linha por marco da
+    apuração (a cada 5 pontos de seções, depois a cada ponto a partir de 90%) e por mudança (o TSE marcou um `st`, uma prova do
+    Radar passou a valer), na hora do arquivo do TSE; só em memória, some ao fechar a aba.
+  - *Projeção* (Presidente e Governador): para onde a apuração caminha, **em percentual de votos válidos, nunca em vencedor**
+    (`apuracao-projecao.js`, `apuracao-projecao-view.js`). Mostra hoje × projeção com faixa de 5% a 95%, quanto dos votos que
+    faltam cada um precisaria para passar de 50%, a chance de decidir no 1º turno e de ir ao 2º, o gráfico "O que falta apurar"
+    por estado e a conta aberta do 2º turno (quanto dos votos dos demais o segundo colocado precisaria; sem probabilidade de
+    vencer, de propósito). As fórmulas estão na tela ("Como calculamos") e a tela diz que é estimativa do Radar, não resultado.
+    O Presidente soma os 28 arquivos (precisa de todos terem respondido uma vez e avisa quando usa menos).
+  - *Cadeiras* (Deputado Federal, Estadual e Distrital): quem ocupa cada vaga de cada lista com os votos de agora, os dois primeiros
+    de fora e as listas em que a última vaga está apertada (`apuracao-cadeiras.js`). Leitura da contagem, não resultado: vale o "Eleito" do TSE.
   - *Mapa* (Presidente, Governador, Senador): 27 estados em SVG (`apuracao-mapa.js`; Presidente soma também o arquivo do
     exterior, `zz`). Modos: quem lidera (cor = partido do líder, tom = % do líder), margem (no Senado, na última vaga),
     andamento da apuração e, para Governador e Senador, contra a pesquisa (líder igual ou diferente; diferente aparece
@@ -162,7 +184,7 @@ enquanto a aba está aberta e visível.
     nos 27 estados; vagas ainda sem lista ficam em cinza. Não há comparação com pesquisa (deputado não tem).
   - *Gráficos*: eleitorado das seções apuradas (válidos, brancos, nulos, abstenção), apuração × faixa de 90% das pesquisas
     por candidato e evolução das parcelas desde que a aba foi aberta (só em memória, um ponto por versão de arquivo do TSE).
-- **Custo de rede:** o mapa e a Câmara leem 27 arquivos (28 com o exterior) a cada 60 s, no máximo 6 ao mesmo tempo e só com a
+- **Custo de rede:** o mapa, a Câmara e a Projeção do Presidente leem 27 arquivos (28 com o exterior) a cada 60 s, no máximo 6 ao mesmo tempo e só com a
   aba visível; fora dessas visões é um arquivo só. Os arquivos têm cache de 20 a 45 s e vão com revalidação por ETag.
 - **Pesquisa por estado:** `expectativa.json` traz `lideres` (3 primeiros por média) em cada corrida, gerado no `radar:build`.
   Sem esse campo (build antigo) o modo "Contra a pesquisa" some. Presidente só tem pesquisa nacional: não há modo por estado.
