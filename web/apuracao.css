@@ -130,7 +130,7 @@
 .apu-ufs .rot.mat { display: block; width: fit-content; }
 .apu .mat-nome { display: block; }
 .apu-top li.eleito { padding: 4px 6px 4px 10px; background: color-mix(in srgb, var(--confirma) 11%, var(--surface)); box-shadow: inset 4px 0 0 var(--confirma); border-radius: 4px; }
-.apu-decidido { margin: 0; padding: 10px 12px; font-size: 14px; background: var(--sunk); border-left: 4px solid var(--confirma); border-radius: 0 6px 6px 0; }
+.apu-decidido { @apply m-0 rounded-r-md border-l-4 border-confirma bg-sunk px-3 py-2.5; font-size: 14px; }
 
 /* Projeção and Cadeiras: the Radar's own arithmetic. The notice is orange, apart from the green of "Matematicamente eleito" (a proof) */
 .apu-aviso { margin: 0; padding: 10px 12px; font-size: 14px; background: var(--sunk); border-left: 4px solid var(--corrige); border-radius: 0 6px 6px 0; }
@@ -179,15 +179,15 @@
 }
 
 /* Head-to-head bar and list of updates. The line at 50% is ink with a surface halo, so it reads over any party colour */
-.apu-duelo { display: flex; flex-direction: column; gap: 8px; }
-.apu-duelo-trilho { position: relative; padding: 4px 0; }
-.apu-duelo-bar { display: flex; height: 20px; border-radius: 4px; overflow: hidden; background: var(--sunk); border: 1px solid var(--line); }
-.apu-duelo-bar .seg { height: 100%; min-width: 2px; }
-.apu-duelo-bar .seg.resto { background: var(--line); flex: 1 1 auto; }
-.apu .key.resto { background: var(--line); }
-.apu-duelo-tick { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--ink); box-shadow: 0 0 0 1px var(--surface); }
-.apu-duelo-leg { flex-direction: column; align-items: flex-start; gap: 4px; }
-.apu-duelo-leg li { flex-wrap: wrap; }
+.apu-duelo { @apply flex flex-col gap-2; }
+.apu-duelo-trilho { @apply relative py-1; }
+.apu-duelo-bar { @apply flex h-5 overflow-hidden rounded border border-line bg-sunk; }
+.apu-duelo-bar .seg { @apply h-full min-w-0.5; }
+.apu-duelo-bar .seg.resto { @apply flex-auto bg-line; }
+.apu .key.resto { @apply bg-line; }
+.apu-duelo-tick { @apply absolute inset-y-0 left-1/2 -ml-px w-0.5 bg-ink; box-shadow: 0 0 0 1px var(--surface); }
+.apu-duelo-leg { @apply flex-col items-start gap-1; }
+.apu-duelo-leg li { @apply flex-wrap; }
 .apu-novidades { border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; background: var(--surface); }
 .apu-novidades summary { cursor: pointer; font-weight: 600; font-size: 14px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .apu-novidades summary small { font: 500 12px var(--mono); color: var(--muted); }
@@ -200,10 +200,10 @@
 .apu-novidades time { font: 600 12px var(--mono); color: var(--muted); padding-top: 2px; }
 
 /* The runoff notice: claim and label in view, the rule behind a fold */
-.apu-turno2 p { margin: 0; }
-.apu-turno2 summary { cursor: pointer; margin-top: 6px; padding: 4px 0; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.apu-turno2 p { @apply m-0; }
+.apu-turno2 summary { @apply mt-1.5 cursor-pointer py-1 font-semibold text-ink-2; font-size: 13px; }
 .apu-turno2 summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
-.apu-turno2 details p { margin-top: 6px; font-size: 13px; }
+.apu-turno2 details p { @apply mt-1.5; font-size: 13px; }
 .apu-duelo-leg .lg-fl::before { content: "· "; }
 
 /* Phones: the lead and the bar first, two columns of totals, touch targets of 44px, no label cut off by its bar */
