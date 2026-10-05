@@ -2,4 +2,4 @@
 *
 !src/radar/serve.ts
 !web/
-web/*.test.js
+web/*.test.ts

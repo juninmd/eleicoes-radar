@@ -20,6 +20,7 @@ const SKELETON = (page: string) => {
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">${head}</head><body>${body}</body></html>`;
 };
 const COMPRESSIBLE = /\.(html|js|css|json|svg)$/;
+const SOURCE = /\.ts[. ]*$|:/i;
 type Bytes = Uint8Array<ArrayBuffer>;
 const gz = new Map<string, Bytes>();
 const transpiled = new Map<string, Bytes>();
@@ -77,7 +78,8 @@ async function route(req: Request, root: string): Promise<Response> {
   if (path === "/health") return new Response("ok");
   const file = resolve(root, `.${path === "/" ? "/index.html" : path}`);
   if (!file.startsWith(root + sep)) return new Response("forbidden", { status: 403 });
-  if (file.endsWith(".ts")) return new Response("not found", { status: 404 }); // sources are served as modules (x.js), never as they are
+  // Sources are served as modules (x.js), never as they are. Windows opens "x.TS", "x.ts.", "x.ts " and "x.ts::$DATA" as x.ts.
+  if (SOURCE.test(file.slice(root.length))) return new Response("not found", { status: 404 });
   let source = file;
   if (!(await Bun.file(file).exists())) {
     const ts = file.endsWith(".js") ? `${file.slice(0, -3)}.ts` : "";

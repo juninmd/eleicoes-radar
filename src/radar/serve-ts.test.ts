@@ -35,6 +35,14 @@ describe("TypeScript sources served as modules", () => {
     for (const path of ["/app.ts", "/b.ts"]) expect((await get(path)).status).toBe(404);
   });
 
+  test("no spelling of the source path gets around it (Windows opens these as app.ts)", async () => {
+    for (const path of ["/app.TS", "/app.Ts", "/app.ts.", "/app.ts%20", "/app.ts/", "/app.ts::$DATA", "/app.ts:stream"]) {
+      const r = await get(path);
+      expect(r.status).toBe(404);
+      expect(await r.text()).not.toContain("interface Box");
+    }
+  });
+
   test("a real .js file wins over a .ts of the same name", async () => {
     expect(await (await get("/plain.js")).text()).toContain("plain = 1");
   });
@@ -63,7 +71,9 @@ describe("TypeScript sources served as modules", () => {
     expect(log).toHaveBeenCalledTimes(1);
     log.mockRestore();
     expect(r.status).toBe(500);
+    expect(await r.text()).toBe("transpile error"); // the compile error goes to the log, never to the client
     expect(r.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(r.headers.get("content-security-policy")).toContain("default-src 'none'");
   });
 
   test("a module that exists in neither form is a plain 404", async () => {

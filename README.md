@@ -18,6 +18,7 @@ bun run radar:panorama  # agregados das abas Partidos/Dinheiro/Perfil -> web/dat
 bun run radar:geo       # uma vez: malha dos estados (IBGE) -> web/mapa-uf.json (versionado; o mapa da Apuração usa)
 bun run radar:serve     # http://127.0.0.1:4173  (health: /health)
 bun test src/radar web
+bun run typecheck       # tsc estrito sobre src/radar e web (o web é TypeScript)
 ```
 
 ### Passo manual: TSE
