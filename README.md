@@ -17,6 +17,7 @@ bun run radar:build     # gera web/data/ (uf/<UF>.json, fotos/, expectativa.json
 bun run radar:panorama  # agregados das abas Partidos/Dinheiro/Perfil -> web/data/panorama.json (depois do build)
 bun run radar:geo       # uma vez: malha dos estados (IBGE) -> web/mapa-uf.json (versionado; o mapa da Apuração usa)
 bun run radar:serve     # http://127.0.0.1:4173  (health: /health)
+bun run css             # gera web/app.css (Tailwind v4 + as folhas); depois de editar um .css
 bun test src/radar web
 bun run typecheck       # tsc estrito sobre src/radar e web (o web é TypeScript)
 ```

@@ -1,5 +1,5 @@
 /* Source of web/app.css (bun run css). Tailwind v4 theme and utilities; Preflight stays off because styles.css owns the base.
-   The hand-written sheets are imported into the components layer, so a utility in markup wins over them and nothing else changes.
+   The hand-written sheets are imported into the components layer, so a utility in markup wins over them and nothing visible changes (the build also adds @supports fallbacks and drops rules another sheet overrides).
    No source scanning on purpose: it reads every word of the .ts templates and emitted .grid, .hidden and .table, and the SVG
    <line class="grid"> of the charts is one of the class names it would have hijacked. To use utilities in markup, opt that file
    in with @source "./web/<file>.ts" and read the diff of web/app.css. In the sheets, @apply works as it is. */

@@ -10,6 +10,7 @@
     "radar:serve": "bun run src/radar/serve.ts",
     "test": "bun test src/radar web",
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "css": "tailwindcss -i tailwind.css -o web/app.css --minify",
     "radar:polls": "bun run src/radar/polls/fetch-polls.ts",
     "radar:model": "bun run src/radar/model/train.ts",
     "radar:profiles": "bun run src/radar/profiles/fetch-profiles.ts",
