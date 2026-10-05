@@ -2,40 +2,72 @@
 // directly: the TSE answers CORS for any origin, so there is no proxy and no server-side fetch.
 export const TSE_BASE = "https://resultados.tse.jus.br/oficial/ele2026";
 
-const CARGOS = { Presidente: 1, Governador: 3, Senador: 5, "Deputado Federal": 6, "Deputado Estadual": 7, "Deputado Distrital": 8 };
+const CARGOS = { Presidente: 1, Governador: 3, Senador: 5, "Deputado Federal": 6, "Deputado Estadual": 7, "Deputado Distrital": 8 } as const;
+export type Cargo = keyof typeof CARGOS;
 // 1st-round election codes (config/ele-c.json, pleito 3220). The runoff uses 6258 (president) and 6260.
-const eleicao = (cargo) => (cargo === 1 ? 6257 : 6259);
-const pad = (n, w) => String(n).padStart(w, "0");
+const eleicao = (cargo: number) => (cargo === 1 ? 6257 : 6259);
+const pad = (n: number, w: number) => String(n).padStart(w, "0");
 
 // Both parts are validated: the URL is built only from a known office and a two-letter UF.
-export function tseUrl(cargo, uf, base = TSE_BASE) {
+export function tseUrl(cargo: string, uf: string, base = TSE_BASE): string {
   const sigla = String(uf).toLowerCase();
   if (!Object.hasOwn(CARGOS, cargo)) throw new Error(`cargo desconhecido: ${cargo}`);
-  const cd = CARGOS[cargo];
+  const cd = CARGOS[cargo as Cargo];
   if (!/^[a-z]{2}$/.test(sigla)) throw new Error(`UF inválida: ${uf}`);
   return `${base}/${eleicao(cd)}/dados/${sigla}/${sigla}-c${pad(cd, 4)}-e${pad(eleicao(cd), 6)}-u.json`;
 }
 
 // The files carry every number as a string, with a decimal comma for percentages.
-export function brNumber(v) {
+export function brNumber(v: unknown): number {
   const n = Number(String(v ?? "").replace(",", "."));
   return Number.isFinite(n) ? n : 0;
 }
 
-const str = (v) => (v === null || v === undefined ? "" : String(v));
-const list = (v) => (Array.isArray(v) ? v : []);
+const str = (v: unknown): string => (v === null || v === undefined ? "" : String(v));
+const list = <T>(v: T[] | undefined): T[] => (Array.isArray(v) ? v : []);
+
+// The raw TSE file, as far as the parser reads it: every field may be missing and every number is a string.
+type Raw = string | number | null | undefined;
+interface RawCand { sqcand?: Raw; n?: Raw; nmu?: string; nm?: string; vap?: Raw; pvap?: Raw; e?: Raw; st?: Raw; seq?: Raw }
+interface RawAgr { com?: string; nm?: string; vag?: Raw; par?: { sg?: string; cand?: RawCand[] }[] }
+interface RawFile {
+  carg?: { cd?: Raw; nmn?: string; nv?: Raw; qe?: Raw; agr?: RawAgr[] }[];
+  s?: { ts?: Raw; st?: Raw };
+  e?: { te?: Raw; est?: Raw; c?: Raw; a?: Raw };
+  v?: { tv?: Raw; vv?: Raw; vvc?: Raw; vb?: Raw; tvn?: Raw };
+  dg?: Raw;
+  hg?: Raw;
+}
+
+export interface Candidato {
+  id: string; num: string; nome: string; partido: string; votos: number; pct: number;
+  destaque: boolean; situacao: string; lista: string;
+}
+export type Fase = "aguardando" | "parcial" | "concluida";
+export interface Apuracao {
+  versao: { data: string; hora: string };
+  cargo: { codigo: string; nome: string; vagas: number };
+  fase: Fase;
+  secoes: { total: number; totalizadas: number };
+  eleitorado: { apto: number; apurado: number; comparecimento: number; abstencao: number };
+  votos: { total: number; validos: number; brancos: number; nulos: number };
+  quociente: number | null;
+  candidatos: Candidato[];
+  partidos: { nome: string; vagas: number }[];
+}
 
 // Share published by the TSE (two decimals) as a 0..1 fraction.
-const share = (pvap) => Math.round(brNumber(pvap) * 100) / 1e4;
+const share = (pvap: unknown) => Math.round(brNumber(pvap) * 100) / 1e4;
 
 // Turns a TSE results file into what the view needs. Returns null when the file is not a
 // results file, so a changed layout shows a message instead of a broken page.
-export function parseApuracao(json) {
-  const c = json?.carg?.[0];
+export function parseApuracao(json: unknown): Apuracao | null {
+  const file = json as RawFile | null | undefined;
+  const c = file?.carg?.[0];
   if (!c || typeof c !== "object" || !Array.isArray(c.agr)) return null;
-  const { s, e, v } = json;
+  const { s, e, v } = file!;
 
-  const candidatos = c.agr
+  const candidatos: Candidato[] = c.agr
     .flatMap((a) => list(a.par).flatMap((p) => list(p.cand).map((x) => ({
       id: str(x.sqcand), num: str(x.n), nome: str(x.nmu || x.nm), partido: str(p.sg),
       votos: brNumber(x.vap), pct: share(x.pvap),
@@ -57,7 +89,7 @@ export function parseApuracao(json) {
   const fase = secoes.totalizadas === 0 && votos.total === 0 ? "aguardando" : secoes.total > 0 && secoes.totalizadas >= secoes.total ? "concluida" : "parcial";
 
   return {
-    versao: { data: str(json.dg), hora: str(json.hg) },
+    versao: { data: str(file!.dg), hora: str(file!.hg) },
     cargo: { codigo: str(c.cd), nome: str(c.nmn), vagas: brNumber(c.nv) },
     fase,
     secoes,
