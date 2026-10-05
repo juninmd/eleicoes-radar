@@ -1,6 +1,8 @@
 // Serves web/ locally and in production (Docker). index.html is authored as an
 // artifact body (no <html>/<head>), so it is wrapped in the skeleton the artifact host adds.
-// Files are immutable inside an image, so gzip output is cached in memory.
+// The page is authored in TypeScript: a module the browser asks for as /x.js is served from x.ts, transpiled on demand
+// (no build step, so the Dockerfile and the CSP stay as they were). Gzip and transpiled output are cached in memory,
+// keyed by file and mtime, so an edited source is never served stale.
 import { resolve, sep } from "node:path";
 
 const ROOT = resolve(process.env.WEB_ROOT ?? "web");
@@ -18,7 +20,11 @@ const SKELETON = (page: string) => {
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">${head}</head><body>${body}</body></html>`;
 };
 const COMPRESSIBLE = /\.(html|js|css|json|svg)$/;
-const gz = new Map<string, Uint8Array>();
+const SOURCE = /\.ts[. ]*$|:/i;
+type Bytes = Uint8Array<ArrayBuffer>;
+const gz = new Map<string, Bytes>();
+const transpiled = new Map<string, Bytes>();
+const TS = new Bun.Transpiler({ loader: "ts" });
 
 // default-src 'none' and only what the page uses: its own files, photos as data: URIs, and the live TSE results feed.
 // style-src keeps 'unsafe-inline' because charts and bars set widths through style attributes; scripts stay 'self' only.
@@ -47,16 +53,21 @@ const secure = (r: Response): Response => {
   return r;
 };
 
-async function body(file: string): Promise<Uint8Array> {
+async function body(file: string): Promise<Bytes> {
   const f = Bun.file(file);
   return file.endsWith("index.html") ? new TextEncoder().encode(SKELETON(await f.text())) : new Uint8Array(await f.arrayBuffer());
 }
 
-export async function handle(req: Request): Promise<Response> {
-  return secure(await route(req));
+async function compile(source: string, key: string): Promise<Bytes> {
+  let out = transpiled.get(key);
+  if (!out) transpiled.set(key, (out = new TextEncoder().encode(TS.transformSync(await Bun.file(source).text()))));
+  return out;
 }
 
-async function route(req: Request): Promise<Response> {
+export const handleAt = (root: string) => async (req: Request): Promise<Response> => secure(await route(req, resolve(root)));
+export const handle = handleAt(ROOT);
+
+async function route(req: Request, root: string): Promise<Response> {
   if (req.method !== "GET" && req.method !== "HEAD") return new Response("method not allowed", { status: 405, headers: { Allow: "GET, HEAD" } });
   let path: string;
   try {
@@ -65,9 +76,26 @@ async function route(req: Request): Promise<Response> {
     return new Response("bad request", { status: 400 });
   }
   if (path === "/health") return new Response("ok");
-  const file = resolve(ROOT, `.${path === "/" ? "/index.html" : path}`);
-  if (!file.startsWith(ROOT + sep)) return new Response("forbidden", { status: 403 });
-  if (!(await Bun.file(file).exists())) return new Response("not found", { status: 404 });
+  const file = resolve(root, `.${path === "/" ? "/index.html" : path}`);
+  if (!file.startsWith(root + sep)) return new Response("forbidden", { status: 403 });
+  // Sources are served as modules (x.js), never as they are. Windows opens "x.TS", "x.ts.", "x.ts " and "x.ts::$DATA" as x.ts.
+  if (SOURCE.test(file.slice(root.length))) return new Response("not found", { status: 404 });
+  let source = file;
+  if (!(await Bun.file(file).exists())) {
+    const ts = file.endsWith(".js") ? `${file.slice(0, -3)}.ts` : "";
+    if (!ts || !(await Bun.file(ts).exists())) return new Response("not found", { status: 404 });
+    source = ts;
+  }
+  const key = `${source}:${Bun.file(source).lastModified}`;
+  let compiled: Bytes | undefined;
+  if (source !== file) {
+    try {
+      compiled = await compile(source, key);
+    } catch (e) {
+      console.error(`transpile ${source}: ${e}`);
+      return new Response("transpile error", { status: 500 });
+    }
+  }
 
   const html = file.endsWith(".html");
   const headers = new Headers({
@@ -77,12 +105,12 @@ async function route(req: Request): Promise<Response> {
     Vary: "Accept-Encoding",
   });
   if (COMPRESSIBLE.test(file) && /\bgzip\b/.test(req.headers.get("accept-encoding") ?? "")) {
-    let z = gz.get(file);
-    if (!z) gz.set(file, (z = Bun.gzipSync(await body(file))));
+    let z = gz.get(key);
+    if (!z) gz.set(key, (z = Bun.gzipSync(compiled ?? (await body(file)))));
     headers.set("Content-Encoding", "gzip");
     return new Response(req.method === "HEAD" ? null : z, { headers });
   }
-  return new Response(req.method === "HEAD" ? null : await body(file), { headers });
+  return new Response(req.method === "HEAD" ? null : (compiled ?? (await body(file))), { headers });
 }
 
 if (import.meta.main) {

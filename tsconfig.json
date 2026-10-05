@@ -19,6 +19,6 @@
     "verbatimModuleSyntax": true,
     "isolatedModules": true
   },
-  "include": ["src/radar/**/*.ts", "web/**/*.js"],
+  "include": ["src/radar/**/*.ts", "web/**/*.ts"],
   "exclude": ["node_modules", "src/radar/fetch.ts", "src/radar/profiles/fetch-profiles.ts", "src/radar/suppliers/fetch-suppliers.ts", "src/radar/polls/fetch-polls.ts", "src/radar/model/train.ts"]
 }
