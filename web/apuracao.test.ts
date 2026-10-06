@@ -219,12 +219,12 @@ describe("vistas (Placar, Mapa, Gráficos)", () => {
   const ver = (over: Partial<RenderProps> = {}) => renderApuracao({ snap: { status: "ok", dados: parsed(), buscadoEm: new Date("2026-10-04T20:15:30"), erro: null }, cargo: "Governador", uf: "SP", byId, avatar, limit: 40, cor: createCores(PALETA), mapa, ...over });
 
   test("the map exists for the offices that have a state-by-state race, and the charts for all", () => {
-    expect(vistasDe("Presidente")).toEqual(["placar", "mapa", "projecao", "graficos"]);
-    expect(vistasDe("Governador")).toEqual(["placar", "mapa", "projecao", "graficos"]);
-    expect(vistasDe("Senador")).toEqual(["placar", "mapa", "graficos"]); // two votes per voter: the one-seat arithmetic does not apply
-    expect(vistasDe("Deputado Federal")).toEqual(["placar", "cadeiras", "camara", "graficos"]); // the Chamber is the one national picture for deputies
-    expect(vistasDe("Deputado Estadual")).toEqual(["placar", "cadeiras", "graficos"]);
-    expect(vistasDe("Deputado Distrital")).toEqual(["placar", "cadeiras", "graficos"]);
+    expect(vistasDe("Presidente")).toEqual(["placar", "linha", "mapa", "projecao", "graficos"]);
+    expect(vistasDe("Governador")).toEqual(["placar", "linha", "mapa", "projecao", "graficos"]);
+    expect(vistasDe("Senador")).toEqual(["placar", "linha", "mapa", "graficos"]); // two votes per voter: the one-seat arithmetic does not apply
+    expect(vistasDe("Deputado Federal")).toEqual(["placar", "linha", "cadeiras", "camara", "graficos"]); // the Chamber is the one national picture for deputies
+    expect(vistasDe("Deputado Estadual")).toEqual(["placar", "linha", "cadeiras", "graficos"]);
+    expect(vistasDe("Deputado Distrital")).toEqual(["placar", "linha", "cadeiras", "graficos"]);
   });
 
   test("the sub-navigation marks the open view; the default is the scoreboard", () => {

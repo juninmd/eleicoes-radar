@@ -10,6 +10,7 @@ import { PALETA, RESTO } from "./apuracao-mapa.js";
 import { idade, relogio, repaint, semRelogio } from "./apuracao-dom.js";
 import { createProjecao } from "./apuracao-projecao-estado.js";
 import { atualizar, vazio } from "./apuracao-novidades.js";
+import { atualizar as atualizarEleitos, vazio as vazioEleitos } from "./apuracao-eleitos.js";
 import { renderApuracao, vistasDe } from "./apuracao.js";
 import type { RenderProps, Vista } from "./apuracao.js";
 import type { FeedSnapshot } from "./apuracao-feed.js";
@@ -29,6 +30,7 @@ export function mountApuracao(el: HTMLElement) {
   let nac: BrasilSnapshot | null = null;
   let hist: Ponto[] = [];
   let novidades = vazio();
+  let eleitos = vazioEleitos();
   let limit = PAGE;
   let vista: Vista = "placar";
   let modoMapa = "lider";
@@ -60,7 +62,7 @@ export function mountApuracao(el: HTMLElement) {
 
   const paint = () => {
     if (!ctx) return;
-    const html = renderApuracao({ ...ctx, snap, nac, proj: projDe(), hist, novidades: novidades.itens, limit, vista, modoMapa, selUf, mapa, cor: vista === "camara" ? corCamara : cor });
+    const html = renderApuracao({ ...ctx, snap, nac, proj: projDe(), hist, novidades: novidades.itens, eleitos, limit, vista, modoMapa, selUf, mapa, cor: vista === "camara" ? corCamara : cor });
     const key = semRelogio(html);
     const quando = el.querySelector<HTMLElement>("#apu-quando");
     if (key === painted && quando) {
@@ -78,7 +80,7 @@ export function mountApuracao(el: HTMLElement) {
   const feed = createFeed({
     onChange: (s) => {
       snap = s;
-      if (s.dados && s.status === "ok") { hist = registrar(hist, s.dados); if (ctx) novidades = atualizar(novidades, s.dados, ctx); }
+      if (s.dados && s.status === "ok") { hist = registrar(hist, s.dados); if (ctx) { novidades = atualizar(novidades, s.dados, ctx); eleitos = atualizarEleitos(eleitos, s.dados, ctx); } }
       paint();
     },
   });
@@ -122,7 +124,7 @@ export function mountApuracao(el: HTMLElement) {
   return {
     show(next: Contexto) {
       const outra = !ctx || ctx.cargo !== next.cargo || ctx.uf !== next.uf;
-      if (outra) { limit = PAGE; hist = []; novidades = vazio(); projecao.reiniciar(); }
+      if (outra) { limit = PAGE; hist = []; novidades = vazio(); eleitos = vazioEleitos(); projecao.reiniciar(); }
       if (!ctx || ctx.cargo !== next.cargo) selUf = null; // the national map keeps its selection when only the state of the ballot changes
       ctx = next;
       if (!vistasDe(next.cargo).includes(vista)) vista = "placar";

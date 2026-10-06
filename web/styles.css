@@ -353,3 +353,20 @@ body.sobre .metodo > :nth-child(3) { animation-delay: 0.08s; } body.sobre .metod
   #dossie .dhead { position: sticky; top: calc(env(safe-area-inset-top, 0px) - 20px); z-index: 2; background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(10px); padding-block: 10px; margin-block: -10px; }
 }
 @media (max-width: 860px) { #estado-box .check { order: 3; } #estado-box .field { flex: 1 1 130px; min-width: 0; } }
+
+/* Mobile: nothing is cut off at the edge. Rows that used to scroll sideways (view tabs, ballots, summary cards, Apuração views) wrap into a grid. */
+@media (max-width: 860px) {
+  body #modos { position: static; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; overflow: visible; border-radius: var(--r-lg); padding: 4px; backdrop-filter: none; }
+  body #modos button { min-width: 0; padding: 8px 2px; font-size: 12px; letter-spacing: 0; line-height: 1.15; white-space: normal; text-align: center; overflow-wrap: anywhere; hyphens: auto; }
+  #cedulas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: visible; gap: 6px; }
+  #cedulas button { min-width: 0; padding: 8px 10px; gap: 4px; }
+  #cedulas .tname { font-size: 15px; overflow-wrap: anywhere; }
+  #cedulas .digits i { width: 9px; height: 12px; }
+  #achados { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: visible; }
+  #achados div { flex: none; min-width: 0; padding: 10px 12px; }
+  #achados span { overflow-wrap: anywhere; }
+  #retrato { display: block; white-space: normal; overflow: visible; text-overflow: clip; }
+  .apu .apu-vistas { display: grid; overflow: visible; border: 0; gap: 6px; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
+  .apu .apu-vistas button { min-height: 44px; padding: 6px 4px; border: 1px solid var(--line); border-radius: var(--r-md); }
+  .apu .apu-vistas button + button { border-left: 1px solid var(--line); }
+}
