@@ -278,3 +278,36 @@ body.has-dossie .wrap.layout { max-width: 1480px; }
 .pill, .tag { border-radius: 999px; }
 .btn-confirma { border-radius: 999px; }
 .dhead .num { border-radius: var(--r-md); }
+
+/* Redesign 2: compact bar, explanations on their own screen (#sobre), phone first. */
+.mast { padding-block: 14px; border-radius: 0 0 20px 20px; }
+.mast .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.mast h1 { font-size: clamp(26px, 5vw, 40px); line-height: 1; margin-right: auto; }
+.mast .when { text-align: left; font-size: 12px; background: var(--panel-2); padding: 4px 10px; border-radius: 999px; color: var(--panel-ink); }
+.sobre-link { font: 600 13px var(--body); color: var(--panel-ink); border: 1px solid var(--panel-2); border-radius: 999px; padding: 4px 12px; text-decoration: none; }
+.sobre-link:hover { border-color: var(--panel-muted); }
+.mast .tag-line { flex: 1 1 100%; margin: 0; font-size: 14px; }
+#retrato { flex: 1 1 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.layout { margin-top: 16px; }
+.legend { margin: 0 0 8px; }
+.voltar { grid-column: 1 / -1; font-weight: 700; text-decoration: none; color: var(--confirma); }
+body.sobre .layout { display: none; }
+body:not(.sobre) .metodo { display: none; }
+body.sobre .metodo { margin-top: 20px; }
+@media (max-width: 860px) {
+  body { padding-inline: 12px; }
+  .mast { margin-inline: -12px; padding-inline: 12px; }
+  body #modos { position: sticky; top: 0; z-index: 5; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; width: 100%; border-radius: 999px; background: var(--surface); box-shadow: var(--shadow); }
+  body #modos::-webkit-scrollbar { display: none; }
+  body #modos button { flex: 0 0 auto; padding: 11px 14px; font-size: 13px; min-height: 44px; }
+  .rail #estado-box { flex-direction: row; flex-wrap: wrap; align-items: end; gap: 8px 12px; padding: 12px; }
+  #estado-box h2 { flex: 1 1 100%; }
+  #estado-box .field { flex: 1 1 120px; }
+  #cedulas { display: flex; overflow-x: auto; scrollbar-width: none; min-height: 0; }
+  #cedulas button { flex: 0 0 auto; min-width: 120px; }
+  .cand { padding: 12px; }
+  .btn-confirma, #presets button, .ghost, select, input[type="search"] { min-height: 44px; }
+}
+@media (max-width: 860px) {
+  #estado-box .check { flex: 1 1 100%; }
+}

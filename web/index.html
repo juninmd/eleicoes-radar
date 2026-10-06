@@ -11,12 +11,11 @@
 
 <a class="skip" href="#principal">Pular para as candidaturas</a>
 <header class="mast">
-  <div class="wrap">
-    <div>
-      <h1>Radar do Voto <span>2026</span></h1>
-      <p>Quem já trabalhou, quanto custa e quem banca. <b>O Radar não diz em quem votar.</b> Ele cruza os dados oficiais do TSE e da Câmara, e você decide o que pesa mais. A nota olha para o que cada candidato fez; as fotos podem ser escondidas para uma avaliação às cegas.</p>
-    </div>
-    <div class="when">1º turno<b>04/10</b>domingo</div>
+  <div class="wrap bar">
+    <h1>Radar do Voto <span>2026</span></h1>
+    <span class="when">1º turno · 04/10</span>
+    <a class="sobre-link" href="#sobre">Como funciona</a>
+    <p class="tag-line">Dados oficiais, pesos seus. Não indicamos voto.</p>
     <p id="retrato">Carregando dados…</p>
   </div>
 </header>
@@ -38,7 +37,6 @@
     </div>
     <div class="box" id="pesos-box">
       <h2>O que pesa no seu voto</h2>
-      <p class="muted" style="font-size:12px;margin:0">Padrão: <b>Economia e liberdade</b>. Os indicadores de agenda usam votos reais em plenário; quem não tem mandato na Câmara fica no meio da escala.</p>
       <div id="presets" role="group" aria-label="Combinações prontas"></div>
       <div id="pesos"></div>
     </div>
@@ -86,7 +84,7 @@
         <option value="numero">Número</option>
       </select></label>
     </div>
-    <p class="legend">Nota de 0 a 100 com os seus pesos. Os pontos mostram quanto do peso tem dado real (●●● = todos os indicadores escolhidos). Indicador sem dado conta como mediano (50); sem dado nenhum, a nota fica em “–”. <a class="to-weights" href="#pesos-box">Ajustar o que pesa ↓</a></p>
+    <p class="legend">Nota 0–100 pelos seus pesos · ●●● = dado completo · <a class="to-weights" href="#pesos-box">Ajustar pesos ↓</a></p>
     <div id="sem-evidencia" class="hint" role="status" hidden>
       <p><b>Nenhuma candidatura desta cédula tem dado para os indicadores que você escolheu.</b> Agenda e mandato vêm de votos e gastos na Câmara, que quem disputa este cargo em geral não tem. Sem nota, a ordem “Nota técnica” e “Mais evidência” cai para a arrecadação.</p>
       <button type="button" class="btn-confirma" id="usar-campanha">Usar os pesos de Campanha</button>
@@ -101,8 +99,14 @@
   <aside id="dossie" hidden tabindex="-1" aria-label="Dossiê do candidato"></aside>
 </div>
 
-<section class="wrap metodo" aria-labelledby="metodo-t">
-  <h2 id="metodo-t">Como a nota é feita</h2>
+<section class="wrap metodo" id="sobre" aria-labelledby="metodo-t">
+  <a class="voltar" href="#">← Voltar ao radar</a>
+  <h2 id="metodo-t">Como funciona</h2>
+  <div>
+    <h3>Em uma frase</h3>
+    <p>A nota olha para o que cada candidato fez, com os pesos que você escolhe. Indicadores de agenda usam votos reais em plenário; quem não tem mandato na Câmara fica no meio da escala. Fotos podem ser escondidas para uma avaliação às cegas.</p>
+    <p>Nota de 0 a 100 com os seus pesos. Os pontos (●●●) mostram quanto do peso tem dado real. Indicador sem dado conta como mediano (50); sem dado nenhum, a nota fica em “–”.</p>
+  </div>
   <div>
     <h3>Fontes</h3>
     <ul>
