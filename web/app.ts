@@ -8,6 +8,7 @@ import { colaHtml, mountColaButtons } from "./cola-view.js";
 import { renderExpectativa } from "./expectativa.js";
 import { renderRede } from "./rede.js";
 import { mountApuracao } from "./apuracao-mount.js";
+import { mountAoVivo } from "./apuracao-aovivo.js";
 import { mountPanorama, PAN_MODES } from "./panorama.js";
 import { matches, SORTS, semEvidencia } from "./lista.js";
 import { achados } from "./achados.js";
@@ -48,7 +49,7 @@ const state: AppState = {
   cands: [],
   open: null,
   cola: normalizeCola(store.get("cola", {})),
-  modo: knownTab(store.get("modo", "radar"), ["radar", "expectativa", "rede", "apuracao", ...Object.keys(PAN_MODES)], "radar"),
+  modo: knownTab(store.get("modo", "radar"), ["radar", "expectativa", "rede", "aovivo", "apuracao", ...Object.keys(PAN_MODES)], "radar"),
   exp: null,
   pan: null,
   rede: null,
@@ -58,6 +59,7 @@ const state: AppState = {
 const $ = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelector<T>(s)!;
 const cache = new Map<string, Promise<unknown>>();
 const apuracao = mountApuracao($("#apu-view"));
+const aoVivo = mountAoVivo($("#live-view"));
 const panorama = mountPanorama($("#pan-view"));
 
 async function loadJson<T = unknown>(path: string): Promise<T> {
@@ -183,6 +185,18 @@ function raceOf() {
   return { cargo: (state.uf === "DF" && b.alt ? b.alt : b.cargo) as Cargo, uf: b.national ? "BR" : state.uf };
 }
 
+// From a card of the Ao vivo tab to that race in the Apuração tab.
+function abrirCorrida(cargo: Cargo) {
+  const i = BALLOTS.findIndex((b) => b.cargo === cargo || b.alt === cargo);
+  if (i < 0) return;
+  state.ballot = i;
+  state.modo = "apuracao";
+  state.limit = PAGE;
+  store.set("modo", state.modo);
+  renderTabs();
+  renderModo();
+}
+
 function renderModo() {
   for (const b of document.querySelectorAll<HTMLElement>("#modos [data-modo]")) b.setAttribute("aria-selected", String(b.dataset.modo === state.modo));
   syncTabs($("#modos"));
@@ -192,6 +206,9 @@ function renderModo() {
   $("#exp-view").hidden = state.modo !== "expectativa";
   $("#rede-view").hidden = state.modo !== "rede";
   $("#apu-view").hidden = state.modo !== "apuracao";
+  $("#live-view").hidden = state.modo !== "aovivo";
+  if (state.modo === "aovivo") aoVivo.show({ uf: state.uf, abrir: abrirCorrida });
+  else aoVivo.hide();
   $("#pan-view").hidden = !(state.modo in PAN_MODES);
   if (state.modo === "apuracao") apuracao.show({ ...raceOf(), byId: new Map(state.cands.map((c) => [c.id, c] as const)), avatar, exp: state.exp, abrirUf });
   else apuracao.hide();
