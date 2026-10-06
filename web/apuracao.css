@@ -53,10 +53,10 @@
 .apu-legenda b { font: 700 12px var(--mono); }
 .apu .key { display: inline-block; width: 12px; height: 12px; border-radius: 3px; flex: none; border: 1px solid color-mix(in srgb, var(--ink) 25%, transparent); }
 .apu .key.sd { background: var(--sunk); }
-.apu .key.igual { background: #0072B2; }
-.apu .key.dif { background: repeating-linear-gradient(45deg, #0072B2 0 3px, var(--sunk) 3px 6px); }
+.apu .key.igual { background: #8b5cf6; }
+.apu .key.dif { background: repeating-linear-gradient(45deg, #8b5cf6 0 3px, var(--sunk) 3px 6px); }
 .apu-grad { display: flex; align-items: center; gap: 8px; font: 500 12px var(--mono); color: var(--ink-2); }
-.apu-grad i { flex: 1; height: 12px; border-radius: var(--r-md); background: linear-gradient(90deg, color-mix(in srgb, #0072B2 15%, var(--surface)), #0072B2); border: 1px solid var(--line); }
+.apu-grad i { flex: 1; height: 12px; border-radius: var(--r-md); background: linear-gradient(90deg, color-mix(in srgb, #8b5cf6 15%, var(--surface)), #8b5cf6); border: 1px solid var(--line); }
 
 /* Selected state panel */
 .apu-uf { background: var(--sunk); border-radius: var(--r-lg); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
@@ -290,3 +290,11 @@
 .apu-evo .esperado { fill: none; }
 .live-side-esp { font: 500 11px var(--mono); color: var(--ink-2); }
 .apu-evo .tendencia { fill: none; }
+
+/* Polish: black ground, purple numbers with a soft glow, a faint aurora behind the President's head-to-head. */
+.live-hero { background: radial-gradient(120% 70% at 50% -10%, rgb(139 92 246 / 0.18), transparent 62%), var(--sunk); border-color: color-mix(in srgb, #8b5cf6 35%, var(--line)); }
+.live-big { text-shadow: 0 0 36px color-mix(in srgb, var(--lado, #8b5cf6) 55%, transparent); }
+.live-side .av { box-shadow: 0 0 0 2px color-mix(in srgb, var(--lado, #8b5cf6) 70%, transparent), 0 10px 30px -10px color-mix(in srgb, var(--lado, #8b5cf6) 60%, transparent); }
+.live-card { background: linear-gradient(180deg, rgb(139 92 246 / 0.07), transparent 40%), var(--sunk); }
+.live-bar i, .apu-prog::-webkit-progress-value { background: linear-gradient(90deg, #7c3aed, #c4b5fd); }
+.live-uf:hover, .live-card:hover { border-color: #8b5cf6; }
