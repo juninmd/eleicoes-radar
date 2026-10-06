@@ -1,32 +1,25 @@
 /* Urna-inspired base styles: tokens, layout, radar list, dossier, cola. */
 :root {
-  --ground: #f3f4ef; --surface: #ffffff; --sunk: #eff1ea; --line: #d9ddd3;
-  --r-md: 14px; --r-lg: 20px; --shadow: 0 1px 2px rgb(14 18 16 / 0.05), 0 10px 28px -16px rgb(14 18 16 / 0.2);
-  --ink: #14171a; --ink-2: #454c52; --muted: #5e6569;
-  --panel: #23272a; --panel-2: #2f3438; --panel-ink: #e8ebe5; --panel-muted: #a3aaa6;
-  --confirma: #17804a; --confirma-ink: #ffffff; --corrige: #b24d10; --corrige-ink: #ffffff; --focus: #1d63c9;
-  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4;
+  color-scheme: dark;
+  --ground: #0b0814; --surface: #151120; --sunk: #0f0b19; --line: #2b2342;
+  --r-md: 14px; --r-lg: 20px; --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 12px 32px -16px rgb(88 56 180 / 0.35);
+  --ink: #ece9f5; --ink-2: #c6c1d8; --muted: #9a94b0;
+  --panel: #0f0b19; --panel-2: #261d3d; --panel-ink: #ece9f5; --panel-muted: #9a94b0;
+  --confirma: #a78bfa; --confirma-ink: #120a24; --corrige: #f08a43; --corrige-ink: #1b0f06; --focus: #c4b5fd;
+  --s1: #8b7cf6; --s2: #e0662f; --s3: #22b988; --s4: #d9a21b; --s5: #e0679a;
   --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
   --body: "Public Sans", "Segoe UI", system-ui, sans-serif;
   --mono: "Spline Sans Mono", ui-monospace, Consolas, monospace;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --ground: #070a09; --surface: #101614; --sunk: #0b1210; --line: #1e2823;
-    --ink: #e9ece7; --ink-2: #c0c6c2; --muted: #8e9692;
-    --panel: #0b1210; --panel-2: #1e2823; --panel-ink: #e9ece7; --panel-muted: #8e9692;
-    --confirma: #5eead4; --confirma-ink: #05110e; --corrige: #e57a36; --corrige-ink: #1b0f06; --focus: #6aa4ff;
-    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181;
-  }
-}
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --ground: #070a09; --surface: #101614; --sunk: #0b1210; --line: #1e2823;
-  --ink: #e9ece7; --ink-2: #c0c6c2; --muted: #8e9692;
-  --panel: #0b1210; --panel-2: #1e2823; --panel-ink: #e9ece7; --panel-muted: #8e9692;
-  --confirma: #5eead4; --confirma-ink: #05110e; --corrige: #e57a36; --corrige-ink: #1b0f06; --focus: #6aa4ff;
-  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181;
+/* Dark purple is the main look; light stays available with data-theme="light". */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --ground: #f4f2f9; --surface: #ffffff; --sunk: #efecf6; --line: #dcd7ea;
+  --shadow: 0 1px 2px rgb(30 18 60 / 0.05), 0 10px 28px -16px rgb(60 30 130 / 0.25);
+  --ink: #17131f; --ink-2: #4a4458; --muted: #615a70;
+  --panel: #231a3a; --panel-2: #3a2d5c; --panel-ink: #ece9f5; --panel-muted: #b0a8c6;
+  --confirma: #6d28d9; --confirma-ink: #ffffff; --corrige: #b24d10; --corrige-ink: #ffffff; --focus: #5b21b6;
+  --s1: #5b6cf0; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4;
 }
 * { box-sizing: border-box; }
 body { margin: 0; }
@@ -38,15 +31,6 @@ h1, h2, h3 { text-wrap: balance; }
 .wrap { max-width: 1320px; margin-inline: auto; }
 
 /* Masthead: the urna's dark screen bezel */
-.mast { border-radius: 0 0 28px 28px; background: var(--panel); color: var(--panel-ink); margin-inline: -16px; padding-block: 28px 24px; padding-inline: 16px; }
-.mast .wrap { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px 40px; align-items: end; }
-.mast h1 { font: 900 clamp(44px, 7vw, 88px)/0.86 var(--display); letter-spacing: 0.01em; margin: 0; text-transform: uppercase; }
-.mast h1 span { color: var(--confirma); }
-.mast p { margin: 12px 0 0; max-width: 62ch; color: var(--panel-muted); font-size: 16px; }
-.mast p b { color: var(--panel-ink); }
-.mast .when { font: 700 13px/1.3 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; text-align: right; color: var(--panel-muted); }
-.mast .when b { display: block; font-size: 30px; color: var(--panel-ink); letter-spacing: 0; }
-#retrato { grid-column: 1 / -1; margin: 0; font: 500 12px/1.4 var(--mono); color: var(--panel-muted); }
 
 .layout { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 24px; margin-top: 24px; align-items: start; }
 body.has-dossie .layout { grid-template-columns: 290px minmax(0, 1fr) minmax(0, 440px); }
@@ -237,8 +221,6 @@ body.has-dossie .wrap.layout { max-width: 1480px; }
   #cedulas { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
   #achados { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .metodo { grid-template-columns: minmax(0, 1fr); }
-  .mast .wrap { grid-template-columns: minmax(0, 1fr); }
-  .mast .when { text-align: left; }
 }
 @media (max-width: 520px) {
   .cand { grid-template-columns: 56px 36px minmax(0, 1fr) 52px; }
@@ -278,3 +260,113 @@ body.has-dossie .wrap.layout { max-width: 1480px; }
 .pill, .tag { border-radius: 999px; }
 .btn-confirma { border-radius: 999px; }
 .dhead .num { border-radius: var(--r-md); }
+
+/* Redesign 2: compact bar, explanations on their own screen (#sobre), phone first. */
+.layout { margin-top: 16px; }
+.legend { margin: 0 0 8px; }
+.voltar { grid-column: 1 / -1; font-weight: 700; text-decoration: none; color: var(--confirma); }
+body.sobre .layout { display: none; }
+body:not(.sobre) .metodo { display: none; }
+body.sobre .metodo { margin-top: 20px; }
+@media (max-width: 860px) {
+  body { padding-inline: 12px; }
+  body #modos { position: sticky; top: 0; z-index: 5; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; width: 100%; border-radius: 999px; background: var(--surface); box-shadow: var(--shadow); }
+  body #modos::-webkit-scrollbar { display: none; }
+  body #modos button { flex: 0 0 auto; padding: 11px 14px; font-size: 13px; min-height: 44px; }
+  .rail #estado-box { flex-direction: row; flex-wrap: wrap; align-items: end; gap: 8px 12px; padding: 12px; }
+  #estado-box h2 { flex: 1 1 100%; }
+  #estado-box .field { flex: 1 1 120px; }
+  #cedulas { display: flex; overflow-x: auto; scrollbar-width: none; min-height: 0; }
+  #cedulas button { flex: 0 0 auto; min-width: 120px; }
+  .cand { padding: 12px; }
+  .btn-confirma, #presets button, .ghost, select, input[type="search"] { min-height: 44px; }
+}
+@media (max-width: 860px) {
+  #estado-box .check { flex: 1 1 100%; }
+}
+input[type="checkbox"], input[type="range"] { accent-color: var(--confirma); }
+
+/* Slim header: one quiet bar, a soft purple glow, no big headline. */
+html { scroll-behavior: smooth; }
+#principal, #sobre { scroll-margin-top: 64px; }
+.hero { position: relative; margin-inline: -16px; padding: 12px 16px; border-radius: 0 0 18px 18px; background: linear-gradient(120deg, var(--panel), color-mix(in srgb, var(--panel) 80%, #7c3aed)); border-bottom: 1px solid var(--panel-2); color: var(--panel-ink); }
+.hero-in { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }
+.hero h1 { margin: 0 auto 0 0; font: 900 clamp(24px, 4vw, 30px)/1 var(--display); text-transform: uppercase; letter-spacing: 0.01em; }
+.hero h1 span { color: var(--confirma); }
+.btn-ghost { display: inline-flex; align-items: center; min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--panel-2); color: var(--panel-ink); text-decoration: none; font: 600 13px var(--body); transition: border-color 0.18s, background-color 0.18s; }
+.btn-ghost:hover { border-color: var(--confirma); background: rgb(167 139 250 / 0.12); }
+.hero .lead { flex: 1 1 100%; margin: 0; font-size: 13px; color: var(--panel-muted); }
+.hero-stats { flex: 1 1 100%; list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0 14px; font-size: 12px; color: var(--panel-muted); }
+.hero-stats b { font: 700 12px var(--mono); color: var(--panel-ink); font-variant-numeric: tabular-nums; }
+#retrato { flex: 1 1 100%; margin: 0; font: 500 11px/1.4 var(--mono); color: var(--panel-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (min-width: 861px) {
+  .hero-in { flex-wrap: nowrap; }
+  .hero .lead, .hero-stats, #retrato { flex: 0 1 auto; }
+  #retrato { display: none; } /* kept for the data date; the bar stays one line on a wide screen */
+  .hero-stats { margin-left: 8px; }
+}
+.btn-confirma:active, .btn-ghost:active, #modos button:active, #presets button:active { transform: scale(0.97); }
+
+/* Moving parts */
+.box, .cand { transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s, background-color 0.2s; }
+@media (hover: hover) {
+  .cand:hover { transform: translateY(-2px); box-shadow: 0 14px 32px -14px rgb(124 58 237 / 0.55); }
+}
+#modos button { transition: background-color 0.2s, color 0.2s, transform 0.12s; }
+@keyframes rise { from { opacity: 0; transform: translate3d(0, 14px, 0); } }
+@keyframes fade { from { opacity: 0; } }
+@keyframes slide-in { from { opacity: 0; transform: translate3d(32px, 0, 0); } }
+@keyframes shimmer { to { background-position: -200% 0; } }
+#lista > li { animation: rise 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+#lista > li:nth-child(n+2) { animation-delay: 0.03s; } #lista > li:nth-child(n+3) { animation-delay: 0.06s; }
+#lista > li:nth-child(n+4) { animation-delay: 0.09s; } #lista > li:nth-child(n+5) { animation-delay: 0.12s; }
+#lista > li:nth-child(n+6) { animation-delay: 0.15s; } #lista > li:nth-child(n+8) { animation-delay: 0.18s; }
+#exp-view:not([hidden]), #rede-view:not([hidden]), #apu-view:not([hidden]), #pan-view:not([hidden]), #radar-view { animation: fade 0.35s ease both; }
+#dossie:not([hidden]) { animation: slide-in 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+body.sobre .metodo > * { animation: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+body.sobre .metodo > :nth-child(3) { animation-delay: 0.08s; } body.sobre .metodo > :nth-child(4) { animation-delay: 0.16s; }
+#achados:empty, #lista:empty { background: linear-gradient(100deg, var(--surface) 30%, var(--panel-2) 50%, var(--surface) 70%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+#lista:empty { min-height: 160px; border-radius: var(--r-lg); }
+@supports (animation-timeline: view()) {
+  .box, .metodo > div { animation: rise linear both; animation-timeline: view(); animation-range: entry 0% entry 35%; }
+}
+@supports (animation-timeline: scroll()) {
+  body::before { content: ""; position: fixed; inset: 0 0 auto 0; height: 3px; z-index: 30; background: linear-gradient(90deg, #7c3aed, #e879f9); transform-origin: 0 50%; animation: grow linear both; animation-timeline: scroll(root); }
+  @keyframes grow { from { transform: scaleX(0); } }
+}
+@media (max-width: 860px) {
+  .hero { margin-inline: -12px; padding-inline: 12px; }
+  body #modos { backdrop-filter: blur(10px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* Real-data pass: compact summary on phones, visible selected ballot, dossier header that stays. */
+#cedulas button[aria-selected="true"] { background: var(--confirma); color: var(--confirma-ink); border-color: var(--confirma); box-shadow: 0 8px 24px -10px var(--confirma); }
+@media (max-width: 860px) {
+  #achados { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; gap: 8px; background: none; border: 0; box-shadow: none; border-radius: 0; min-height: 0; margin-block: 12px; }
+  #achados::-webkit-scrollbar { display: none; }
+  #achados div { flex: 0 0 70%; scroll-snap-align: start; border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow); }
+  #achados b { font-size: 22px; }
+  #dossie .dhead { position: sticky; top: calc(env(safe-area-inset-top, 0px) - 20px); z-index: 2; background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(10px); padding-block: 10px; margin-block: -10px; }
+}
+@media (max-width: 860px) { #estado-box .check { order: 3; } #estado-box .field { flex: 1 1 130px; min-width: 0; } }
+
+/* Mobile: nothing is cut off at the edge. Rows that used to scroll sideways (view tabs, ballots, summary cards, Apuração views) wrap into a grid. */
+@media (max-width: 860px) {
+  body #modos { position: static; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; overflow: visible; border-radius: var(--r-lg); padding: 4px; backdrop-filter: none; }
+  body #modos button { min-width: 0; padding: 8px 2px; font-size: 12px; letter-spacing: 0; line-height: 1.15; white-space: normal; text-align: center; overflow-wrap: anywhere; hyphens: auto; }
+  #cedulas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: visible; gap: 6px; }
+  #cedulas button { min-width: 0; padding: 8px 10px; gap: 4px; }
+  #cedulas .tname { font-size: 15px; overflow-wrap: anywhere; }
+  #cedulas .digits i { width: 9px; height: 12px; }
+  #achados { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: visible; }
+  #achados div { flex: none; min-width: 0; padding: 10px 12px; }
+  #achados span { overflow-wrap: anywhere; }
+  #retrato { display: block; white-space: normal; overflow: visible; text-overflow: clip; }
+  .apu .apu-vistas { display: grid; overflow: visible; border: 0; gap: 6px; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
+  .apu .apu-vistas button { min-height: 44px; padding: 6px 4px; border: 1px solid var(--line); border-radius: var(--r-md); }
+  .apu .apu-vistas button + button { border-left: 1px solid var(--line); }
+}

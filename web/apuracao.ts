@@ -10,6 +10,7 @@ import { renderProjecao } from "./apuracao-projecao-view.js";
 import { renderCadeiras } from "./apuracao-cadeiras-view.js";
 import { renderDuelo } from "./apuracao-duelo.js";
 import { renderNovidades } from "./apuracao-novidades.js";
+import { renderEleitos } from "./apuracao-eleitos.js";
 import { idadeTxt, pausaDoTse } from "./apuracao-ritmo.js";
 import { composicao, evolucao, faixaVsApuracao } from "./apuracao-graficos.js";
 import { decididos, eleitoTse } from "./apuracao-eleito.js";
@@ -27,12 +28,13 @@ import type { BrasilSnapshot } from "./apuracao-uf.js";
 import type { ProjecaoProps } from "./apuracao-projecao-view.js";
 import type { Comparacao } from "./apuracao-pesquisa.js";
 import type { Item } from "./apuracao-novidades.js";
+import type { EstadoEleitos } from "./apuracao-eleitos.js";
 import type { UfMap } from "../src/radar/geo/uf-map";
 import type { Candidatura } from "./types.js";
 
 // What the view reads of a feed snapshot: the feed's own `url` is not needed to draw it.
 export type SnapView = Pick<FeedSnapshot, "status" | "dados"> & Partial<Pick<FeedSnapshot, "buscadoEm" | "erro">>;
-export type Vista = "placar" | "mapa" | "projecao" | "cadeiras" | "camara" | "graficos";
+export type Vista = "placar" | "linha" | "mapa" | "projecao" | "cadeiras" | "camara" | "graficos";
 type Avatar = (c: Candidatura, size: string) => string;
 // What the view reads of data/expectativa.json: the poll summary of each race.
 export interface Corrida extends CorridaMapa { pesquisas: number; ultima?: string | null }
@@ -51,6 +53,7 @@ export interface RenderProps {
   vista?: Vista;
   hist?: Ponto[];
   novidades?: Item[];
+  eleitos?: EstadoEleitos;
   nac?: BrasilSnapshot | null;
   proj?: Omit<ProjecaoProps, "cor" | "cargo"> | null;
   mapa?: UfMap | null;
@@ -188,11 +191,11 @@ const aviso = (txt: string) => `<p class="empty">${txt}</p>`;
 
 const MAPA_CARGOS = new Set(["Presidente", "Governador", "Senador"]);
 const UMA_VAGA = new Set(["Presidente", "Governador"]); // one seat, one vote: the arithmetic of the Projeção view applies
-const ROTULOS: Record<Vista, string> = { placar: "Placar", mapa: "Mapa", projecao: "Projeção", cadeiras: "Cadeiras", camara: "Câmara", graficos: "Gráficos" };
+const ROTULOS: Record<Vista, string> = { placar: "Placar", linha: "Linha do tempo", mapa: "Mapa", projecao: "Projeção", cadeiras: "Cadeiras", camara: "Câmara", graficos: "Gráficos" };
 export const vistasDe = (cargo: Cargo): Vista[] => {
-  if (UMA_VAGA.has(cargo)) return ["placar", "mapa", "projecao", "graficos"];
-  if (MAPA_CARGOS.has(cargo)) return ["placar", "mapa", "graficos"];
-  return cargo === "Deputado Federal" ? ["placar", "cadeiras", "camara", "graficos"] : ["placar", "cadeiras", "graficos"];
+  if (UMA_VAGA.has(cargo)) return ["placar", "linha", "mapa", "projecao", "graficos"];
+  if (MAPA_CARGOS.has(cargo)) return ["placar", "linha", "mapa", "graficos"];
+  return cargo === "Deputado Federal" ? ["placar", "linha", "cadeiras", "camara", "graficos"] : ["placar", "linha", "cadeiras", "graficos"];
 };
 
 const quemDe = (d: Apuracao) => Object.fromEntries(d.candidatos.map((c) => [c.id, { nome: c.nome, partido: c.partido }]));
@@ -207,7 +210,7 @@ function graficos(d: Apuracao | null | undefined, rows: Linha[], hist: Ponto[], 
 
 // proj: what apuracao-projecao-estado.js hands over ({ analise, partes, nomes, esperadas }), or null while the files are loading.
 // novidades: the lines of apuracao-novidades.js kept by the mount since the tab was opened.
-export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, exp, vista = "placar", hist = [], novidades = [], nac = null, proj = null, mapa, modoMapa = "lider", selUf = null, cor = createCores(PALETA) }: RenderProps): string {
+export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, exp, vista = "placar", hist = [], novidades = [], eleitos, nac = null, proj = null, mapa, modoMapa = "lider", selUf = null, cor = createCores(PALETA) }: RenderProps): string {
   const d = snap?.dados;
   const vistas = vistasDe(cargo);
   const aberta = vistas.includes(vista) ? vista : "placar";
@@ -236,7 +239,8 @@ export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, exp, vist
     const aguardando = d.fase === "aguardando";
     const desde = `Mostrando os números de ${h(snap!.buscadoEm!.toLocaleTimeString("pt-BR"))}.`;
     const avisos = snap!.status === "erro" ? aviso(`Falha ao atualizar (${h(snap!.erro)}). ${desde}`) : snap!.status === "ausente" ? aviso(`O TSE não está entregando este arquivo agora. ${desde}`) : "";
-    corpo = aberta === "graficos" ? `${avisos}${status(d, snap)}${graficos(d, rows, hist, cor)}`
+    corpo = aberta === "linha" ? `${avisos}${status(d, snap)}${renderEleitos(eleitos ?? { itens: [], chave: "", vistos: new Set(), vagas: 0, primeira: true }, d, cargo)}`
+      : aberta === "graficos" ? `${avisos}${status(d, snap)}${graficos(d, rows, hist, cor)}`
       : aberta === "cadeiras" ? `${avisos}${status(d, snap)}${renderCadeiras({ d, byId })}`
       : `${avisos}
       ${status(d, snap)}
