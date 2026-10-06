@@ -71,11 +71,14 @@ const M = { l: 44, r: 12, t: 12, b: 34 };
 
 type Leitura = Pick<Ponto, "rotulo" | "avanco" | "pcts">;
 
-export function evolucao(hist: Leitura[], quem: Record<string, Pick<Candidato, "nome" | "partido">>, cor: (key: string) => string): string {
+// What the polls expect for a candidate: the average and its 90% band, as shares of the valid votes (like the count).
+export interface Esperado { media: number; lo?: number; hi?: number }
+
+export function evolucao(hist: Leitura[], quem: Record<string, Pick<Candidato, "nome" | "partido">>, cor: (key: string) => string, esperado: Record<string, Esperado> = {}): string {
   if (hist.length < 2) return `<p class="muted small">A evolução aparece conforme chegam novos arquivos do TSE enquanto esta aba está aberta. Nada fica guardado: ao fechar a aba, o histórico some.</p>`;
   const ultimo = hist.at(-1)!;
   const ids = Object.keys(ultimo.pcts).sort((a, b) => ultimo.pcts[b] - ultimo.pcts[a]).filter((id) => quem[id]).slice(0, 4);
-  const maxPct = Math.max(...hist.flatMap((p) => ids.map((id) => p.pcts[id] ?? 0)), 0.1);
+  const maxPct = Math.max(...hist.flatMap((p) => ids.map((id) => p.pcts[id] ?? 0)), ...ids.map((id) => esperado[id]?.hi ?? esperado[id]?.media ?? 0), 0.1);
   const ymax = Math.ceil((maxPct * 1.1) / 0.1) * 0.1;
   // Evenly spaced by arrival order: files that report the same section count must not stack on one x.
   const x = (p: Leitura) => M.l + (hist.indexOf(p) / (hist.length - 1)) * (W - M.l - M.r);
@@ -86,6 +89,10 @@ export function evolucao(hist: Leitura[], quem: Record<string, Pick<Candidato, "
     const pts = hist.filter((p) => id in p.pcts).map((p) => `${x(p).toFixed(1)},${y(p.pcts[id]).toFixed(1)}`).join(" ");
     return `<polyline points="${pts}" fill="none" stroke="${cor_}" stroke-width="2.5" stroke-linejoin="round"/>`;
   });
+  // The dashed line is the polls' average for the candidate (the expectation), with its 90% band behind it: where the count would end if it behaved like the polls.
+  const esp = ids.filter((id) => esperado[id]);
+  const bandas = esp.filter((id) => Number.isFinite(esperado[id].lo) && Number.isFinite(esperado[id].hi)).map((id) => `<rect x="${M.l}" y="${y(esperado[id].hi!).toFixed(1)}" width="${W - M.l - M.r}" height="${Math.max(1, y(esperado[id].lo!) - y(esperado[id].hi!)).toFixed(1)}" fill="${cor(quem[id].partido)}" opacity="0.10" class="esperado-faixa"/>`);
+  const tracos = esp.map((id) => `<line x1="${M.l}" x2="${W - M.r}" y1="${y(esperado[id].media).toFixed(1)}" y2="${y(esperado[id].media).toFixed(1)}" stroke="${cor(quem[id].partido)}" stroke-width="2" stroke-dasharray="7 5" class="esperado"/><text x="${W - M.r - 2}" y="${(y(esperado[id].media) - 4).toFixed(1)}" text-anchor="end" class="eixo">pesquisas ${pct(esperado[id].media, 1)}</text>`);
   const resumo = ids.map((id) => {
     const primeiro = hist.find((p) => id in p.pcts)!.pcts[id];
     const fim = ultimo.pcts[id];
@@ -93,8 +100,8 @@ export function evolucao(hist: Leitura[], quem: Record<string, Pick<Candidato, "
     return `<li><i class="key" style="background:${cor(quem[id].partido)}"></i>${h(titleName(quem[id].nome))} <small>${h(quem[id].partido)}</small> <b>${pct(primeiro, 1)} → ${pct(fim, 1)}</b> <span class="dif"><span aria-hidden="true">${dl.seta}</span> ${dl.txt}</span><span class="sr"> (${h(dl.sr)})</span></li>`;
   }).join("");
   const aria = `Parcela dos votos válidos dos ${ids.length} primeiros colocados conforme chegam os arquivos do TSE, de ${pct(hist[0].avanco, 1)} a ${pct(ultimo.avanco, 1)} das seções`;
-  return `<svg class="apu-evo" viewBox="0 0 ${W} ${H}" role="img" aria-label="${h(aria)}">${grade}${linhas.join("")}
+  return `<svg class="apu-evo" viewBox="0 0 ${W} ${H}" role="img" aria-label="${h(aria)}">${grade}${bandas.join("")}${linhas.join("")}${tracos.join("")}
     <text x="${M.l}" y="${H - 8}" class="eixo">${h(hist[0].rotulo)} · ${pct(hist[0].avanco, 1)} das seções</text><text x="${W - M.r}" y="${H - 8}" text-anchor="end" class="eixo">${h(ultimo.rotulo)} · ${pct(ultimo.avanco, 1)}</text></svg>
-    <ul class="apu-legenda apu-evo-txt">${resumo}</ul>
+    <ul class="apu-legenda apu-evo-txt">${resumo}</ul>${esp.length ? `<p class="muted small">Linha tracejada: média das pesquisas de cada candidato (a expectativa), em votos válidos como a apuração; a faixa clara é a faixa de 90%. Não é projeção do resultado: o Radar só mostra onde a contagem estaria se acompanhasse as pesquisas.</p>` : ""}
     <p class="muted small">Cada ponto é um arquivo do TSE visto desde que você abriu a aba. As linhas sobem e descem conforme as urnas chegam; isso mostra a ordem de chegada das seções, não uma projeção.</p>`;
 }
