@@ -342,3 +342,14 @@ body.sobre .metodo > :nth-child(3) { animation-delay: 0.08s; } body.sobre .metod
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Real-data pass: compact summary on phones, visible selected ballot, dossier header that stays. */
+#cedulas button[aria-selected="true"] { background: var(--confirma); color: var(--confirma-ink); border-color: var(--confirma); box-shadow: 0 8px 24px -10px var(--confirma); }
+@media (max-width: 860px) {
+  #achados { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; gap: 8px; background: none; border: 0; box-shadow: none; border-radius: 0; min-height: 0; margin-block: 12px; }
+  #achados::-webkit-scrollbar { display: none; }
+  #achados div { flex: 0 0 70%; scroll-snap-align: start; border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow); }
+  #achados b { font-size: 22px; }
+  #dossie .dhead { position: sticky; top: calc(env(safe-area-inset-top, 0px) - 20px); z-index: 2; background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(10px); padding-block: 10px; margin-block: -10px; }
+}
+@media (max-width: 860px) { #estado-box .check { order: 3; } #estado-box .field { flex: 1 1 130px; min-width: 0; } }
