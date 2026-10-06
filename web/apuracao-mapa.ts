@@ -14,15 +14,15 @@ export const NOMES: Record<string, string> = {
   RS: "Rio Grande do Sul", SC: "Santa Catarina", SE: "Sergipe", SP: "São Paulo", TO: "Tocantins", ZZ: "Exterior",
 };
 
-// Colour-blind-safe categorical palette (Okabe-Ito and a few darker companions). Colours are arbitrary:
+// Colour-blind-safe categorical palette (Okabe-Ito with the first blue swapped for the page's purple, and a few companions). Colours are arbitrary:
 // they are handed out in order, never tied to a party's identity.
-export const PALETA = ["#0072B2", "#D55E00", "#009E73", "#CC79A7", "#E69F00", "#56B4E9", "#882255", "#44AA99", "#332288", "#AA4499", "#999933"];
+export const PALETA = ["#8B5CF6", "#D55E00", "#009E73", "#CC79A7", "#E69F00", "#F0E442", "#882255", "#44AA99", "#6B7FD6", "#B8860B", "#999933"];
 // Parties past the palette share this grey, so no two of them look alike by accident.
 export const RESTO = "#8a948b";
 // How one state is painted: the SVG attribute and the CSS value (a hatch pattern needs both spelled out).
 export interface Tinta { fill: string; css: string }
 const NEUTRO = { fill: "#d5d9d3", css: "var(--sunk)", cls: "sd" };
-const AZUL = "#0072B2";
+const AZUL = "#8B5CF6"; // the main colour of the maps: purple, like the rest of the page
 export const MIN_ROTULO = 650; // projected square units; DF, SE and AL are smaller and get a chip instead
 
 export type ModoId = "lider" | "margem" | "avanco" | "pesquisa";

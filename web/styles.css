@@ -1,10 +1,10 @@
 /* Urna-inspired base styles: tokens, layout, radar list, dossier, cola. */
 :root {
   color-scheme: dark;
-  --ground: #0b0814; --surface: #151120; --sunk: #0f0b19; --line: #2b2342;
+  --ground: #000000; --surface: #0b0910; --sunk: #050408; --line: #251d3a;
   --r-md: 14px; --r-lg: 20px; --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 12px 32px -16px rgb(88 56 180 / 0.35);
   --ink: #ece9f5; --ink-2: #c6c1d8; --muted: #9a94b0;
-  --panel: #0f0b19; --panel-2: #261d3d; --panel-ink: #ece9f5; --panel-muted: #9a94b0;
+  --panel: #07050c; --panel-2: #1f1733; --panel-ink: #ece9f5; --panel-muted: #9a94b0;
   --confirma: #a78bfa; --confirma-ink: #120a24; --corrige: #f08a43; --corrige-ink: #1b0f06; --focus: #c4b5fd;
   --s1: #8b7cf6; --s2: #e0662f; --s3: #22b988; --s4: #d9a21b; --s5: #e0679a;
   --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
