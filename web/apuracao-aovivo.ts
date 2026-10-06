@@ -9,6 +9,7 @@ import { createCores, linhasUf } from "./apuracao-nacional.js";
 import { PALETA, RESTO } from "./apuracao-mapa.js";
 import { renderDuelo } from "./apuracao-duelo.js";
 import { evolucao, registrar } from "./apuracao-graficos.js";
+import { comparar } from "./apuracao-pesquisa.js";
 import { decididos, eleitoTse } from "./apuracao-eleito.js";
 import { atualizar, vazio } from "./apuracao-eleitos.js";
 import { idadeTxt, pausaDoTse } from "./apuracao-ritmo.js";
@@ -17,7 +18,8 @@ import { avancoDe } from "./apuracao-nacional.js";
 import type { Apuracao, Candidato, Cargo, Fase } from "./apuracao-tse.js";
 import type { BrasilSnapshot } from "./apuracao-uf.js";
 import type { Cores } from "./apuracao-nacional.js";
-import type { Ponto } from "./apuracao-graficos.js";
+import type { Esperado, Ponto } from "./apuracao-graficos.js";
+import type { Prev } from "../src/radar/expectativa";
 import type { FeedSnapshot } from "./apuracao-feed.js";
 import type { EstadoEleitos } from "./apuracao-eleitos.js";
 
@@ -101,14 +103,14 @@ const curto = (nome: string) => titleName(nome).split(" ").slice(0, 2).join(" ")
 
 // The President's race as a head-to-head: the two leaders side by side with their photos (when the reader keeps photos on), the
 // 50% bar and the curve of the count. Everything is the TSE's own numbers; a "Eleito" mark is the TSE's text, shown as it is.
-function lado(c: Candidato, cls: string, avatar: Avatar, cor: Cores): string {
+function lado(c: Candidato, cls: string, avatar: Avatar, cor: Cores, esp?: Esperado): string {
   const marca = eleitoTse(c) ? `<span class="rot alta">${h(c.situacao)}</span>` : c.situacao ? `<span class="rot baixa">${h(c.situacao)}</span>` : "";
   return `<div class="live-side ${cls}" style="--lado:${cor(c.partido)}">${avatar({ id: c.id, nome: c.nome }, "lg")}
     <b class="live-side-nome">${h(titleName(c.nome))}</b><small>${h(c.partido)} · ${h(c.num)}</small>
-    <span class="live-big">${pct(c.pct, 1)}</span><span class="live-side-votos">${int(c.votos)} votos</span>${marca}</div>`;
+    <span class="live-big">${pct(c.pct, 1)}</span><span class="live-side-votos">${int(c.votos)} votos</span>${esp ? `<span class="live-side-esp">expectativa (pesquisas): <b>${pct(esp.media, 1)}</b></span>` : ""}${marca}</div>`;
 }
 
-export function renderHero({ hero, avatar, cor }: { hero: Hero; avatar: Avatar; cor: Cores }): string {
+export function renderHero({ hero, avatar, cor, esperado = {} }: { hero: Hero; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado> }): string {
   const d = hero.snap?.dados;
   const onde = hero.uf === BRASIL ? "Brasil" : hero.uf === EXTERIOR ? "Exterior" : hero.uf;
   const topo = (fase: string) => `<header><h3>Presidente <small>${h(onde)}</small></h3>${fase}</header>`;
@@ -128,13 +130,13 @@ export function renderHero({ hero, avatar, cor }: { hero: Hero; avatar: Avatar; 
   // Both curves, even when the leader changes: the chart follows the two first of the last file.
   const hist2 = hero.hist.map((p) => ({ ...p, pcts: Object.fromEntries(Object.entries(p.pcts).filter(([id]) => id in quem)) }));
   return `<section class="live-hero" aria-label="Presidente ${h(onde)}">${topo(fase)}${base}
-    <div class="live-duel">${lado(a, "a", avatar, cor)}
+    <div class="live-duel">${lado(a, "a", avatar, cor, esperado[a.id])}
       <div class="live-vs" aria-hidden="true"><span>×</span><b>${dif.toFixed(1).replace(".", ",")}</b><small>p.p.</small></div>
-      ${lado(b, "b", avatar, cor)}</div>
+      ${lado(b, "b", avatar, cor, esperado[b.id])}</div>
     <p class="sr">Diferença de ${dif.toFixed(1).replace(".", ",")} pontos percentuais entre os dois primeiros.</p>
     ${renderDuelo({ d, cargo: "Presidente", uf: hero.uf, cor })}
     <h4>Curva da apuração <small>os dois primeiros, desde que você abriu a aba</small></h4>
-    ${evolucao(hist2, quem, cor)}</section>`;
+    ${evolucao(hist2, quem, cor, esperado)}</section>`;
 }
 
 // Every state at once for one office: leader, runner-up and how much of the count is in.
@@ -158,7 +160,7 @@ function todosOsEstados(nac: BrasilSnapshot | null, cargo: Cargo): string {
     <p class="muted small">Cada quadro é o arquivo do TSE do estado: o líder e o segundo de agora, não o resultado. Toque num estado para filtrar a tela.${cargo === "Presidente" ? " O exterior tem arquivo próprio." : ""}</p>`;
 }
 
-export interface AoVivoProps { hero: Hero; linhas: Linha[]; escopo: string; ufCartoes: string; nac: BrasilSnapshot | null; cargoTodos: Cargo; agora: Date; avatar: Avatar; cor: Cores }
+export interface AoVivoProps { hero: Hero; linhas: Linha[]; escopo: string; ufCartoes: string; nac: BrasilSnapshot | null; cargoTodos: Cargo; agora: Date; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado> }
 
 const opcoes = (escopo: string, ufMeu: string) => [
   `<option value="${BRASIL}"${escopo === BRASIL ? " selected" : ""}>Brasil (total)</option>`,
@@ -181,7 +183,7 @@ export function renderAoVivo(p: AoVivoProps): string {
     <div class="live-filtro"><label class="field" for="live-escopo">Onde<select id="live-escopo">${opcoes(escopo, p.ufCartoes === BRASIL ? "" : p.ufCartoes)}</select></label></div>
     <p class="muted exp-meta">${quando ? `Consultado às <span id="apu-quando">${h(quando.toLocaleTimeString("pt-BR"))}</span> · ` : ""}atualiza sozinho a cada ${POLL_MS / 1000} s enquanto você estiver nesta aba. Média das seções totalizadas: <b>${pct(Math.floor(media * 1000) / 1000, 1)}</b>${pausa ? ` · arquivo mais recente <span id="apu-idade">(${idadeTxt(pausa.idadeMs)})</span>` : ""}.</p>
     ${pausa?.parado ? `<p class="apu-aviso apu-pausa"><b>Sem arquivo novo do TSE há mais de 10 minutos.</b> A pausa é do TSE, que publica em rodadas.</p>` : ""}
-    ${renderHero({ hero, avatar: p.avatar, cor: p.cor })}
+    ${renderHero({ hero, avatar: p.avatar, cor: p.cor, esperado: p.esperado })}
     ${escopo === TODOS ? `<h3>Todos os estados</h3>${todosOsEstados(nac, p.cargoTodos)}` : ""}
     ${escopo === TODOS || escopo === EXTERIOR ? "" : cartoes}
     ${escopo === TODOS ? cartoes : ""}
@@ -191,7 +193,7 @@ export function renderAoVivo(p: AoVivoProps): string {
   </section>`;
 }
 
-export interface Contexto { uf: string; abrir: (cargo: Cargo, uf: string) => void; avatar: Avatar }
+export interface Contexto { uf: string; abrir: (cargo: Cargo, uf: string) => void; avatar: Avatar; prev?: (id: string) => Prev | null | undefined }
 
 export function mountAoVivo(el: HTMLElement) {
   let ctx: Contexto | null = null;
@@ -209,7 +211,10 @@ export function mountAoVivo(el: HTMLElement) {
   const ufCartoes = () => (escopo === BRASIL || escopo === TODOS ? ctx!.uf : escopo);
   const paint = () => {
     if (!ctx) return;
-    const html = renderAoVivo({ hero, linhas, escopo, ufCartoes: ufCartoes(), nac, cargoTodos, agora: new Date(), avatar: ctx.avatar, cor });
+    // The polls are national: only the national file of the President has an expectation to draw.
+    const esperado: Record<string, Esperado> = {};
+    if (hero.uf === BRASIL) for (const c of hero.snap?.dados?.candidatos.slice(0, 2) ?? []) { const x = comparar(c, ctx.prev?.(c.id)); if (x) esperado[c.id] = { media: x.media, lo: x.lo, hi: x.hi }; }
+    const html = renderAoVivo({ hero, linhas, escopo, ufCartoes: ufCartoes(), nac, cargoTodos, agora: new Date(), avatar: ctx.avatar, cor, esperado });
     const key = semRelogio(html);
     const quando = el.querySelector<HTMLElement>("#apu-quando");
     if (key === painted && quando) {

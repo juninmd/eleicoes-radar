@@ -80,3 +80,26 @@ describe("Ao vivo", () => {
     expect(html.split('<p class="muted small">Cada bloco')[0]).not.toMatch(/venceu|vencedor|vai vencer|será eleit/i);
   });
 });
+
+describe("expectativa na curva", () => {
+  const d1 = parseApuracao(file({ cands: dois }))!;
+  const d2 = parseApuracao({ ...file({ cands: dois }), hg: "19:50:07" })!;
+  const hero = { uf: BRASIL, snap: snap(d2), hist: registrar(registrar([], d1), d2), eleitos: vazio() };
+  const esperado = { a1: { media: 0.5, lo: 0.45, hi: 0.55 }, b2: { media: 0.3 } };
+
+  test("cada candidato com pesquisa ganha uma linha tracejada na cor dele e a faixa de 90%", () => {
+    const html = renderHero({ hero, avatar, cor, esperado });
+    expect(html.match(/class="esperado"/g)).toHaveLength(2);
+    expect(html.match(/stroke-dasharray="7 5"/g)).toHaveLength(2);
+    expect(html.match(/class="esperado-faixa"/g)).toHaveLength(1); // o b2 não tem faixa
+    expect(html).toContain("pesquisas 50,0%");
+    expect(html).toContain("expectativa (pesquisas): <b>50,0%</b>");
+    expect(html).toContain("Linha tracejada: média das pesquisas");
+  });
+
+  test("sem pesquisa a curva fica como era, sem linha nem aviso", () => {
+    const html = renderHero({ hero, avatar, cor });
+    expect(html).not.toContain("esperado");
+    expect(html).not.toContain("Linha tracejada");
+  });
+});

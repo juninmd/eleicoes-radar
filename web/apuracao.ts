@@ -201,11 +201,12 @@ export const vistasDe = (cargo: Cargo): Vista[] => {
 const quemDe = (d: Apuracao) => Object.fromEntries(d.candidatos.map((c) => [c.id, { nome: c.nome, partido: c.partido }]));
 
 function graficos(d: Apuracao | null | undefined, rows: Linha[], hist: Ponto[], cor: Cores) {
+  const esperado = Object.fromEntries(rows.flatMap((r) => (r.cmp ? [[r.c.id, { media: r.cmp.media, lo: r.cmp.lo, hi: r.cmp.hi }]] : [])));
   if (!d || d.fase === "aguardando") return aviso("Os gráficos aparecem quando o TSE começar a totalizar seções.");
   const faixa = faixaVsApuracao(rows, d.fase);
   return `<h3>Quem votou, e quem não</h3>${composicao(d)}
     ${faixa ? `<h3>Apuração e faixa das pesquisas</h3>${faixa}` : ""}
-    <h3>Evolução desde que você abriu a aba</h3>${evolucao(hist, quemDe(d), cor)}`;
+    <h3>Evolução desde que você abriu a aba</h3>${evolucao(hist, quemDe(d), cor, esperado)}`;
 }
 
 // proj: what apuracao-projecao-estado.js hands over ({ analise, partes, nomes, esperadas }), or null while the files are loading.
