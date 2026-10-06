@@ -74,14 +74,32 @@ type Leitura = Pick<Ponto, "rotulo" | "avanco" | "pcts">;
 // What the polls expect for a candidate: the average and its 90% band, as shares of the valid votes (like the count).
 export interface Esperado { media: number; lo?: number; hi?: number }
 
-export function evolucao(hist: Leitura[], quem: Record<string, Pick<Candidato, "nome" | "partido">>, cor: (key: string) => string, esperado: Record<string, Esperado> = {}): string {
+// The wave of the count: how a candidate's share has moved per point of sections over the last files (up to 3 waves), carried on to 100% of
+// the sections. A straight-line reading of the recent past, not a forecast: sections do not arrive in random order. Null when the window
+// is too short or covers less than 1% of the sections (the slope would be noise).
+const JANELA = 4;
+export function tendenciaFinal(hist: Leitura[], id: string): number | null {
+  const w = hist.slice(-JANELA).filter((p) => id in p.pcts);
+  if (w.length < 2) return null;
+  const [a, b] = [w[0], w.at(-1)!];
+  if (b.avanco >= 1 || b.avanco - a.avanco < 0.01) return null;
+  const inclinacao = (b.pcts[id] - a.pcts[id]) / (b.avanco - a.avanco);
+  return Math.max(0, Math.min(1, b.pcts[id] + inclinacao * (1 - b.avanco)));
+}
+
+export function evolucao(hist: Leitura[], quem: Record<string, Pick<Candidato, "nome" | "partido">>, cor: (key: string) => string, esperado: Record<string, Esperado> = {}, opcoes: { tendencia?: boolean } = {}): string {
   if (hist.length < 2) return `<p class="muted small">A evolução aparece conforme chegam novos arquivos do TSE enquanto esta aba está aberta. Nada fica guardado: ao fechar a aba, o histórico some.</p>`;
   const ultimo = hist.at(-1)!;
   const ids = Object.keys(ultimo.pcts).sort((a, b) => ultimo.pcts[b] - ultimo.pcts[a]).filter((id) => quem[id]).slice(0, 4);
-  const maxPct = Math.max(...hist.flatMap((p) => ids.map((id) => p.pcts[id] ?? 0)), ...ids.map((id) => esperado[id]?.hi ?? esperado[id]?.media ?? 0), 0.1);
+  const fim: Record<string, number> = {};
+  if (opcoes.tendencia) for (const id of ids) { const v = tendenciaFinal(hist, id); if (v !== null) fim[id] = v; }
+  const comTendencia = Object.keys(fim).length > 0;
+  const maxPct = Math.max(...hist.flatMap((p) => ids.map((id) => p.pcts[id] ?? 0)), ...ids.map((id) => esperado[id]?.hi ?? esperado[id]?.media ?? 0), ...Object.values(fim), 0.1);
   const ymax = Math.ceil((maxPct * 1.1) / 0.1) * 0.1;
   // Evenly spaced by arrival order: files that report the same section count must not stack on one x.
-  const x = (p: Leitura) => M.l + (hist.indexOf(p) / (hist.length - 1)) * (W - M.l - M.r);
+  // With the trend on, the count takes 70% of the width and the rest is the stretch up to 100% of the sections.
+  const xAgora = comTendencia ? M.l + 0.7 * (W - M.l - M.r) : W - M.r;
+  const x = (p: Leitura) => M.l + (hist.indexOf(p) / (hist.length - 1)) * (xAgora - M.l);
   const y = (v: number) => H - M.b - (v / ymax) * (H - M.t - M.b);
   const grade = [0, ymax / 2, ymax].map((v) => `<line x1="${M.l}" x2="${W - M.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" class="grade"/><text x="${M.l - 6}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end" class="eixo">${pct(v, 0)}</text>`).join("");
   const linhas = ids.map((id) => {
@@ -92,7 +110,14 @@ export function evolucao(hist: Leitura[], quem: Record<string, Pick<Candidato, "
   // The dashed line is the polls' average for the candidate (the expectation), with its 90% band behind it: where the count would end if it behaved like the polls.
   const esp = ids.filter((id) => esperado[id]);
   const bandas = esp.filter((id) => Number.isFinite(esperado[id].lo) && Number.isFinite(esperado[id].hi)).map((id) => `<rect x="${M.l}" y="${y(esperado[id].hi!).toFixed(1)}" width="${W - M.l - M.r}" height="${Math.max(1, y(esperado[id].lo!) - y(esperado[id].hi!)).toFixed(1)}" fill="${cor(quem[id].partido)}" opacity="0.10" class="esperado-faixa"/>`);
-  const tracos = esp.map((id) => `<line x1="${M.l}" x2="${W - M.r}" y1="${y(esperado[id].media).toFixed(1)}" y2="${y(esperado[id].media).toFixed(1)}" stroke="${cor(quem[id].partido)}" stroke-width="2" stroke-dasharray="7 5" class="esperado"/><text x="${W - M.r - 2}" y="${(y(esperado[id].media) - 4).toFixed(1)}" text-anchor="end" class="eixo">pesquisas ${pct(esperado[id].media, 1)}</text>`);
+  const tracos = esp.map((id) => `<line x1="${M.l}" x2="${W - M.r}" y1="${y(esperado[id].media).toFixed(1)}" y2="${y(esperado[id].media).toFixed(1)}" stroke="${cor(quem[id].partido)}" stroke-width="2" stroke-dasharray="7 5" class="esperado"/><text x="${M.l + 4}" y="${(y(esperado[id].media) - 4).toFixed(1)}" text-anchor="start" class="eixo">pesquisas ${pct(esperado[id].media, 1)}</text>`);
+  // Dotted: the wave carried on to 100% of the sections, from the last point of each line.
+  const ondas = ids.filter((id) => id in fim).map((id) => {
+    const c = cor(quem[id].partido);
+    const ult = hist.filter((p) => id in p.pcts).at(-1)!;
+    return `<line x1="${x(ult).toFixed(1)}" y1="${y(ult.pcts[id]).toFixed(1)}" x2="${W - M.r}" y2="${y(fim[id]).toFixed(1)}" stroke="${c}" stroke-width="3" stroke-dasharray="1 6" stroke-linecap="round" class="tendencia"/><text x="${W - M.r - 2}" y="${(y(fim[id]) + (fim[id] >= ult.pcts[id] ? -6 : 14)).toFixed(1)}" text-anchor="end" class="eixo">onda até 100%: ${pct(fim[id], 1)}</text>`;
+  });
+  const divisor = comTendencia ? `<line x1="${xAgora.toFixed(1)}" x2="${xAgora.toFixed(1)}" y1="${M.t}" y2="${H - M.b}" class="grade" stroke-dasharray="3 3"/><text x="${(xAgora - 4).toFixed(1)}" y="${M.t + 10}" text-anchor="end" class="eixo">agora</text>` : "";
   const resumo = ids.map((id) => {
     const primeiro = hist.find((p) => id in p.pcts)!.pcts[id];
     const fim = ultimo.pcts[id];
@@ -100,8 +125,8 @@ export function evolucao(hist: Leitura[], quem: Record<string, Pick<Candidato, "
     return `<li><i class="key" style="background:${cor(quem[id].partido)}"></i>${h(titleName(quem[id].nome))} <small>${h(quem[id].partido)}</small> <b>${pct(primeiro, 1)} → ${pct(fim, 1)}</b> <span class="dif"><span aria-hidden="true">${dl.seta}</span> ${dl.txt}</span><span class="sr"> (${h(dl.sr)})</span></li>`;
   }).join("");
   const aria = `Parcela dos votos válidos dos ${ids.length} primeiros colocados conforme chegam os arquivos do TSE, de ${pct(hist[0].avanco, 1)} a ${pct(ultimo.avanco, 1)} das seções`;
-  return `<svg class="apu-evo" viewBox="0 0 ${W} ${H}" role="img" aria-label="${h(aria)}">${grade}${bandas.join("")}${linhas.join("")}${tracos.join("")}
-    <text x="${M.l}" y="${H - 8}" class="eixo">${h(hist[0].rotulo)} · ${pct(hist[0].avanco, 1)} das seções</text><text x="${W - M.r}" y="${H - 8}" text-anchor="end" class="eixo">${h(ultimo.rotulo)} · ${pct(ultimo.avanco, 1)}</text></svg>
-    <ul class="apu-legenda apu-evo-txt">${resumo}</ul>${esp.length ? `<p class="muted small">Linha tracejada: média das pesquisas de cada candidato (a expectativa), em votos válidos como a apuração; a faixa clara é a faixa de 90%. Não é projeção do resultado: o Radar só mostra onde a contagem estaria se acompanhasse as pesquisas.</p>` : ""}
+  return `<svg class="apu-evo" viewBox="0 0 ${W} ${H}" role="img" aria-label="${h(aria)}">${grade}${bandas.join("")}${divisor}${linhas.join("")}${tracos.join("")}${ondas.join("")}
+    <text x="${M.l}" y="${H - 8}" class="eixo">${h(hist[0].rotulo)} · ${pct(hist[0].avanco, 1)} das seções</text><text x="${comTendencia ? xAgora.toFixed(1) : W - M.r}" y="${H - 8}" text-anchor="end" class="eixo">${h(ultimo.rotulo)} · ${pct(ultimo.avanco, 1)}</text>${comTendencia ? `<text x="${W - M.r}" y="${H - 8}" text-anchor="end" class="eixo">100% das seções</text>` : ""}</svg>
+    <ul class="apu-legenda apu-evo-txt">${resumo}</ul>${comTendencia ? `<p class="muted small">Linha pontilhada: a onda do momento. Pega o quanto cada candidato subiu ou caiu por ponto de seções nas últimas atualizações e leva essa variação até 100% das seções. É uma conta de tendência, não projeção nem resultado: as urnas não chegam em ordem aleatória e a onda muda a cada arquivo.</p>` : ""}${esp.length ? `<p class="muted small">Linha tracejada: média das pesquisas de cada candidato (a expectativa), em votos válidos como a apuração; a faixa clara é a faixa de 90%. Não é projeção do resultado: o Radar só mostra onde a contagem estaria se acompanhasse as pesquisas.</p>` : ""}
     <p class="muted small">Cada ponto é um arquivo do TSE visto desde que você abriu a aba. As linhas sobem e descem conforme as urnas chegam; isso mostra a ordem de chegada das seções, não uma projeção.</p>`;
 }

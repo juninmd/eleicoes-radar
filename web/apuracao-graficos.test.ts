@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { composicao, evolucao, faixaVsApuracao, registrar } from "./apuracao-graficos.js";
+import { composicao, evolucao, faixaVsApuracao, registrar, tendenciaFinal } from "./apuracao-graficos.js";
 import { createCores } from "./apuracao-nacional.js";
 import type { Ponto } from "./apuracao-graficos.js";
 import type { Apuracao } from "./apuracao-tse.js";
@@ -157,5 +157,35 @@ describe("evolucao", () => {
     const html = evolucao(pts(3), { ...quem, 1: { nome: "<img src=x>", partido: "A&B" } }, cor);
     expect(html).not.toContain("<img src=x>");
     expect(html).toContain("&lt;img src=x&gt;");
+  });
+});
+
+describe("onda do momento (tendência até 100%)", () => {
+  const quem = { 1: { nome: "Ana", partido: "A" }, 2: { nome: "Beto", partido: "B" } };
+  const cor = (k: string) => (k === "A" ? "#111111" : "#222222");
+  const ponto = (avanco: number, a: number, b: number) => ({ rotulo: `h${avanco}`, avanco, pcts: { 1: a, 2: b } });
+
+  test("leva a variação por ponto de seções até 100%", () => {
+    // Ana cai 2 pontos a cada 10% de seções: de 50% (a 40% das seções) cai mais 12 pontos até 100%.
+    const hist = [ponto(0.2, 0.54, 0.4), ponto(0.3, 0.52, 0.42), ponto(0.4, 0.5, 0.44)];
+    expect(tendenciaFinal(hist, "1")).toBeCloseTo(0.38, 5);
+    expect(tendenciaFinal(hist, "2")).toBeCloseTo(0.56, 5);
+  });
+
+  test("não passa de 0% a 100% e não calcula com pouca janela ou com a apuração fechada", () => {
+    expect(tendenciaFinal([ponto(0.2, 0.2, 0.8), ponto(0.3, 0.05, 0.95)], "1")).toBe(0);
+    expect(tendenciaFinal([ponto(0.2, 0.2, 0.8)], "1")).toBeNull();
+    expect(tendenciaFinal([ponto(0.2, 0.5, 0.5), ponto(0.205, 0.4, 0.6)], "1")).toBeNull(); // menos de 1% das seções: ruído
+    expect(tendenciaFinal([ponto(0.9, 0.5, 0.5), ponto(1, 0.4, 0.6)], "1")).toBeNull();
+  });
+
+  test("só desenha a linha pontilhada quando pedida e diz que não é projeção", () => {
+    const hist = [ponto(0.2, 0.54, 0.4), ponto(0.3, 0.52, 0.42), ponto(0.4, 0.5, 0.44)];
+    expect(evolucao(hist, quem, cor)).not.toContain("tendencia");
+    const html = evolucao(hist, quem, cor, {}, { tendencia: true });
+    expect(html.match(/class="tendencia"/g)).toHaveLength(2);
+    expect(html).toContain("100% das seções");
+    expect(html).toContain("onda até 100%: 38,0%");
+    expect(html).toContain("não projeção nem resultado");
   });
 });

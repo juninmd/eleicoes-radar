@@ -136,7 +136,7 @@ export function renderHero({ hero, avatar, cor, esperado = {} }: { hero: Hero; a
     <p class="sr">Diferença de ${dif.toFixed(1).replace(".", ",")} pontos percentuais entre os dois primeiros.</p>
     ${renderDuelo({ d, cargo: "Presidente", uf: hero.uf, cor })}
     <h4>Curva da apuração <small>os dois primeiros, desde que você abriu a aba</small></h4>
-    ${evolucao(hist2, quem, cor, esperado)}</section>`;
+    ${evolucao(hist2, quem, cor, esperado, { tendencia: true })}</section>`;
 }
 
 // Every state at once for one office: leader, runner-up and how much of the count is in.
