@@ -185,6 +185,16 @@ function raceOf() {
   return { cargo: (state.uf === "DF" && b.alt ? b.alt : b.cargo) as Cargo, uf: b.national ? "BR" : state.uf };
 }
 
+// The Ao vivo tab features the President's race: its photos are not loaded with the ballot unless that one is open.
+let fotosPresidente = false;
+function carregarFotosPresidente() {
+  if (fotosPresidente) return;
+  fotosPresidente = true;
+  loadJson<Record<string, string>>(`data/fotos/BR-${slug("Presidente")}.json`)
+    .then((f) => { Object.assign(state.fotos, f); if (state.modo === "aovivo") aoVivo.show({ uf: state.uf, abrir: abrirCorrida, avatar }); })
+    .catch(() => {}); // no file: initials
+}
+
 // From a card of the Ao vivo tab to that race in the Apuração tab.
 function abrirCorrida(cargo: Cargo) {
   const i = BALLOTS.findIndex((b) => b.cargo === cargo || b.alt === cargo);
@@ -207,7 +217,7 @@ function renderModo() {
   $("#rede-view").hidden = state.modo !== "rede";
   $("#apu-view").hidden = state.modo !== "apuracao";
   $("#live-view").hidden = state.modo !== "aovivo";
-  if (state.modo === "aovivo") aoVivo.show({ uf: state.uf, abrir: abrirCorrida });
+  if (state.modo === "aovivo") { aoVivo.show({ uf: state.uf, abrir: abrirCorrida, avatar }); carregarFotosPresidente(); }
   else aoVivo.hide();
   $("#pan-view").hidden = !(state.modo in PAN_MODES);
   if (state.modo === "apuracao") apuracao.show({ ...raceOf(), byId: new Map(state.cands.map((c) => [c.id, c] as const)), avatar, exp: state.exp, abrirUf });
@@ -236,7 +246,7 @@ function bind() {
   $("#busca").addEventListener("input", (e) => { state.busca = (e.target as HTMLInputElement).value; state.limit = PAGE; renderList(); });
   $("#ordem").addEventListener("change", (e) => { state.ordem = (e.target as HTMLSelectElement).value; renderList(); });
   $<HTMLInputElement>("#mostrarFotos").checked = state.mostrarFotos;
-  $("#mostrarFotos").addEventListener("change", (e) => { state.mostrarFotos = (e.target as HTMLInputElement).checked; store.set("fotos", state.mostrarFotos); renderList(); renderDossierPanel(); });
+  $("#mostrarFotos").addEventListener("change", (e) => { state.mostrarFotos = (e.target as HTMLInputElement).checked; store.set("fotos", state.mostrarFotos); renderList(); renderDossierPanel(); if (state.modo === "aovivo") aoVivo.show({ uf: state.uf, abrir: abrirCorrida, avatar }); });
   $("#situacao").addEventListener("change", (e) => { state.situacao = (e.target as HTMLSelectElement).value; state.limit = PAGE; render(); });
   $("#mais").addEventListener("click", () => { state.limit += PAGE; renderList(); });
   $("#pesos").addEventListener("input", (e) => {
