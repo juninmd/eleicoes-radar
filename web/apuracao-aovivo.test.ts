@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { BRASIL, TODOS, corridasDe, renderAoVivo, renderHero } from "./apuracao-aovivo.js";
+import { BRASIL, TODOS, corridasDe, disputaDecidida, renderAoVivo, renderHero } from "./apuracao-aovivo.js";
 import { atualizar, vazio } from "./apuracao-eleitos.js";
 import { registrar } from "./apuracao-graficos.js";
 import { createCores } from "./apuracao-nacional.js";
@@ -101,5 +101,55 @@ describe("expectativa na curva", () => {
     const html = renderHero({ hero, avatar, cor });
     expect(html).not.toContain("esperado");
     expect(html).not.toContain("Linha tracejada");
+  });
+});
+
+describe("efeitos de embate", () => {
+  const eleitoSo = (a: "Eleito" | "", b: "Não eleito" | "") => [cand("a1", "10", "ANA SOUZA", "1", "6000", "60,00", a ? "s" : "n", a), cand("b2", "20", "BETO LIMA", "2", "4000", "40,00", "n", b)];
+  const hero = (cands = dois) => heroDe(BRASIL, cands);
+
+  test("três raios entre os retratos, na cor de cada lado, mais rápidos quanto mais apertada a disputa", () => {
+    const html = renderHero({ hero: hero(), avatar, cor });
+    expect(html.match(/class="raio r\d"/g)).toHaveLength(3);
+    expect(html).toContain('aria-hidden="true" style="--raio-dur:');
+    const apertada = renderHero({ hero: hero([cand("a1", "10", "ANA", "1", "5100", "51,00"), cand("b2", "20", "BETO", "2", "4900", "49,00")]), avatar, cor });
+    const dur = (h: string) => Number(/--raio-dur:([\d.]+)s/.exec(h)![1]);
+    expect(dur(apertada)).toBeLessThan(dur(html));
+  });
+
+  test("a entrada só toca quando pedida e o botão Efeitos desliga tudo", () => {
+    expect(renderHero({ hero: hero(), avatar, cor })).not.toContain(" intro");
+    expect(renderHero({ hero: hero(), avatar, cor, fx: { ligado: true, intro: true, ko: false } })).toContain("live-hero intro");
+    expect(renderHero({ hero: hero(), avatar, cor, fx: { ligado: false, intro: false, ko: false } })).toContain("live-hero sem-fx");
+    expect(renderAoVivo(props({ fx: { ligado: false, intro: false, ko: false } }))).toContain('data-live-fx aria-pressed="false">Efeitos: desligados');
+    expect(renderAoVivo(props())).toContain("Efeitos: ligados");
+  });
+
+  test("K.O. só quando o TSE marca um dos dois como Eleito e o outro não", () => {
+    expect(disputaDecidida(parseApuracao(file({ cands: dois })))?.derrotado.id).toBe("b2");
+    expect(disputaDecidida(parseApuracao(file({ cands: eleitoSo("", "") })))).toBeNull(); // ninguém marcado
+    const doisTurno = [cand("a1", "10", "ANA", "1", "6000", "48,00", "s", "2º turno"), cand("b2", "20", "BETO", "2", "4000", "40,00", "s", "2º turno")];
+    expect(disputaDecidida(parseApuracao(file({ cands: doisTurno })))).toBeNull(); // "2º turno" não é eleição
+    const ambos = [cand("a1", "10", "ANA", "1", "6000", "48,00", "s", "Eleito"), cand("b2", "20", "BETO", "2", "4000", "40,00", "s", "Eleito")];
+    expect(disputaDecidida(parseApuracao(file({ cands: ambos })))).toBeNull();
+  });
+
+  test("a queda toca uma vez; depois fica o estado final (derrotado, selo K.O., sem animação de queda)", () => {
+    const toca = renderHero({ hero: hero(), avatar, cor, fx: { ligado: true, intro: false, ko: true } });
+    expect(toca).toContain("decidida ko-toca");
+    expect(toca).not.toContain("live-ko-flash"); // o K.O. grande é desenhado fora da área que se redesenha
+    expect(toca).toContain('class="live-side b derrotado"');
+    expect(toca).toContain('class="live-selo-ko"');
+    const depois = renderHero({ hero: hero(), avatar, cor });
+    expect(depois).toContain("live-hero decidida");
+    expect(depois).not.toContain("ko-toca");
+    expect(depois).toContain("derrotado");
+    expect(depois).toContain('O TSE marcou "Eleito"'); // o fato continua em texto
+  });
+
+  test("sem decisão não há K.O. nem derrotado", () => {
+    const html = renderHero({ hero: hero(eleitoSo("", "")), avatar, cor, fx: { ligado: true, intro: false, ko: true } });
+    expect(html).not.toContain("live-selo-ko");
+    expect(html).not.toContain("derrotado");
   });
 });

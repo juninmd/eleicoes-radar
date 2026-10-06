@@ -96,6 +96,20 @@ function linhaGeral(linhas: Linha[]): string {
     ${itens.length > MAX_LINHA ? `<p class="muted small">Mostrando as ${MAX_LINHA} mais recentes de ${int(itens.length)}.</p>` : ""}`;
 }
 
+// Visual effects of the head-to-head (lightning, entrance, K.O.). `intro`: the first drawing after the tab opens, the only one that plays
+// the entrance; `ko`: the one drawing that plays the K.O. (later drawings show its end state, so a redraw never replays it).
+export interface Efeitos { ligado: boolean; intro: boolean; ko: boolean }
+export const EFEITOS_PADRAO: Efeitos = { ligado: true, intro: false, ko: false };
+
+// The K.O. is the TSE's own word turned into a show: only when the TSE marks one of the two leaders "Eleito" and not the other.
+export function disputaDecidida(d: Apuracao | null | undefined): { eleito: Candidato; derrotado: Candidato } | null {
+  const [a, b] = d?.candidatos ?? [];
+  if (!a || !b) return null;
+  const e = [a, b].find(eleitoTse);
+  const o = e === a ? b : a;
+  return e && !eleitoTse(o) ? { eleito: e, derrotado: o } : null;
+}
+
 export type Avatar = (c: { id: string; nome: string }, size: string) => string;
 export interface Hero { uf: string; snap: FeedSnapshot | null; hist: Ponto[]; eleitos: EstadoEleitos }
 const CARGOS_TODOS = ["Presidente", "Governador", "Senador"] as const;
@@ -103,9 +117,9 @@ const curto = (nome: string) => titleName(nome).split(" ").slice(0, 2).join(" ")
 
 // The President's race as a head-to-head: the two leaders side by side with their photos (when the reader keeps photos on), the
 // 50% bar and the curve of the count. Everything is the TSE's own numbers; a "Eleito" mark is the TSE's text, shown as it is.
-function lado(c: Candidato, cls: string, avatar: Avatar, cor: Cores, esp?: Esperado, fase?: Fase): string {
+function lado(c: Candidato, cls: string, avatar: Avatar, cor: Cores, esp?: Esperado, fase?: Fase, derrotado = false): string {
   const marca = eleitoTse(c) ? `<span class="rot alta">${h(c.situacao)}</span>` : c.situacao ? `<span class="rot baixa">${h(c.situacao)}</span>` : "";
-  return `<div class="live-side ${cls}${eleitoTse(c) ? " eleito" : ""}" style="--lado:${cor(c.partido)}"><div class="live-foto">${avatar({ id: c.id, nome: c.nome }, "lg")}${cls.includes("lead") ? `<span class="live-lead">${fase === "concluida" ? "mais votado" : "à frente agora"}</span>` : ""}</div>
+  return `<div class="live-side ${cls}${eleitoTse(c) ? " eleito" : ""}${derrotado ? " derrotado" : ""}" style="--lado:${cor(c.partido)}"><div class="live-foto">${avatar({ id: c.id, nome: c.nome }, "lg")}${derrotado ? `<span class="live-selo-ko" aria-hidden="true">K.O.</span>` : ""}${cls.includes("lead") ? `<span class="live-lead">${fase === "concluida" ? "mais votado" : "à frente agora"}</span>` : ""}</div>
     <b class="live-side-nome">${h(titleName(c.nome))}</b><small>${h(c.partido)} · ${h(c.num)}</small>
     <span class="live-big">${pct(c.pct, 1)}</span><span class="live-side-votos">${int(c.votos)} votos</span>${esp ? `<span class="live-side-esp">expectativa (pesquisas): <b>${pct(esp.media, 1)}</b></span>` : ""}${marca}</div>`;
 }
@@ -116,7 +130,7 @@ const faixaEleito = (d: Apuracao) => {
   return e.length ? `<p class="live-eleito" role="status"><b>O TSE marcou "${h(e[0].situacao)}":</b> ${e.map((c) => `${h(titleName(c.nome))} (${h(c.partido)})`).join(" e ")}.</p>` : "";
 };
 
-export function renderHero({ hero, avatar, cor, esperado = {} }: { hero: Hero; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado> }): string {
+export function renderHero({ hero, avatar, cor, esperado = {}, fx = EFEITOS_PADRAO }: { hero: Hero; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado>; fx?: Efeitos }): string {
   const d = hero.snap?.dados;
   const onde = hero.uf === BRASIL ? "Brasil" : hero.uf === EXTERIOR ? "Exterior" : hero.uf;
   const topo = (fase: string) => `<header><h3>Presidente <small>${h(onde)}</small></h3>${fase}</header>`;
@@ -135,11 +149,20 @@ export function renderHero({ hero, avatar, cor, esperado = {} }: { hero: Hero; a
   const quem = Object.fromEntries([a, b].map((c) => [c.id, { nome: c.nome, partido: c.partido }]));
   // Both curves, even when the leader changes: the chart follows the two first of the last file.
   const hist2 = hero.hist.map((p) => ({ ...p, pcts: Object.fromEntries(Object.entries(p.pcts).filter(([id]) => id in quem)) }));
-  return `<section class="live-hero" aria-label="Presidente ${h(onde)}">${topo(fase)}${base}
+  const fim = disputaDecidida(d);
+  const classe = ["live-hero", fx.ligado ? "" : "sem-fx", fx.intro ? "intro" : "", fim ? "decidida" : "", fim && fx.ko ? "ko-toca" : ""].filter(Boolean).join(" ");
+  // Lightning between the two portraits; the closer the count, the faster they strike.
+  const ritmo = (0.7 + Math.min(Math.abs(dif), 20) * 0.12).toFixed(2);
+  const raios = `<div class="live-raios" aria-hidden="true" style="--raio-dur:${ritmo}s"><svg viewBox="0 0 300 120" preserveAspectRatio="none">
+      <defs><linearGradient id="raio-g" x1="0" x2="1"><stop offset="0" stop-color="${cor(a.partido)}"/><stop offset="0.5" stop-color="#fff"/><stop offset="1" stop-color="${cor(b.partido)}"/></linearGradient></defs>
+      <polyline class="raio r1" points="0,62 34,34 58,78 92,26 120,84 154,30 186,80 220,36 250,72 300,58"/>
+      <polyline class="raio r2" points="0,48 28,70 64,38 96,88 130,44 166,82 198,34 232,76 264,40 300,64"/>
+      <polyline class="raio r3" points="0,70 40,50 70,92 108,40 140,70 176,28 208,66 244,44 300,52"/></svg></div>`;
+  return `<section class="${classe}" aria-label="Presidente ${h(onde)}">${topo(fase)}${base}
     ${faixaEleito(d)}
-    <div class="live-duel">${lado(a, a.pct > b.pct ? "a lead" : "a", avatar, cor, esperado[a.id], d.fase)}
+    <div class="live-duel" style="--ca:${cor(a.partido)};--cb:${cor(b.partido)}">${raios}${lado(a, a.pct > b.pct ? "a lead" : "a", avatar, cor, esperado[a.id], d.fase, fim?.derrotado === a)}
       <div class="live-vs" aria-hidden="true"><span class="live-vs-x">VS</span><b>${dif.toFixed(1).replace(".", ",")}</b><small>p.p. de diferença</small></div>
-      ${lado(b, "b", avatar, cor, esperado[b.id], d.fase)}</div>
+      ${lado(b, "b", avatar, cor, esperado[b.id], d.fase, fim?.derrotado === b)}</div>
     <p class="sr">Diferença de ${dif.toFixed(1).replace(".", ",")} pontos percentuais entre os dois primeiros.</p>
     ${renderDuelo({ d, cargo: "Presidente", uf: hero.uf, cor })}
     <h4>Curva da apuração <small>os dois primeiros, desde que você abriu a aba</small></h4>
@@ -167,7 +190,7 @@ function todosOsEstados(nac: BrasilSnapshot | null, cargo: Cargo): string {
     <p class="muted small">Cada quadro é o arquivo do TSE do estado: o líder e o segundo de agora, não o resultado. Toque num estado para filtrar a tela.${cargo === "Presidente" ? " O exterior tem arquivo próprio." : ""}</p>`;
 }
 
-export interface AoVivoProps { hero: Hero; linhas: Linha[]; escopo: string; ufCartoes: string; nac: BrasilSnapshot | null; cargoTodos: Cargo; agora: Date; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado> }
+export interface AoVivoProps { hero: Hero; linhas: Linha[]; escopo: string; ufCartoes: string; nac: BrasilSnapshot | null; cargoTodos: Cargo; agora: Date; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado>; fx?: Efeitos }
 
 const opcoes = (escopo: string, ufMeu: string) => [
   `<option value="${BRASIL}"${escopo === BRASIL ? " selected" : ""}>Brasil (total)</option>`,
@@ -187,10 +210,10 @@ export function renderAoVivo(p: AoVivoProps): string {
   const cartoes = escopo === EXTERIOR ? "" : `<h3>Disputas de ${h(p.ufCartoes)}</h3><div class="live-grid">${linhas.map(card).join("")}</div>`;
   return `<section class="exp-card apu live" aria-labelledby="live-t">
     <h2 id="live-t">Ao vivo <span class="rot aberta">${ativos.length} de ${todas.length} disputas com apuração</span></h2>
-    <div class="live-filtro"><label class="field" for="live-escopo">Onde<select id="live-escopo">${opcoes(escopo, p.ufCartoes === BRASIL ? "" : p.ufCartoes)}</select></label></div>
+    <div class="live-filtro"><label class="field" for="live-escopo">Onde<select id="live-escopo">${opcoes(escopo, p.ufCartoes === BRASIL ? "" : p.ufCartoes)}</select></label><button type="button" class="ghost" data-live-fx aria-pressed="${(p.fx ?? EFEITOS_PADRAO).ligado}">Efeitos: ${(p.fx ?? EFEITOS_PADRAO).ligado ? "ligados" : "desligados"}</button></div>
     <p class="muted exp-meta">${quando ? `Consultado às <span id="apu-quando">${h(quando.toLocaleTimeString("pt-BR"))}</span> · ` : ""}atualiza sozinho a cada ${POLL_MS / 1000} s enquanto você estiver nesta aba. Média das seções totalizadas: <b>${pct(Math.floor(media * 1000) / 1000, 1)}</b>${pausa ? ` · arquivo mais recente <span id="apu-idade">(${idadeTxt(pausa.idadeMs)})</span>` : ""}.</p>
     ${pausa?.parado ? `<p class="apu-aviso apu-pausa"><b>Sem arquivo novo do TSE há mais de 10 minutos.</b> A pausa é do TSE, que publica em rodadas.</p>` : ""}
-    ${renderHero({ hero, avatar: p.avatar, cor: p.cor, esperado: p.esperado })}
+    ${renderHero({ hero, avatar: p.avatar, cor: p.cor, esperado: p.esperado, fx: p.fx })}
     ${escopo === TODOS ? `<h3>Todos os estados</h3>${todosOsEstados(nac, p.cargoTodos)}` : ""}
     ${escopo === TODOS || escopo === EXTERIOR ? "" : cartoes}
     ${escopo === TODOS ? cartoes : ""}
@@ -213,15 +236,33 @@ export function mountAoVivo(el: HTMLElement) {
   let brasil: ReturnType<typeof createBrasilFeed> | null = null;
   let painted: string | null = null;
   let raf = 0;
+  let intro = true; // the entrance plays once per opening of the tab (and per change of scope)
+  let koTocou = false; // the K.O. plays once per scope; redraws show its end state
+  let efeitos = (() => { try { return localStorage.getItem("radar:fx") !== "off"; } catch { return true; } })();
   const cor = createCores(PALETA, RESTO);
 
+  // The big K.O. and its flash live outside the redrawn area: a redraw (any of the five feeds can trigger one) must not cut them off.
+  const tocarKo = () => {
+    if (!efeitos || (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches)) return;
+    const o = document.createElement("div");
+    o.className = "live-ko-overlay";
+    o.setAttribute("aria-hidden", "true");
+    o.innerHTML = '<div class="live-ko-flash"></div><div class="live-ko">K.O.</div>';
+    document.body.append(o);
+    el.classList.add("ko-treme");
+    setTimeout(() => { o.remove(); el.classList.remove("ko-treme"); }, 3800);
+  };
   const ufCartoes = () => (escopo === BRASIL || escopo === TODOS ? ctx!.uf : escopo);
   const paint = () => {
     if (!ctx) return;
     // The polls are national: only the national file of the President has an expectation to draw.
     const esperado: Record<string, Esperado> = {};
     if (hero.uf === BRASIL) for (const c of hero.snap?.dados?.candidatos.slice(0, 2) ?? []) { const x = comparar(c, ctx.prev?.(c.id)); if (x) esperado[c.id] = { media: x.media, lo: x.lo, hi: x.hi }; }
-    const html = renderAoVivo({ hero, linhas, escopo, ufCartoes: ufCartoes(), nac, cargoTodos, agora: new Date(), avatar: ctx.avatar, cor, esperado });
+    const decidida = !!disputaDecidida(hero.snap?.dados);
+    const fx: Efeitos = { ligado: efeitos, intro: intro && !!hero.snap?.dados, ko: decidida && !koTocou };
+    const html = renderAoVivo({ hero, linhas, escopo, ufCartoes: ufCartoes(), nac, cargoTodos, agora: new Date(), avatar: ctx.avatar, cor, esperado, fx });
+    if (hero.snap?.dados) intro = false;
+    if (decidida && !koTocou) { koTocou = true; tocarKo(); }
     const key = semRelogio(html);
     const quando = el.querySelector<HTMLElement>("#apu-quando");
     if (key === painted && quando) {
@@ -241,6 +282,8 @@ export function mountAoVivo(el: HTMLElement) {
   // every state is shown at once.
   const ligar = () => {
     parar();
+    intro = true;
+    koTocou = false;
     const heroUf = escopo === TODOS ? BRASIL : escopo;
     hero = { uf: heroUf, snap: null, hist: [], eleitos: vazio() };
     const fHero = createFeed({
@@ -275,8 +318,9 @@ export function mountAoVivo(el: HTMLElement) {
   };
 
   el.addEventListener("click", (e) => {
-    const t = (e.target as Element).closest<HTMLElement>("[data-abrir-corrida], [data-live-escopo], [data-live-cargo]");
+    const t = (e.target as Element).closest<HTMLElement>("[data-abrir-corrida], [data-live-escopo], [data-live-cargo], [data-live-fx]");
     if (!t || !ctx) return;
+    if ("liveFx" in t.dataset) { efeitos = !efeitos; try { localStorage.setItem("radar:fx", efeitos ? "on" : "off"); } catch { /* private window: the choice lasts until the tab closes */ } paint(); return; }
     if (t.dataset.liveEscopo) { escopo = t.dataset.liveEscopo; ligar(); return; }
     if (t.dataset.liveCargo) { cargoTodos = t.dataset.liveCargo as Cargo; nac = null; brasil?.follow(cargoTodos); paint(); return; }
     const [cargo, uf] = t.dataset.abrirCorrida!.split("|");
