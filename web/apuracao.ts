@@ -206,7 +206,7 @@ function graficos(d: Apuracao | null | undefined, rows: Linha[], hist: Ponto[], 
   const faixa = faixaVsApuracao(rows, d.fase);
   return `<h3>Quem votou, e quem não</h3>${composicao(d)}
     ${faixa ? `<h3>Apuração e faixa das pesquisas</h3>${faixa}` : ""}
-    <h3>Evolução desde que você abriu a aba</h3>${evolucao(hist, quemDe(d), cor, esperado)}`;
+    <h3>Evolução desde que você abriu a aba</h3>${evolucao(hist, quemDe(d), cor, esperado, { tendencia: true })}`;
 }
 
 // proj: what apuracao-projecao-estado.js hands over ({ analise, partes, nomes, esperadas }), or null while the files are loading.
