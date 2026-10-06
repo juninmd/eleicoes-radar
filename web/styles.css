@@ -370,3 +370,5 @@ body.sobre .metodo > :nth-child(3) { animation-delay: 0.08s; } body.sobre .metod
   .apu .apu-vistas button { min-height: 44px; padding: 6px 4px; border: 1px solid var(--line); border-radius: var(--r-md); }
   .apu .apu-vistas button + button { border-left: 1px solid var(--line); }
 }
+
+body[data-visao="aovivo"] #cedulas { display: none; } /* the Ao vivo tab shows every race at once: no ballot to pick */

@@ -242,3 +242,19 @@
 .apu-linha b { font-size: 15px; }
 .apu-linha small { color: var(--muted); }
 .apu-linha em { display: block; font-style: normal; font-size: 12px; color: var(--ink-2); margin-top: 2px; }
+
+/* Ao vivo: all the races of the ballot at once. */
+.live-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 12px; margin-block: 12px; }
+.live-card { display: flex; flex-direction: column; gap: 8px; background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 14px; min-width: 0; }
+.live-card header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.live-card h3 { margin: 0; font: 900 20px/1 var(--display); text-transform: uppercase; }
+.live-card h3 small { font: 500 12px var(--mono); color: var(--muted); text-transform: none; }
+.live-top { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.live-top li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; align-items: center; }
+.live-nome { grid-column: 1 / -1; overflow-wrap: anywhere; font-size: 13px; }
+.live-nome small { color: var(--muted); }
+.live-bar { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; }
+.live-bar i { display: block; height: 100%; background: var(--confirma); }
+.live-pct { font: 700 14px var(--mono); font-variant-numeric: tabular-nums; }
+.live-res { margin: 0; font-size: 13px; color: var(--ink-2); }
+.live-abrir { align-self: flex-start; min-height: 40px; }
