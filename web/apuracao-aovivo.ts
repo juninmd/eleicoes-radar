@@ -3,13 +3,21 @@
 // adds no arithmetic of its own beyond what apuracao-eleito.js already proves; the TSE's text wins everywhere. In memory only.
 import { h, int, pct, titleName } from "./format.js";
 import { createFeed, POLL_MS } from "./apuracao-feed.js";
+import { createBrasilFeed, EXTERIOR, UFS, ufsDo } from "./apuracao-uf.js";
 import { tseUrl } from "./apuracao-tse.js";
+import { createCores, linhasUf } from "./apuracao-nacional.js";
+import { PALETA, RESTO } from "./apuracao-mapa.js";
+import { renderDuelo } from "./apuracao-duelo.js";
+import { evolucao, registrar } from "./apuracao-graficos.js";
 import { decididos, eleitoTse } from "./apuracao-eleito.js";
 import { atualizar, vazio } from "./apuracao-eleitos.js";
 import { idadeTxt, pausaDoTse } from "./apuracao-ritmo.js";
 import { repaint, relogio, idade, semRelogio } from "./apuracao-dom.js";
 import { avancoDe } from "./apuracao-nacional.js";
-import type { Apuracao, Cargo, Fase } from "./apuracao-tse.js";
+import type { Apuracao, Candidato, Cargo, Fase } from "./apuracao-tse.js";
+import type { BrasilSnapshot } from "./apuracao-uf.js";
+import type { Cores } from "./apuracao-nacional.js";
+import type { Ponto } from "./apuracao-graficos.js";
 import type { FeedSnapshot } from "./apuracao-feed.js";
 import type { EstadoEleitos } from "./apuracao-eleitos.js";
 
@@ -20,11 +28,16 @@ const FASES: Record<Fase, string> = { aguardando: "Aguardando", parcial: "Em and
 const proporcional = (c: Cargo) => /^Deputado/.test(c);
 const MAX_LINHA = 20;
 
-// The five races a voter in `uf` sees on the ballot. The Federal District has no state deputies: it elects district ones.
+// The races of one state besides the President's (the hero of the tab). The Federal District has no state deputies: it elects district ones.
 export const corridasDe = (uf: string): Corrida[] => [
-  { cargo: "Presidente", uf: "BR" }, { cargo: "Governador", uf }, { cargo: "Senador", uf }, { cargo: "Deputado Federal", uf },
+  { cargo: "Governador", uf }, { cargo: "Senador", uf }, { cargo: "Deputado Federal", uf },
   { cargo: uf === "DF" ? "Deputado Distrital" : "Deputado Estadual", uf },
 ];
+
+// What the filter can pick: the whole country, every state side by side, one state, or the votes cast abroad.
+export const BRASIL = "BR";
+export const TODOS = "TODOS";
+export const nomeEscopo = (e: string) => (e === BRASIL ? "Brasil" : e === TODOS ? "Todos os estados" : e === EXTERIOR ? "Exterior" : e);
 
 const pctSecoes = ({ totalizadas, total }: Apuracao["secoes"]) => pct(total > 0 ? (totalizadas >= total ? 1 : Math.floor((totalizadas / total) * 1000) / 1000) : 0, 1);
 
@@ -81,33 +94,122 @@ function linhaGeral(linhas: Linha[]): string {
     ${itens.length > MAX_LINHA ? `<p class="muted small">Mostrando as ${MAX_LINHA} mais recentes de ${int(itens.length)}.</p>` : ""}`;
 }
 
-export function renderAoVivo({ linhas, agora }: { linhas: Linha[]; agora: Date }): string {
-  const dados = linhas.map((l) => l.snap?.dados ?? null);
-  const ativos = dados.filter((d): d is Apuracao => !!d && d.fase !== "aguardando");
+export type Avatar = (c: { id: string; nome: string }, size: string) => string;
+export interface Hero { uf: string; snap: FeedSnapshot | null; hist: Ponto[]; eleitos: EstadoEleitos }
+const CARGOS_TODOS = ["Presidente", "Governador", "Senador"] as const;
+const curto = (nome: string) => titleName(nome).split(" ").slice(0, 2).join(" ");
+
+// The President's race as a head-to-head: the two leaders side by side with their photos (when the reader keeps photos on), the
+// 50% bar and the curve of the count. Everything is the TSE's own numbers; a "Eleito" mark is the TSE's text, shown as it is.
+function lado(c: Candidato, cls: string, avatar: Avatar, cor: Cores): string {
+  const marca = eleitoTse(c) ? `<span class="rot alta">${h(c.situacao)}</span>` : c.situacao ? `<span class="rot baixa">${h(c.situacao)}</span>` : "";
+  return `<div class="live-side ${cls}" style="--lado:${cor(c.partido)}">${avatar({ id: c.id, nome: c.nome }, "lg")}
+    <b class="live-side-nome">${h(titleName(c.nome))}</b><small>${h(c.partido)} · ${h(c.num)}</small>
+    <span class="live-big">${pct(c.pct, 1)}</span><span class="live-side-votos">${int(c.votos)} votos</span>${marca}</div>`;
+}
+
+export function renderHero({ hero, avatar, cor }: { hero: Hero; avatar: Avatar; cor: Cores }): string {
+  const d = hero.snap?.dados;
+  const onde = hero.uf === BRASIL ? "Brasil" : hero.uf === EXTERIOR ? "Exterior" : hero.uf;
+  const topo = (fase: string) => `<header><h3>Presidente <small>${h(onde)}</small></h3>${fase}</header>`;
+  if (!d) {
+    const msg = hero.snap?.status === "ausente" ? "O TSE ainda não publicou o arquivo desta disputa." : hero.snap?.status === "erro" ? `Não foi possível consultar o TSE: ${h(hero.snap.erro)}.` : "Consultando o TSE…";
+    return `<section class="live-hero" aria-label="Presidente ${h(onde)}">${topo("")}<p class="muted small">${msg}</p></section>`;
+  }
+  const fase = `<span class="rot ${d.fase === "parcial" ? "aberta" : d.fase === "concluida" ? "alta" : "baixa"}">${FASES[d.fase]}</span>`;
+  const velha = hero.snap!.status === "erro" || hero.snap!.status === "ausente";
+  const [a, b] = d.candidatos;
+  const base = `${velha ? `<p class="apu-aviso small"><b>Números desatualizados:</b> o TSE não entregou o arquivo agora; vale o último recebido.</p>` : ""}
+    <progress class="apu-prog" max="${d.secoes.total || 1}" value="${d.secoes.totalizadas}" aria-label="Seções totalizadas">${pctSecoes(d.secoes)}</progress>
+    <p class="exp-meta"><b>${int(d.secoes.totalizadas)} de ${int(d.secoes.total)} seções (${pctSecoes(d.secoes)})</b> · arquivo de ${h(d.versao.hora.slice(0, 5))}</p>`;
+  if (d.fase === "aguardando" || !(d.secoes.totalizadas > 0) || !a || !b || !(a.votos > 0)) return `<section class="live-hero" aria-label="Presidente ${h(onde)}">${topo(fase)}${base}<p class="muted small">A apuração ainda não começou nesta disputa.</p></section>`;
+  const dif = (a.pct - b.pct) * 100;
+  const quem = Object.fromEntries([a, b].map((c) => [c.id, { nome: c.nome, partido: c.partido }]));
+  // Both curves, even when the leader changes: the chart follows the two first of the last file.
+  const hist2 = hero.hist.map((p) => ({ ...p, pcts: Object.fromEntries(Object.entries(p.pcts).filter(([id]) => id in quem)) }));
+  return `<section class="live-hero" aria-label="Presidente ${h(onde)}">${topo(fase)}${base}
+    <div class="live-duel">${lado(a, "a", avatar, cor)}
+      <div class="live-vs" aria-hidden="true"><span>×</span><b>${dif.toFixed(1).replace(".", ",")}</b><small>p.p.</small></div>
+      ${lado(b, "b", avatar, cor)}</div>
+    <p class="sr">Diferença de ${dif.toFixed(1).replace(".", ",")} pontos percentuais entre os dois primeiros.</p>
+    ${renderDuelo({ d, cargo: "Presidente", uf: hero.uf, cor })}
+    <h4>Curva da apuração <small>os dois primeiros, desde que você abriu a aba</small></h4>
+    ${evolucao(hist2, quem, cor)}</section>`;
+}
+
+// Every state at once for one office: leader, runner-up and how much of the count is in.
+function todosOsEstados(nac: BrasilSnapshot | null, cargo: Cargo): string {
+  const abas = `<div class="apu-vistas" role="group" aria-label="Cargo">${CARGOS_TODOS.map((c) => `<button type="button" data-live-cargo="${c}" aria-pressed="${c === cargo}">${c}</button>`).join("")}</div>`;
+  if (!nac || nac.cargo !== cargo) return `${abas}<p class="muted small">Consultando os arquivos de todos os estados…</p>`;
+  const linhas = linhasUf(nac.ufs, cargo);
+  const fila = new Map(linhas.map((l) => [l.uf, l]));
+  const tiles = ufsDo(cargo).map((uf) => {
+    const l = fila.get(uf);
+    const nomeUf = uf === EXTERIOR ? "Exterior" : uf;
+    const sem = !l || !l.dados || l.fase === "aguardando";
+    const corpo = sem ? `<small class="muted">${l?.status === "ausente" ? "sem arquivo" : l?.status === "erro" ? "erro" : l?.fase === "aguardando" ? "aguardando" : "consultando"}</small>`
+      : `<span class="live-uf-l"><b>${h(curto(l.lider?.nome ?? ""))}</b> <small>${h(l.lider?.partido ?? "")}</small> <b>${l.lider ? pct(l.lider.pct, 1) : ""}</b></span>
+         ${l.segundo ? `<span class="live-uf-l muted"><span>${h(curto(l.segundo.nome))}</span> <span>${pct(l.segundo.pct, 1)}</span></span>` : ""}
+         <span class="live-bar" aria-hidden="true"><i style="width:${((l.avanco ?? 0) * 100).toFixed(1)}%"></i></span>
+         <small>${pct(l.avanco ?? 0, 1)} das seções${l.defasada ? " · desatualizado" : ""}</small>`;
+    return `<li><button type="button" class="live-uf" data-live-escopo="${uf}" aria-label="Ver ${h(nomeUf)}"><b class="live-uf-n">${h(nomeUf)}</b>${corpo}</button></li>`;
+  });
+  return `${abas}<ul class="live-ufs">${tiles.join("")}</ul>
+    <p class="muted small">Cada quadro é o arquivo do TSE do estado: o líder e o segundo de agora, não o resultado. Toque num estado para filtrar a tela.${cargo === "Presidente" ? " O exterior tem arquivo próprio." : ""}</p>`;
+}
+
+export interface AoVivoProps { hero: Hero; linhas: Linha[]; escopo: string; ufCartoes: string; nac: BrasilSnapshot | null; cargoTodos: Cargo; agora: Date; avatar: Avatar; cor: Cores }
+
+const opcoes = (escopo: string, ufMeu: string) => [
+  `<option value="${BRASIL}"${escopo === BRASIL ? " selected" : ""}>Brasil (total)</option>`,
+  `<option value="${TODOS}"${escopo === TODOS ? " selected" : ""}>Todos os estados ao mesmo tempo</option>`,
+  `<option value="${EXTERIOR}"${escopo === EXTERIOR ? " selected" : ""}>Exterior</option>`,
+  ...UFS.map((u) => `<option value="${u}"${escopo === u ? " selected" : ""}>${u}${u === ufMeu ? " (seu estado)" : ""}</option>`),
+].join("");
+
+export function renderAoVivo(p: AoVivoProps): string {
+  const { hero, linhas, escopo, nac, agora } = p;
+  const todas: Linha[] = [{ cargo: "Presidente", uf: hero.uf, snap: hero.snap, eleitos: hero.eleitos }, ...linhas];
+  const ativos = todas.map((l) => l.snap?.dados).filter((d): d is Apuracao => !!d && d.fase !== "aguardando");
   const media = ativos.length ? ativos.reduce((s, d) => s + avancoDe(d.secoes), 0) / ativos.length : 0;
   const pausa = ativos.some((d) => d.fase === "parcial") ? pausaDoTse(ativos, agora) : null;
-  const consultas = linhas.map((l) => l.snap?.buscadoEm).filter((x): x is Date => !!x);
+  const consultas = todas.map((l) => l.snap?.buscadoEm).filter((x): x is Date => !!x);
   const quando = consultas.length ? new Date(Math.max(...consultas.map((x) => x.getTime()))) : null;
+  const cartoes = escopo === EXTERIOR ? "" : `<h3>Disputas de ${h(p.ufCartoes)}</h3><div class="live-grid">${linhas.map(card).join("")}</div>`;
   return `<section class="exp-card apu live" aria-labelledby="live-t">
-    <h2 id="live-t">Ao vivo <span class="rot aberta">${ativos.length} de ${linhas.length} disputas com apuração</span></h2>
+    <h2 id="live-t">Ao vivo <span class="rot aberta">${ativos.length} de ${todas.length} disputas com apuração</span></h2>
+    <div class="live-filtro"><label class="field" for="live-escopo">Onde<select id="live-escopo">${opcoes(escopo, p.ufCartoes === BRASIL ? "" : p.ufCartoes)}</select></label></div>
     <p class="muted exp-meta">${quando ? `Consultado às <span id="apu-quando">${h(quando.toLocaleTimeString("pt-BR"))}</span> · ` : ""}atualiza sozinho a cada ${POLL_MS / 1000} s enquanto você estiver nesta aba. Média das seções totalizadas: <b>${pct(Math.floor(media * 1000) / 1000, 1)}</b>${pausa ? ` · arquivo mais recente <span id="apu-idade">(${idadeTxt(pausa.idadeMs)})</span>` : ""}.</p>
     ${pausa?.parado ? `<p class="apu-aviso apu-pausa"><b>Sem arquivo novo do TSE há mais de 10 minutos.</b> A pausa é do TSE, que publica em rodadas.</p>` : ""}
-    <div class="live-grid">${linhas.map(card).join("")}</div>
-    <h3>Quem foi eleito <small>em todas as disputas, desde que você abriu a aba</small></h3>
-    ${linhaGeral(linhas)}
-    <p class="muted small">Cada cartão mostra os números do TSE e o texto de situação que ele publica; o Radar não projeta vencedor. "Matematicamente eleito" é uma conta do Radar sobre os números do TSE (Presidente nacional, Governador e Senado). Nada fica guardado ao fechar a aba. Fonte: <a href="https://resultados.tse.jus.br/" rel="noopener" target="_blank">resultados.tse.jus.br</a>.</p>
+    ${renderHero({ hero, avatar: p.avatar, cor: p.cor })}
+    ${escopo === TODOS ? `<h3>Todos os estados</h3>${todosOsEstados(nac, p.cargoTodos)}` : ""}
+    ${escopo === TODOS || escopo === EXTERIOR ? "" : cartoes}
+    ${escopo === TODOS ? cartoes : ""}
+    <h3>Quem foi eleito <small>nas disputas acima, desde que você abriu a aba</small></h3>
+    ${linhaGeral(todas)}
+    <p class="muted small">Cada bloco mostra os números do TSE e o texto de situação que ele publica; o Radar não projeta vencedor. "Matematicamente eleito" é uma conta do Radar sobre os números do TSE (Presidente nacional, Governador e Senado). Fotos seguem a opção "Mostrar fotos". Nada fica guardado ao fechar a aba. Fonte: <a href="https://resultados.tse.jus.br/" rel="noopener" target="_blank">resultados.tse.jus.br</a>.</p>
   </section>`;
 }
 
-export function mountAoVivo(el: HTMLElement) {
-  let linhas: Linha[] = [];
-  let feeds: ReturnType<typeof createFeed>[] = [];
-  let ctx: { uf: string; abrir: (cargo: Cargo, uf: string) => void } | null = null;
-  let painted: string | null = null;
+export interface Contexto { uf: string; abrir: (cargo: Cargo, uf: string) => void; avatar: Avatar }
 
+export function mountAoVivo(el: HTMLElement) {
+  let ctx: Contexto | null = null;
+  let escopo = BRASIL;
+  let cargoTodos: Cargo = "Presidente";
+  let hero: Hero = { uf: BRASIL, snap: null, hist: [], eleitos: vazio() };
+  let linhas: Linha[] = [];
+  let nac: BrasilSnapshot | null = null;
+  let feeds: ReturnType<typeof createFeed>[] = [];
+  let brasil: ReturnType<typeof createBrasilFeed> | null = null;
+  let painted: string | null = null;
+  let raf = 0;
+  const cor = createCores(PALETA, RESTO);
+
+  const ufCartoes = () => (escopo === BRASIL || escopo === TODOS ? ctx!.uf : escopo);
   const paint = () => {
     if (!ctx) return;
-    const html = renderAoVivo({ linhas, agora: new Date() });
+    const html = renderAoVivo({ hero, linhas, escopo, ufCartoes: ufCartoes(), nac, cargoTodos, agora: new Date(), avatar: ctx.avatar, cor });
     const key = semRelogio(html);
     const quando = el.querySelector<HTMLElement>("#apu-quando");
     if (key === painted && quando) {
@@ -119,24 +221,28 @@ export function mountAoVivo(el: HTMLElement) {
     painted = key;
     repaint(el, html);
   };
+  const agendar = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; paint(); }); };
 
-  const parar = () => { feeds.forEach((f) => f.stop()); feeds = []; linhas = []; painted = null; };
+  const parar = () => { feeds.forEach((f) => f.stop()); feeds = []; brasil?.stop(); brasil = null; linhas = []; nac = null; painted = null; };
 
-  el.addEventListener("click", (e) => {
-    const t = (e.target as Element).closest<HTMLElement>("[data-abrir-corrida]");
-    if (!t || !ctx) return;
-    const [cargo, uf] = t.dataset.abrirCorrida!.split("|");
-    ctx.abrir(cargo as Cargo, uf);
-  });
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) feeds.forEach((f) => f.refresh()); });
-
-  return {
-    show(next: { uf: string; abrir: (cargo: Cargo, uf: string) => void }) {
-      if (ctx && ctx.uf === next.uf && feeds.length) { ctx = next; paint(); return; }
-      parar();
-      ctx = next;
-      linhas = corridasDe(next.uf).map((c) => ({ ...c, snap: null, eleitos: vazio() }));
-      feeds = linhas.map((l, i) => {
+  // (Re)starts every feed for the chosen scope: the President's file of that scope, the other races of one state, and the 28 files when
+  // every state is shown at once.
+  const ligar = () => {
+    parar();
+    const heroUf = escopo === TODOS ? BRASIL : escopo;
+    hero = { uf: heroUf, snap: null, hist: [], eleitos: vazio() };
+    const fHero = createFeed({
+      onChange: (s) => {
+        const eleitos = s.dados && s.status === "ok" ? atualizar(hero.eleitos, s.dados, { cargo: "Presidente", uf: heroUf }) : hero.eleitos;
+        hero = { ...hero, snap: s, eleitos, hist: s.dados && s.status === "ok" ? registrar(hero.hist, s.dados) : hero.hist };
+        paint();
+      },
+    });
+    feeds.push(fHero);
+    fHero.follow(tseUrl("Presidente", heroUf));
+    if (escopo !== EXTERIOR) {
+      linhas = corridasDe(ufCartoes()).map((c) => ({ ...c, snap: null, eleitos: vazio() }));
+      linhas.forEach((l, i) => {
         const f = createFeed({
           onChange: (s) => {
             const novo = { ...linhas[i], snap: s };
@@ -145,10 +251,38 @@ export function mountAoVivo(el: HTMLElement) {
             paint();
           },
         });
+        feeds.push(f);
         f.follow(tseUrl(l.cargo, l.uf));
-        return f;
       });
-      paint();
+    }
+    if (escopo === TODOS) {
+      brasil = createBrasilFeed({ onChange: (s) => { nac = s; agendar(); } });
+      brasil.follow(cargoTodos);
+    }
+    paint();
+  };
+
+  el.addEventListener("click", (e) => {
+    const t = (e.target as Element).closest<HTMLElement>("[data-abrir-corrida], [data-live-escopo], [data-live-cargo]");
+    if (!t || !ctx) return;
+    if (t.dataset.liveEscopo) { escopo = t.dataset.liveEscopo; ligar(); return; }
+    if (t.dataset.liveCargo) { cargoTodos = t.dataset.liveCargo as Cargo; nac = null; brasil?.follow(cargoTodos); paint(); return; }
+    const [cargo, uf] = t.dataset.abrirCorrida!.split("|");
+    ctx.abrir(cargo as Cargo, uf);
+  });
+  el.addEventListener("change", (e) => {
+    const t = e.target as HTMLSelectElement;
+    if (t.id !== "live-escopo") return;
+    escopo = t.value;
+    ligar();
+  });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { feeds.forEach((f) => f.refresh()); brasil?.refresh(); } });
+
+  return {
+    show(next: Contexto) {
+      const outro = !ctx || ctx.uf !== next.uf;
+      ctx = next;
+      if (outro || !feeds.length) ligar(); else paint();
     },
     hide() { parar(); ctx = null; el.innerHTML = ""; },
   };
