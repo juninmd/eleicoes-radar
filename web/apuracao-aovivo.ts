@@ -4,7 +4,8 @@
 import { h, int, pct, titleName } from "./format.js";
 import { createFeed, POLL_MS } from "./apuracao-feed.js";
 import { createBrasilFeed, EXTERIOR, UFS, ufsDo } from "./apuracao-uf.js";
-import { tseUrl } from "./apuracao-tse.js";
+import { tseUrl, TSE_BASE, turnoDe } from "./apuracao-tse.js";
+import { gravarTurno, lerTurno, seletorTurno } from "./apuracao-turno.js";
 import { createCores, linhasUf } from "./apuracao-nacional.js";
 import { PALETA, RESTO } from "./apuracao-mapa.js";
 import { renderDuelo } from "./apuracao-duelo.js";
@@ -16,7 +17,7 @@ import { atualizar, vazio } from "./apuracao-eleitos.js";
 import { idadeTxt, pausaDoTse } from "./apuracao-ritmo.js";
 import { repaint, relogio, idade, semRelogio } from "./apuracao-dom.js";
 import { avancoDe } from "./apuracao-nacional.js";
-import type { Apuracao, Candidato, Cargo, Fase } from "./apuracao-tse.js";
+import type { Apuracao, Candidato, Cargo, Fase, Turno } from "./apuracao-tse.js";
 import type { BrasilSnapshot } from "./apuracao-uf.js";
 import type { Cores } from "./apuracao-nacional.js";
 import type { Esperado, Ponto } from "./apuracao-graficos.js";
@@ -65,19 +66,20 @@ function resumo(d: Apuracao, cargo: Cargo): string {
   return b ? `Diferença de <b>${((a.pct - b.pct) * 100).toFixed(1).replace(".", ",")} p.p.</b> entre os dois primeiros${a.pct < 0.5 ? `; faltam ${((0.5 - a.pct) * 100).toFixed(1).replace(".", ",")} p.p. para o 1º chegar a 50%` : ""}.` : "";
 }
 
-function card({ cargo, uf, snap, eleitos }: Linha): string {
+function card({ cargo, uf, snap, eleitos }: Linha, turno: Turno = 1): string {
+  const t = turnoDe(cargo, turno);
   const d = snap?.dados;
   const local = uf === "BR" ? "Brasil" : uf;
   const chave = `${cargo}|${uf}`;
   const abrir = `<button type="button" class="ghost live-abrir" data-abrir-corrida="${h(chave)}">Abrir a apuração</button>`;
   if (!d) {
-    const msg = snap?.status === "ausente" ? "O TSE ainda não publicou o arquivo desta disputa." : snap?.status === "erro" ? `Não foi possível consultar o TSE: ${h(snap.erro)}.` : "Consultando o TSE…";
-    return `<article class="live-card" aria-label="${h(cargo)} ${h(local)}"><header><h3>${h(cargo)} <small>${h(local)}</small></h3></header><p class="muted small">${msg}</p>${abrir}</article>`;
+    const msg = snap?.status === "ausente" ? `O TSE ainda não publicou o arquivo desta disputa.${t === 2 ? " Se não houve 2º turno nela, o arquivo não existe." : ""}` : snap?.status === "erro" ? `Não foi possível consultar o TSE: ${h(snap.erro)}.` : "Consultando o TSE…";
+    return `<article class="live-card" aria-label="${h(cargo)} ${h(local)}"><header><h3>${h(cargo)} <small>${h(local)}${t === 2 ? " · 2º turno" : ""}</small></h3></header><p class="muted small">${msg}</p>${abrir}</article>`;
   }
   const velha = snap!.status === "erro" || snap!.status === "ausente";
   const tse = eleitos.itens.filter((e) => e.tipo === "tse").length;
   return `<article class="live-card" aria-label="${h(cargo)} ${h(local)}">
-    <header><h3>${h(cargo)} <small>${h(local)}</small></h3><span class="rot ${d.fase === "parcial" ? "aberta" : d.fase === "concluida" ? "alta" : "baixa"}">${FASES[d.fase]}</span></header>
+    <header><h3>${h(cargo)} <small>${h(local)}${t === 2 ? " · 2º turno" : ""}</small></h3><span class="rot ${d.fase === "parcial" ? "aberta" : d.fase === "concluida" ? "alta" : "baixa"}">${FASES[d.fase]}</span></header>
     ${velha ? `<p class="apu-aviso small"><b>Números desatualizados:</b> o TSE não entregou o arquivo agora; vale o último recebido.</p>` : ""}
     <progress class="apu-prog" max="${d.secoes.total || 1}" value="${d.secoes.totalizadas}" aria-label="Seções totalizadas">${pctSecoes(d.secoes)}</progress>
     <p class="exp-meta"><b>${pctSecoes(d.secoes)}</b> das seções · arquivo de ${h(d.versao.hora.slice(0, 5))}</p>
@@ -131,12 +133,12 @@ const faixaEleito = (d: Apuracao) => {
   return e.length ? `<p class="live-eleito" role="status"><b>O TSE marcou "${h(e[0].situacao)}":</b> ${e.map((c) => `${h(titleName(c.nome))} (${h(c.partido)})`).join(" e ")}.</p>` : "";
 };
 
-export function renderHero({ hero, avatar, cor, esperado = {}, fx = EFEITOS_PADRAO }: { hero: Hero; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado>; fx?: Efeitos }): string {
+export function renderHero({ hero, avatar, cor, esperado = {}, fx = EFEITOS_PADRAO, turno = 1 }: { hero: Hero; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado>; fx?: Efeitos; turno?: Turno }): string {
   const d = hero.snap?.dados;
   const onde = hero.uf === BRASIL ? "Brasil" : hero.uf === EXTERIOR ? "Exterior" : hero.uf;
-  const topo = (fase: string) => `<header><h3>Presidente <small>${h(onde)}</small></h3>${fase}</header>`;
+  const topo = (fase: string) => `<header><h3>Presidente <small>${h(onde)}${turno === 2 ? " · 2º turno" : ""}</small></h3>${fase}</header>`;
   if (!d) {
-    const msg = hero.snap?.status === "ausente" ? "O TSE ainda não publicou o arquivo desta disputa." : hero.snap?.status === "erro" ? `Não foi possível consultar o TSE: ${h(hero.snap.erro)}.` : "Consultando o TSE…";
+    const msg = hero.snap?.status === "ausente" ? `O TSE ainda não publicou o arquivo desta disputa${turno === 2 ? " (o 2º turno só existe se ninguém passou de 50% no 1º)" : ""}.` : hero.snap?.status === "erro" ? `Não foi possível consultar o TSE: ${h(hero.snap.erro)}.` : "Consultando o TSE…";
     return `<section class="live-hero" aria-label="Presidente ${h(onde)}">${topo("")}<p class="muted small">${msg}</p></section>`;
   }
   const fase = `<span class="rot ${d.fase === "parcial" ? "aberta" : d.fase === "concluida" ? "alta" : "baixa"}">${FASES[d.fase]}</span>`;
@@ -191,7 +193,7 @@ function todosOsEstados(nac: BrasilSnapshot | null, cargo: Cargo): string {
     <p class="muted small">Cada quadro é o arquivo do TSE do estado: o líder e o segundo de agora, não o resultado. Toque num estado para filtrar a tela.${cargo === "Presidente" ? " O exterior tem arquivo próprio." : ""}</p>`;
 }
 
-export interface AoVivoProps { hero: Hero; linhas: Linha[]; escopo: string; ufCartoes: string; nac: BrasilSnapshot | null; cargoTodos: Cargo; agora: Date; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado>; fx?: Efeitos }
+export interface AoVivoProps { hero: Hero; linhas: Linha[]; escopo: string; ufCartoes: string; nac: BrasilSnapshot | null; cargoTodos: Cargo; agora: Date; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado>; fx?: Efeitos; turno?: Turno }
 
 const opcoes = (escopo: string, ufMeu: string) => [
   `<option value="${BRASIL}"${escopo === BRASIL ? " selected" : ""}>Brasil (total)</option>`,
@@ -202,19 +204,21 @@ const opcoes = (escopo: string, ufMeu: string) => [
 
 export function renderAoVivo(p: AoVivoProps): string {
   const { hero, linhas, escopo, nac, agora } = p;
+  const turno = p.turno ?? 1;
   const todas: Linha[] = [{ cargo: "Presidente", uf: hero.uf, snap: hero.snap, eleitos: hero.eleitos }, ...linhas];
   const ativos = todas.map((l) => l.snap?.dados).filter((d): d is Apuracao => !!d && d.fase !== "aguardando");
   const media = ativos.length ? ativos.reduce((s, d) => s + avancoDe(d.secoes), 0) / ativos.length : 0;
   const pausa = ativos.some((d) => d.fase === "parcial") ? pausaDoTse(ativos, agora) : null;
   const consultas = todas.map((l) => l.snap?.buscadoEm).filter((x): x is Date => !!x);
   const quando = consultas.length ? new Date(Math.max(...consultas.map((x) => x.getTime()))) : null;
-  const cartoes = escopo === EXTERIOR ? "" : `<h3>Disputas de ${h(p.ufCartoes)}</h3><div class="live-grid">${linhas.map(card).join("")}</div>`;
+  const cartoes = escopo === EXTERIOR ? "" : `<h3>Disputas de ${h(p.ufCartoes)}</h3><div class="live-grid">${linhas.map((l) => card(l, turno)).join("")}</div>`;
   return `<section class="exp-card apu live" aria-labelledby="live-t">
     <h2 id="live-t">Ao vivo <span class="rot aberta">${ativos.length} de ${todas.length} disputas com apuração</span></h2>
-    <div class="live-filtro"><label class="field" for="live-escopo">Onde<select id="live-escopo">${opcoes(escopo, p.ufCartoes === BRASIL ? "" : p.ufCartoes)}</select></label><button type="button" class="ghost" data-live-fx aria-pressed="${(p.fx ?? EFEITOS_PADRAO).ligado}">Efeitos: ${(p.fx ?? EFEITOS_PADRAO).ligado ? "ligados" : "desligados"}</button><button type="button" class="ghost" data-live-som aria-pressed="${(p.fx ?? EFEITOS_PADRAO).som !== false}">Som: ${(p.fx ?? EFEITOS_PADRAO).som !== false ? "ligado" : "desligado"}</button></div>
+    <div class="live-filtro"><label class="field" for="live-escopo">Onde<select id="live-escopo">${opcoes(escopo, p.ufCartoes === BRASIL ? "" : p.ufCartoes)}</select></label>${seletorTurno("Presidente", turno)}<button type="button" class="ghost" data-live-fx aria-pressed="${(p.fx ?? EFEITOS_PADRAO).ligado}">Efeitos: ${(p.fx ?? EFEITOS_PADRAO).ligado ? "ligados" : "desligados"}</button><button type="button" class="ghost" data-live-som aria-pressed="${(p.fx ?? EFEITOS_PADRAO).som !== false}">Som: ${(p.fx ?? EFEITOS_PADRAO).som !== false ? "ligado" : "desligado"}</button></div>
     <p class="muted exp-meta">${quando ? `Consultado às <span id="apu-quando">${h(quando.toLocaleTimeString("pt-BR"))}</span> · ` : ""}atualiza sozinho a cada ${POLL_MS / 1000} s enquanto você estiver nesta aba. Média das seções totalizadas: <b>${pct(Math.floor(media * 1000) / 1000, 1)}</b>${pausa ? ` · arquivo mais recente <span id="apu-idade">(${idadeTxt(pausa.idadeMs)})</span>` : ""}.</p>
     ${pausa?.parado ? `<p class="apu-aviso apu-pausa"><b>Sem arquivo novo do TSE há mais de 10 minutos.</b> A pausa é do TSE, que publica em rodadas.</p>` : ""}
-    ${renderHero({ hero, avatar: p.avatar, cor: p.cor, esperado: p.esperado, fx: p.fx })}
+    ${renderHero({ hero, avatar: p.avatar, cor: p.cor, esperado: p.esperado, fx: p.fx, turno })}
+    ${turno === 2 ? `<p class="muted small">2º turno: Presidente e Governador (só onde houve). Senador e deputados foram decididos no 1º turno e seguem com os arquivos dele. As pesquisas e a curva de expectativa são do 1º turno e não aparecem aqui.</p>` : ""}
     ${escopo === TODOS ? `<h3>Todos os estados</h3>${todosOsEstados(nac, p.cargoTodos)}` : ""}
     ${escopo === TODOS || escopo === EXTERIOR ? "" : cartoes}
     ${escopo === TODOS ? cartoes : ""}
@@ -237,6 +241,7 @@ export function mountAoVivo(el: HTMLElement) {
   let brasil: ReturnType<typeof createBrasilFeed> | null = null;
   let painted: string | null = null;
   let raf = 0;
+  let turno: Turno = lerTurno();
   let intro = true; // the entrance plays once per opening of the tab (and per change of scope)
   let koTocou = false; // the K.O. plays once per scope; redraws show its end state
   let efeitos = (() => { try { return localStorage.getItem("radar:fx") !== "off"; } catch { return true; } })();
@@ -267,11 +272,11 @@ export function mountAoVivo(el: HTMLElement) {
     if (!ctx) return;
     // The polls are national: only the national file of the President has an expectation to draw.
     const esperado: Record<string, Esperado> = {};
-    if (hero.uf === BRASIL) for (const c of hero.snap?.dados?.candidatos.slice(0, 2) ?? []) { const x = comparar(c, ctx.prev?.(c.id)); if (x) esperado[c.id] = { media: x.media, lo: x.lo, hi: x.hi }; }
+    if (hero.uf === BRASIL && turno === 1) for (const c of hero.snap?.dados?.candidatos.slice(0, 2) ?? []) { const x = comparar(c, ctx.prev?.(c.id)); if (x) esperado[c.id] = { media: x.media, lo: x.lo, hi: x.hi }; }
     const decidida = !!disputaDecidida(hero.snap?.dados);
     const fx: Efeitos = { ligado: efeitos, intro: intro && !!hero.snap?.dados, ko: decidida && !koTocou, som: somLigado };
     if (fx.intro && efeitos) som.intro();
-    const html = renderAoVivo({ hero, linhas, escopo, ufCartoes: ufCartoes(), nac, cargoTodos, agora: new Date(), avatar: ctx.avatar, cor, esperado, fx });
+    const html = renderAoVivo({ hero, linhas, escopo, ufCartoes: ufCartoes(), nac, cargoTodos, agora: new Date(), avatar: ctx.avatar, cor, esperado, fx, turno });
     if (hero.snap?.dados) intro = false;
     if (decidida && !koTocou) { koTocou = true; tocarKo(); }
     const key = semRelogio(html);
@@ -305,7 +310,7 @@ export function mountAoVivo(el: HTMLElement) {
       },
     });
     feeds.push(fHero);
-    fHero.follow(tseUrl("Presidente", heroUf));
+    fHero.follow(tseUrl("Presidente", heroUf, TSE_BASE, turnoDe("Presidente", turno)));
     if (escopo !== EXTERIOR) {
       linhas = corridasDe(ufCartoes()).map((c) => ({ ...c, snap: null, eleitos: vazio() }));
       linhas.forEach((l, i) => {
@@ -318,19 +323,20 @@ export function mountAoVivo(el: HTMLElement) {
           },
         });
         feeds.push(f);
-        f.follow(tseUrl(l.cargo, l.uf));
+        f.follow(tseUrl(l.cargo, l.uf, TSE_BASE, turnoDe(l.cargo, turno)));
       });
     }
     if (escopo === TODOS) {
-      brasil = createBrasilFeed({ onChange: (s) => { nac = s; agendar(); } });
+      brasil = createBrasilFeed({ url: (c, uf) => tseUrl(c, uf, TSE_BASE, turnoDe(c, turno)), onChange: (s) => { nac = s; agendar(); } });
       brasil.follow(cargoTodos);
     }
     paint();
   };
 
   el.addEventListener("click", (e) => {
-    const t = (e.target as Element).closest<HTMLElement>("[data-abrir-corrida], [data-live-escopo], [data-live-cargo], [data-live-fx], [data-live-som]");
+    const t = (e.target as Element).closest<HTMLElement>("[data-abrir-corrida], [data-live-escopo], [data-live-cargo], [data-live-fx], [data-live-som], [data-turno]");
     if (!t || !ctx) return;
+    if (t.dataset.turno) { const novo: Turno = t.dataset.turno === "2" ? 2 : 1; if (novo !== turno) { turno = novo; gravarTurno(turno); ligar(); } return; }
     if ("liveSom" in t.dataset) { somLigado = !somLigado; try { localStorage.setItem("radar:som", somLigado ? "on" : "off"); } catch { /* private window */ } som.desbloquear(); paint(); return; }
     if ("liveFx" in t.dataset) { efeitos = !efeitos; try { localStorage.setItem("radar:fx", efeitos ? "on" : "off"); } catch { /* private window: the choice lasts until the tab closes */ } paint(); return; }
     if (t.dataset.liveEscopo) { escopo = t.dataset.liveEscopo; ligar(); return; }
@@ -350,7 +356,10 @@ export function mountAoVivo(el: HTMLElement) {
   return {
     show(next: Contexto) {
       som.desbloquear(); // called from the tab click: the only moment a browser lets sound start
-      const outro = !ctx || ctx.uf !== next.uf;
+      const lido = lerTurno(); // the Apuração tab may have changed it
+      const mudou = lido !== turno;
+      turno = lido;
+      const outro = mudou || !ctx || ctx.uf !== next.uf;
       ctx = next;
       if (outro || !feeds.length) ligar(); else paint();
     },

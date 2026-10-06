@@ -4,17 +4,21 @@ export const TSE_BASE = "https://resultados.tse.jus.br/oficial/ele2026";
 
 const CARGOS = { Presidente: 1, Governador: 3, Senador: 5, "Deputado Federal": 6, "Deputado Estadual": 7, "Deputado Distrital": 8 } as const;
 export type Cargo = keyof typeof CARGOS;
-// 1st-round election codes (config/ele-c.json, pleito 3220). The runoff uses 6258 (president) and 6260.
-const eleicao = (cargo: number) => (cargo === 1 ? 6257 : 6259);
+// Election codes (config/ele-c.json, pleito 3220): 1st round 6257 (president) and 6259; runoff 6258 and 6260.
+export type Turno = 1 | 2;
+const eleicao = (cargo: number, turno: Turno = 1) => (turno === 2 ? (cargo === 1 ? 6258 : 6260) : cargo === 1 ? 6257 : 6259);
+// Only these offices go to a runoff; the Senate and the deputies are decided in the first round.
+export const TEM_SEGUNDO_TURNO: ReadonlySet<string> = new Set(["Presidente", "Governador"]);
+export const turnoDe = (cargo: string, turno: Turno): Turno => (TEM_SEGUNDO_TURNO.has(cargo) ? turno : 1);
 const pad = (n: number, w: number) => String(n).padStart(w, "0");
 
 // Both parts are validated: the URL is built only from a known office and a two-letter UF.
-export function tseUrl(cargo: string, uf: string, base = TSE_BASE): string {
+export function tseUrl(cargo: string, uf: string, base = TSE_BASE, turno: Turno = 1): string {
   const sigla = String(uf).toLowerCase();
   if (!Object.hasOwn(CARGOS, cargo)) throw new Error(`cargo desconhecido: ${cargo}`);
   const cd = CARGOS[cargo as Cargo];
   if (!/^[a-z]{2}$/.test(sigla)) throw new Error(`UF inválida: ${uf}`);
-  return `${base}/${eleicao(cd)}/dados/${sigla}/${sigla}-c${pad(cd, 4)}-e${pad(eleicao(cd), 6)}-u.json`;
+  return `${base}/${eleicao(cd, turno)}/dados/${sigla}/${sigla}-c${pad(cd, 4)}-e${pad(eleicao(cd, turno), 6)}-u.json`;
 }
 
 // The files carry every number as a string, with a decimal comma for percentages.

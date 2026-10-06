@@ -407,3 +407,9 @@
 #live-view.ko-treme { animation: ko-treme 0.9s 0.15s 2; }
 @media (prefers-reduced-motion: reduce) { .live-ko-overlay { display: none !important; } }
 .live-filtro .ghost + .ghost { margin-left: 0; }
+
+/* Turno selector (Apuração and Ao vivo): the same pill group as the views, with the dates beside it. */
+.apu-turnos { margin-bottom: 8px; }
+.apu-turno-datas { display: inline-block; margin: 0 0 8px 10px; font-family: var(--mono); }
+.live-filtro .apu-turnos { margin: 0; }
+.live-filtro .apu-turno-datas { margin: 0; }
