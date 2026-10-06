@@ -323,3 +323,8 @@
   .live-side { padding: 14px 8px 14px; }
   .live-side .av { width: clamp(96px, 32vw, 150px); }
 }
+
+/* The TSE marked someone "Eleito": the card and a banner say so, in the TSE's words. */
+.live-eleito { margin: 0; text-align: center; padding: 10px 14px; border-radius: 999px; font-size: 15px; background: linear-gradient(90deg, rgb(139 92 246 / 0.18), rgb(232 121 249 / 0.18)); border: 1px solid #8b5cf6; }
+.live-side.eleito { box-shadow: 0 0 0 2px #fff, 0 0 0 5px var(--lado, #8b5cf6), 0 26px 80px -16px var(--lado, #8b5cf6); }
+.live-side.eleito .rot { font-size: 14px; padding: 4px 12px; }
