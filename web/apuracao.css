@@ -298,3 +298,28 @@
 .live-card { background: linear-gradient(180deg, rgb(139 92 246 / 0.07), transparent 40%), var(--sunk); }
 .live-bar i, .apu-prog::-webkit-progress-value { background: linear-gradient(90deg, #7c3aed, #c4b5fd); }
 .live-uf:hover, .live-card:hover { border-color: #8b5cf6; }
+
+/* Epic head-to-head: big portraits facing each other, a glowing VS between them, a thick tug-of-war bar. */
+.live-duel { grid-template-columns: minmax(0, 1fr) minmax(90px, auto) minmax(0, 1fr); gap: clamp(8px, 2vw, 28px); align-items: center; padding-block: 8px; }
+.live-side { position: relative; gap: 6px; padding: 18px 12px 16px; border: 1px solid color-mix(in srgb, var(--lado, #8b5cf6) 40%, var(--line)); border-top-width: 1px; border-radius: var(--r-lg);
+  background: radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--lado, #8b5cf6) 26%, transparent), transparent 70%), var(--sunk); }
+.live-side.lead { border-color: var(--lado, #8b5cf6); box-shadow: 0 0 0 1px var(--lado, #8b5cf6), 0 18px 60px -18px color-mix(in srgb, var(--lado, #8b5cf6) 70%, transparent); }
+.live-foto { position: relative; display: flex; justify-content: center; }
+.live-side .av { width: clamp(120px, 20vw, 220px); height: auto; aspect-ratio: 4 / 5; object-fit: cover; border-radius: var(--r-lg); font-size: clamp(30px, 6vw, 56px);
+  box-shadow: 0 0 0 3px var(--lado, #8b5cf6), 0 22px 60px -14px color-mix(in srgb, var(--lado, #8b5cf6) 75%, transparent); }
+.live-lead { position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%); white-space: nowrap; font: 700 11px var(--mono); text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 10px; border-radius: 999px; background: var(--lado, #8b5cf6); color: #0b0910; }
+.live-side-nome { margin-top: 10px; font: 900 clamp(22px, 3.4vw, 40px)/1 var(--display); text-transform: uppercase; letter-spacing: 0.01em; }
+.live-big { font-size: clamp(52px, 9vw, 104px); }
+.live-vs { gap: 6px; text-align: center; }
+.live-vs-x { font: 900 clamp(36px, 6vw, 72px)/1 var(--display); color: #fff; text-shadow: 0 0 28px #8b5cf6, 0 0 60px rgb(139 92 246 / 0.6); }
+.live-vs b { font: 700 clamp(18px, 2.4vw, 28px) var(--mono); }
+.live-vs small { font: 500 11px var(--mono); max-width: 9ch; }
+.live-hero .apu-duelo-bar { height: 26px; border-radius: 999px; }
+.live-hero .apu-duelo-bar .seg { box-shadow: 0 0 18px -2px currentColor; }
+@media (max-width: 640px) {
+  .live-duel { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .live-vs { grid-column: 1 / -1; order: -1; flex-direction: row; gap: 10px; justify-content: center; }
+  .live-vs small { max-width: none; }
+  .live-side { padding: 14px 8px 14px; }
+  .live-side .av { width: clamp(96px, 32vw, 150px); }
+}

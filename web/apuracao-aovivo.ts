@@ -105,7 +105,7 @@ const curto = (nome: string) => titleName(nome).split(" ").slice(0, 2).join(" ")
 // 50% bar and the curve of the count. Everything is the TSE's own numbers; a "Eleito" mark is the TSE's text, shown as it is.
 function lado(c: Candidato, cls: string, avatar: Avatar, cor: Cores, esp?: Esperado): string {
   const marca = eleitoTse(c) ? `<span class="rot alta">${h(c.situacao)}</span>` : c.situacao ? `<span class="rot baixa">${h(c.situacao)}</span>` : "";
-  return `<div class="live-side ${cls}" style="--lado:${cor(c.partido)}">${avatar({ id: c.id, nome: c.nome }, "lg")}
+  return `<div class="live-side ${cls}" style="--lado:${cor(c.partido)}"><div class="live-foto">${avatar({ id: c.id, nome: c.nome }, "lg")}${cls.includes("lead") ? `<span class="live-lead">à frente agora</span>` : ""}</div>
     <b class="live-side-nome">${h(titleName(c.nome))}</b><small>${h(c.partido)} · ${h(c.num)}</small>
     <span class="live-big">${pct(c.pct, 1)}</span><span class="live-side-votos">${int(c.votos)} votos</span>${esp ? `<span class="live-side-esp">expectativa (pesquisas): <b>${pct(esp.media, 1)}</b></span>` : ""}${marca}</div>`;
 }
@@ -130,8 +130,8 @@ export function renderHero({ hero, avatar, cor, esperado = {} }: { hero: Hero; a
   // Both curves, even when the leader changes: the chart follows the two first of the last file.
   const hist2 = hero.hist.map((p) => ({ ...p, pcts: Object.fromEntries(Object.entries(p.pcts).filter(([id]) => id in quem)) }));
   return `<section class="live-hero" aria-label="Presidente ${h(onde)}">${topo(fase)}${base}
-    <div class="live-duel">${lado(a, "a", avatar, cor, esperado[a.id])}
-      <div class="live-vs" aria-hidden="true"><span>×</span><b>${dif.toFixed(1).replace(".", ",")}</b><small>p.p.</small></div>
+    <div class="live-duel">${lado(a, a.pct > b.pct ? "a lead" : "a", avatar, cor, esperado[a.id])}
+      <div class="live-vs" aria-hidden="true"><span class="live-vs-x">VS</span><b>${dif.toFixed(1).replace(".", ",")}</b><small>p.p. de diferença</small></div>
       ${lado(b, "b", avatar, cor, esperado[b.id])}</div>
     <p class="sr">Diferença de ${dif.toFixed(1).replace(".", ",")} pontos percentuais entre os dois primeiros.</p>
     ${renderDuelo({ d, cargo: "Presidente", uf: hero.uf, cor })}
