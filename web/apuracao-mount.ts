@@ -3,7 +3,8 @@
 // map, the Chamber or the president's Projeção is open, so a closed one costs no requests.
 import { createFeed } from "./apuracao-feed.js";
 import { createBrasilFeed, ufsDo } from "./apuracao-uf.js";
-import { tseUrl } from "./apuracao-tse.js";
+import { tseUrl, TSE_BASE, turnoDe } from "./apuracao-tse.js";
+import { gravarTurno, lerTurno } from "./apuracao-turno.js";
 import { registrar } from "./apuracao-graficos.js";
 import { createCores } from "./apuracao-nacional.js";
 import { PALETA, RESTO } from "./apuracao-mapa.js";
@@ -15,6 +16,7 @@ import { renderApuracao, vistasDe } from "./apuracao.js";
 import type { RenderProps, Vista } from "./apuracao.js";
 import type { FeedSnapshot } from "./apuracao-feed.js";
 import type { BrasilSnapshot } from "./apuracao-uf.js";
+import type { Turno } from "./apuracao-tse.js";
 import type { Fonte } from "./apuracao-projecao-estado.js";
 import type { Ponto } from "./apuracao-graficos.js";
 import type { UfMap } from "../src/radar/geo/uf-map";
@@ -31,6 +33,7 @@ export function mountApuracao(el: HTMLElement) {
   let hist: Ponto[] = [];
   let novidades = vazio();
   let eleitos = vazioEleitos();
+  let turno: Turno = lerTurno();
   let limit = PAGE;
   let vista: Vista = "placar";
   let modoMapa = "lider";
@@ -62,7 +65,7 @@ export function mountApuracao(el: HTMLElement) {
 
   const paint = () => {
     if (!ctx) return;
-    const html = renderApuracao({ ...ctx, snap, nac, proj: projDe(), hist, novidades: novidades.itens, eleitos, limit, vista, modoMapa, selUf, mapa, cor: vista === "camara" ? corCamara : cor });
+    const html = renderApuracao({ ...ctx, turno, snap, nac, proj: projDe(), hist, novidades: novidades.itens, eleitos, limit, vista, modoMapa, selUf, mapa, cor: vista === "camara" ? corCamara : cor });
     const key = semRelogio(html);
     const quando = el.querySelector<HTMLElement>("#apu-quando");
     if (key === painted && quando) {
@@ -84,7 +87,7 @@ export function mountApuracao(el: HTMLElement) {
       paint();
     },
   });
-  const brasil = createBrasilFeed({ onChange: (s) => { nac = s; agendar(); } });
+  const brasil = createBrasilFeed({ url: (c, uf) => tseUrl(c, uf, TSE_BASE, turnoDe(c, turno)), onChange: (s) => { nac = s; agendar(); } });
 
   const carregarMapa = () => {
     if (mapa || buscandoMapa) return; // after a failure (null) the next visit to the Mapa view tries again
@@ -106,9 +109,20 @@ export function mountApuracao(el: HTMLElement) {
   };
 
   el.addEventListener("click", (e) => {
-    const t = (e.target as Element).closest<HTMLElement>("[data-vista], [data-modo-mapa], [data-uf], [data-abrir-uf], #apu-mais");
+    const t = (e.target as Element).closest<HTMLElement>("[data-vista], [data-turno], [data-modo-mapa], [data-uf], [data-abrir-uf], #apu-mais");
     if (!t) return;
     if (t.id === "apu-mais") { limit += PAGE; paint(); }
+    else if (t.dataset.turno) {
+      const novo: Turno = t.dataset.turno === "2" ? 2 : 1;
+      if (novo === turno) return;
+      turno = novo;
+      gravarTurno(turno);
+      limit = PAGE; hist = []; novidades = vazio(); eleitos = vazioEleitos(); projecao.reiniciar(); selUf = null;
+      const ef = turnoDe(ctx!.cargo, turno);
+      if (!vistasDe(ctx!.cargo, ef).includes(vista)) vista = "placar";
+      feed.follow(tseUrl(ctx!.cargo, ctx!.uf, TSE_BASE, ef));
+      brasil.stop(); nac = null; seguirMapa(); paint();
+    }
     else if (t.dataset.vista) { vista = t.dataset.vista as Vista; seguirMapa(); paint(); }
     else if (t.dataset.modoMapa) { modoMapa = t.dataset.modoMapa; paint(); }
     else if (t.dataset.abrirUf) { vista = "placar"; seguirMapa(); ctx!.abrirUf?.(t.dataset.abrirUf); }
@@ -123,12 +137,17 @@ export function mountApuracao(el: HTMLElement) {
 
   return {
     show(next: Contexto) {
-      const outra = !ctx || ctx.cargo !== next.cargo || ctx.uf !== next.uf;
+      const lido = lerTurno(); // the Ao vivo tab may have changed it
+      const mudou = lido !== turno;
+      turno = lido;
+      if (mudou) { brasil.stop(); nac = null; }
+      const outra = mudou || !ctx || ctx.cargo !== next.cargo || ctx.uf !== next.uf;
       if (outra) { limit = PAGE; hist = []; novidades = vazio(); eleitos = vazioEleitos(); projecao.reiniciar(); }
       if (!ctx || ctx.cargo !== next.cargo) selUf = null; // the national map keeps its selection when only the state of the ballot changes
       ctx = next;
-      if (!vistasDe(next.cargo).includes(vista)) vista = "placar";
-      feed.follow(tseUrl(next.cargo, next.uf));
+      const ef = turnoDe(next.cargo, turno);
+      if (!vistasDe(next.cargo, ef).includes(vista)) vista = "placar";
+      feed.follow(tseUrl(next.cargo, next.uf, TSE_BASE, ef));
       seguirMapa();
       paint();
     },

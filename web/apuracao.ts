@@ -14,13 +14,15 @@ import { renderEleitos } from "./apuracao-eleitos.js";
 import { idadeTxt, pausaDoTse } from "./apuracao-ritmo.js";
 import { composicao, evolucao, faixaVsApuracao } from "./apuracao-graficos.js";
 import { decididos, eleitoTse } from "./apuracao-eleito.js";
+import { seletorTurno } from "./apuracao-turno.js";
+import { turnoDe } from "./apuracao-tse.js";
 import { createCores } from "./apuracao-nacional.js";
 import { PALETA } from "./apuracao-mapa.js";
 import { renderCamara } from "./apuracao-camara.js";
 import { renderNacional } from "./apuracao-nacional-view.js";
 import { comparar, delta, resumoFaixa } from "./apuracao-pesquisa.js";
 import { fmtDate, pp } from "./prev.js";
-import type { Apuracao, Candidato, Cargo, Fase } from "./apuracao-tse.js";
+import type { Apuracao, Candidato, Cargo, Fase, Turno } from "./apuracao-tse.js";
 import type { FeedSnapshot } from "./apuracao-feed.js";
 import type { Ponto } from "./apuracao-graficos.js";
 import type { Corrida as CorridaMapa, Cores } from "./apuracao-nacional.js";
@@ -49,6 +51,7 @@ export interface RenderProps {
   byId: Map<string, Candidatura>;
   avatar: Avatar;
   limit: number;
+  turno?: Turno;
   exp?: Exp | null;
   vista?: Vista;
   hist?: Ponto[];
@@ -192,8 +195,9 @@ const aviso = (txt: string) => `<p class="empty">${txt}</p>`;
 const MAPA_CARGOS = new Set(["Presidente", "Governador", "Senador"]);
 const UMA_VAGA = new Set(["Presidente", "Governador"]); // one seat, one vote: the arithmetic of the Projeção view applies
 const ROTULOS: Record<Vista, string> = { placar: "Placar", linha: "Linha do tempo", mapa: "Mapa", projecao: "Projeção", cadeiras: "Cadeiras", camara: "Câmara", graficos: "Gráficos" };
-export const vistasDe = (cargo: Cargo): Vista[] => {
-  if (UMA_VAGA.has(cargo)) return ["placar", "linha", "mapa", "projecao", "graficos"];
+// The Projeção is built on first-round arithmetic (who reaches 50%, who goes to a runoff): it has no place in the runoff itself.
+export const vistasDe = (cargo: Cargo, turno: Turno = 1): Vista[] => {
+  if (UMA_VAGA.has(cargo)) return turno === 2 ? ["placar", "linha", "mapa", "graficos"] : ["placar", "linha", "mapa", "projecao", "graficos"];
   if (MAPA_CARGOS.has(cargo)) return ["placar", "linha", "mapa", "graficos"];
   return cargo === "Deputado Federal" ? ["placar", "linha", "cadeiras", "camara", "graficos"] : ["placar", "linha", "cadeiras", "graficos"];
 };
@@ -211,9 +215,10 @@ function graficos(d: Apuracao | null | undefined, rows: Linha[], hist: Ponto[], 
 
 // proj: what apuracao-projecao-estado.js hands over ({ analise, partes, nomes, esperadas }), or null while the files are loading.
 // novidades: the lines of apuracao-novidades.js kept by the mount since the tab was opened.
-export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, exp, vista = "placar", hist = [], novidades = [], eleitos, nac = null, proj = null, mapa, modoMapa = "lider", selUf = null, cor = createCores(PALETA) }: RenderProps): string {
+export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, turno = 1, exp, vista = "placar", hist = [], novidades = [], eleitos, nac = null, proj = null, mapa, modoMapa = "lider", selUf = null, cor = createCores(PALETA) }: RenderProps): string {
   const d = snap?.dados;
-  const vistas = vistasDe(cargo);
+  const t = turnoDe(cargo, turno);
+  const vistas = vistasDe(cargo, t);
   const aberta = vistas.includes(vista) ? vista : "placar";
   // Deputies have no polls: only the other offices are compared. The id used to look up a candidate comes from our data, never from the file.
   const dec = decididos(d, cargo, uf);
@@ -221,19 +226,20 @@ export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, exp, vist
     const own = byId.get(c.id);
     // The TSE's own text always wins; the proof only labels whoever the TSE has not marked yet.
     const mat = dec.has(c.id) && !c.situacao;
-    return { c, own, cmp: proporcional(cargo) ? null : comparar(c, own?.prev), ele: eleitoTse(c) || mat, mat };
+    return { c, own, cmp: proporcional(cargo) || t === 2 ? null : comparar(c, own?.prev), ele: eleitoTse(c) || mat, mat };
   });
-  const corrida = exp?.corridas?.find((x) => x.cargo === cargo && x.uf === uf);
+  const corridas = t === 2 ? undefined : exp?.corridas; // the poll averages are first-round ones
+  const corrida = corridas?.find((x) => x.cargo === cargo && x.uf === uf);
   const local = uf === "BR" ? "" : ` · ${h(uf)}`;
   let corpo: string;
   if (aberta === "camara") {
     corpo = renderCamara({ nac, cor });
   } else if (aberta === "mapa") {
-    corpo = renderNacional({ nac, cargo, corridas: exp?.corridas, modo: modoMapa, sel: selUf, cor, mapa });
+    corpo = renderNacional({ nac, cargo, corridas, modo: modoMapa, sel: selUf, cor, mapa });
   } else if (aberta === "projecao") {
     corpo = proj ? renderProjecao({ ...proj, cor, cargo }) : aviso("Consultando o TSE…");
   } else if (!d) {
-    corpo = snap?.status === "ausente" ? aviso("O TSE ainda não publicou o arquivo de resultados desta disputa. A página continua consultando.")
+    corpo = snap?.status === "ausente" ? aviso(`O TSE ainda não publicou o arquivo de resultados desta disputa.${t === 2 ? " Se não houve 2º turno nela, o arquivo não existe." : ""} A página continua consultando.`)
       : snap?.status === "erro" ? aviso(`Não foi possível consultar o TSE agora: ${h(snap.erro)}. Nova tentativa em ${POLL_MS / 1000} s.`)
       : aviso("Consultando o TSE…");
   } else {
@@ -255,9 +261,10 @@ export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, exp, vist
            ${tabela(d.fase, rows, avatar, limit)}`}`;
   }
   const quando = aberta === "mapa" || aberta === "camara" || (aberta === "projecao" && cargo === "Presidente") ? nac?.buscadoEm : snap?.buscadoEm;
-  const nav = `<div class="apu-vistas" role="group" aria-label="Visão da apuração">${vistas.map((v) => `<button type="button" data-vista="${v}" aria-pressed="${v === aberta}">${ROTULOS[v]}</button>`).join("")}</div>`;
+  const nav = `${seletorTurno(cargo, t)}<div class="apu-vistas" role="group" aria-label="Visão da apuração">${vistas.map((v) => `<button type="button" data-vista="${v}" aria-pressed="${v === aberta}">${ROTULOS[v]}</button>`).join("")}</div>
+    ${t === 2 ? `<p class="muted small">2º turno: só os dois finalistas. As médias das pesquisas e a Projeção são do 1º turno e não aparecem aqui.</p>` : ""}`;
   return `<section class="exp-card apu" aria-labelledby="apu-t">
-    <h2 id="apu-t">${h(cargo)}${local} <span class="rot ${d?.fase === "parcial" ? "aberta" : d?.fase === "concluida" ? "alta" : "baixa"}">${h(FASES[d?.fase as Fase] ?? "Consultando")}</span></h2>
+    <h2 id="apu-t">${h(cargo)}${local}${t === 2 ? " · 2º turno" : ""} <span class="rot ${d?.fase === "parcial" ? "aberta" : d?.fase === "concluida" ? "alta" : "baixa"}">${h(FASES[d?.fase as Fase] ?? "Consultando")}</span></h2>
     ${nav}
     <p class="muted exp-meta">${quando ? `Consultado às <span id="apu-quando">${h(quando.toLocaleTimeString("pt-BR"))}</span> · ` : ""}atualiza sozinho a cada ${POLL_MS / 1000} s enquanto você estiver nesta aba.</p>
     ${corpo}
