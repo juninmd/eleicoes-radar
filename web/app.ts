@@ -1,5 +1,6 @@
 import { DEFAULT_PRESET, PRESETS, score } from "./score.js";
 import { displayName, h, int, moneyShort, pct, slug, STATUS } from "./format.js";
+import { countUp } from "./hero.js";
 import { renderDossier } from "./dossier.js";
 import { isPicked, normalizeCola, seatsOf, togglePick } from "./cola.js";
 import type { Ballot } from "./cola.js";
@@ -283,6 +284,9 @@ async function main() {
   $("#uf").innerHTML = meta.ufs.filter((u) => u.uf !== "BR").map((u) => `<option value="${u.uf}">${u.uf}</option>`).join("");
   if (!meta.ufs.some((u) => u.uf === state.uf)) state.uf = "SP";
   $("#retrato").textContent = `TSE: contas de campanha até ${meta.retratoTse} · Câmara: dados até ${new Date(meta.geradoEm).toLocaleDateString("pt-BR")} · ${int(meta.total)} candidaturas, ${int(meta.comMandato)} com mandato na Câmara`;
+  countUp($("#st-cand"), meta.total, int);
+  countUp($("#st-mand"), meta.comMandato, int);
+  countUp($("#st-uf"), meta.ufs.filter((u) => u.uf !== "BR").length, int);
   bind();
   await loadUf();
   document.body.classList.add("ready"); // the method text below stays hidden until the list has its final height
