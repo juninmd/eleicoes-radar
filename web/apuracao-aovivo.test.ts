@@ -153,3 +153,12 @@ describe("efeitos de embate", () => {
     expect(html).not.toContain("derrotado");
   });
 });
+
+describe("botão Som", () => {
+  test("liga e desliga o som sem mexer nos efeitos", () => {
+    expect(renderAoVivo(props())).toContain('data-live-som aria-pressed="true">Som: ligado');
+    const mudo = renderAoVivo(props({ fx: { ligado: true, intro: false, ko: false, som: false } }));
+    expect(mudo).toContain('data-live-som aria-pressed="false">Som: desligado');
+    expect(mudo).toContain("Efeitos: ligados");
+  });
+});

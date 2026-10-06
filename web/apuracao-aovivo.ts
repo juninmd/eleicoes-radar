@@ -8,6 +8,7 @@ import { tseUrl } from "./apuracao-tse.js";
 import { createCores, linhasUf } from "./apuracao-nacional.js";
 import { PALETA, RESTO } from "./apuracao-mapa.js";
 import { renderDuelo } from "./apuracao-duelo.js";
+import { criarSom } from "./apuracao-som.js";
 import { evolucao, registrar } from "./apuracao-graficos.js";
 import { comparar } from "./apuracao-pesquisa.js";
 import { decididos, eleitoTse } from "./apuracao-eleito.js";
@@ -98,8 +99,8 @@ function linhaGeral(linhas: Linha[]): string {
 
 // Visual effects of the head-to-head (lightning, entrance, K.O.). `intro`: the first drawing after the tab opens, the only one that plays
 // the entrance; `ko`: the one drawing that plays the K.O. (later drawings show its end state, so a redraw never replays it).
-export interface Efeitos { ligado: boolean; intro: boolean; ko: boolean }
-export const EFEITOS_PADRAO: Efeitos = { ligado: true, intro: false, ko: false };
+export interface Efeitos { ligado: boolean; intro: boolean; ko: boolean; som?: boolean }
+export const EFEITOS_PADRAO: Efeitos = { ligado: true, intro: false, ko: false, som: true };
 
 // The K.O. is the TSE's own word turned into a show: only when the TSE marks one of the two leaders "Eleito" and not the other.
 export function disputaDecidida(d: Apuracao | null | undefined): { eleito: Candidato; derrotado: Candidato } | null {
@@ -210,7 +211,7 @@ export function renderAoVivo(p: AoVivoProps): string {
   const cartoes = escopo === EXTERIOR ? "" : `<h3>Disputas de ${h(p.ufCartoes)}</h3><div class="live-grid">${linhas.map(card).join("")}</div>`;
   return `<section class="exp-card apu live" aria-labelledby="live-t">
     <h2 id="live-t">Ao vivo <span class="rot aberta">${ativos.length} de ${todas.length} disputas com apuração</span></h2>
-    <div class="live-filtro"><label class="field" for="live-escopo">Onde<select id="live-escopo">${opcoes(escopo, p.ufCartoes === BRASIL ? "" : p.ufCartoes)}</select></label><button type="button" class="ghost" data-live-fx aria-pressed="${(p.fx ?? EFEITOS_PADRAO).ligado}">Efeitos: ${(p.fx ?? EFEITOS_PADRAO).ligado ? "ligados" : "desligados"}</button></div>
+    <div class="live-filtro"><label class="field" for="live-escopo">Onde<select id="live-escopo">${opcoes(escopo, p.ufCartoes === BRASIL ? "" : p.ufCartoes)}</select></label><button type="button" class="ghost" data-live-fx aria-pressed="${(p.fx ?? EFEITOS_PADRAO).ligado}">Efeitos: ${(p.fx ?? EFEITOS_PADRAO).ligado ? "ligados" : "desligados"}</button><button type="button" class="ghost" data-live-som aria-pressed="${(p.fx ?? EFEITOS_PADRAO).som !== false}">Som: ${(p.fx ?? EFEITOS_PADRAO).som !== false ? "ligado" : "desligado"}</button></div>
     <p class="muted exp-meta">${quando ? `Consultado às <span id="apu-quando">${h(quando.toLocaleTimeString("pt-BR"))}</span> · ` : ""}atualiza sozinho a cada ${POLL_MS / 1000} s enquanto você estiver nesta aba. Média das seções totalizadas: <b>${pct(Math.floor(media * 1000) / 1000, 1)}</b>${pausa ? ` · arquivo mais recente <span id="apu-idade">(${idadeTxt(pausa.idadeMs)})</span>` : ""}.</p>
     ${pausa?.parado ? `<p class="apu-aviso apu-pausa"><b>Sem arquivo novo do TSE há mais de 10 minutos.</b> A pausa é do TSE, que publica em rodadas.</p>` : ""}
     ${renderHero({ hero, avatar: p.avatar, cor: p.cor, esperado: p.esperado, fx: p.fx })}
@@ -239,18 +240,27 @@ export function mountAoVivo(el: HTMLElement) {
   let intro = true; // the entrance plays once per opening of the tab (and per change of scope)
   let koTocou = false; // the K.O. plays once per scope; redraws show its end state
   let efeitos = (() => { try { return localStorage.getItem("radar:fx") !== "off"; } catch { return true; } })();
+  let somLigado = (() => { try { return localStorage.getItem("radar:som") !== "off"; } catch { return true; } })();
+  const som = criarSom(() => somLigado);
   const cor = createCores(PALETA, RESTO);
 
   // The big K.O. and its flash live outside the redrawn area: a redraw (any of the five feeds can trigger one) must not cut them off.
   const tocarKo = () => {
+    som.ko();
     if (!efeitos || (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches)) return;
+    const fim = disputaDecidida(hero.snap?.dados);
     const o = document.createElement("div");
     o.className = "live-ko-overlay";
     o.setAttribute("aria-hidden", "true");
-    o.innerHTML = '<div class="live-ko-flash"></div><div class="live-ko">K.O.</div>';
+    if (fim) o.style.setProperty("--cor-eleito", cor(fim.eleito.partido));
+    // Sparks fly out from the centre in random directions (CSS custom properties carry each one's vector).
+    const fagulhas = Array.from({ length: 28 }, () => { const a = Math.random() * Math.PI * 2, d = 160 + Math.random() * 380; return `<i style="--dx:${(Math.cos(a) * d).toFixed(0)}px;--dy:${(Math.sin(a) * d).toFixed(0)}px;--dl:${(Math.random() * 0.25).toFixed(2)}s"></i>`; }).join("");
+    o.innerHTML = `<div class="ko-barra ko-barra-c"></div><div class="ko-barra ko-barra-b"></div><div class="ko-raios"></div><div class="ko-onda"></div><div class="ko-onda ko-onda2"></div>
+      <div class="live-ko-flash"></div><div class="live-ko">K.O.</div>
+      ${fim ? `<div class="ko-nome">${h(titleName(fim.eleito.nome))}<small>${h(fim.eleito.partido)} · TSE: ${h(fim.eleito.situacao)}</small></div>` : ""}<div class="ko-fagulhas">${fagulhas}</div>`;
     document.body.append(o);
     el.classList.add("ko-treme");
-    setTimeout(() => { o.remove(); el.classList.remove("ko-treme"); }, 3800);
+    setTimeout(() => { o.remove(); el.classList.remove("ko-treme"); }, 5600);
   };
   const ufCartoes = () => (escopo === BRASIL || escopo === TODOS ? ctx!.uf : escopo);
   const paint = () => {
@@ -259,7 +269,8 @@ export function mountAoVivo(el: HTMLElement) {
     const esperado: Record<string, Esperado> = {};
     if (hero.uf === BRASIL) for (const c of hero.snap?.dados?.candidatos.slice(0, 2) ?? []) { const x = comparar(c, ctx.prev?.(c.id)); if (x) esperado[c.id] = { media: x.media, lo: x.lo, hi: x.hi }; }
     const decidida = !!disputaDecidida(hero.snap?.dados);
-    const fx: Efeitos = { ligado: efeitos, intro: intro && !!hero.snap?.dados, ko: decidida && !koTocou };
+    const fx: Efeitos = { ligado: efeitos, intro: intro && !!hero.snap?.dados, ko: decidida && !koTocou, som: somLigado };
+    if (fx.intro && efeitos) som.intro();
     const html = renderAoVivo({ hero, linhas, escopo, ufCartoes: ufCartoes(), nac, cargoTodos, agora: new Date(), avatar: ctx.avatar, cor, esperado, fx });
     if (hero.snap?.dados) intro = false;
     if (decidida && !koTocou) { koTocou = true; tocarKo(); }
@@ -318,8 +329,9 @@ export function mountAoVivo(el: HTMLElement) {
   };
 
   el.addEventListener("click", (e) => {
-    const t = (e.target as Element).closest<HTMLElement>("[data-abrir-corrida], [data-live-escopo], [data-live-cargo], [data-live-fx]");
+    const t = (e.target as Element).closest<HTMLElement>("[data-abrir-corrida], [data-live-escopo], [data-live-cargo], [data-live-fx], [data-live-som]");
     if (!t || !ctx) return;
+    if ("liveSom" in t.dataset) { somLigado = !somLigado; try { localStorage.setItem("radar:som", somLigado ? "on" : "off"); } catch { /* private window */ } som.desbloquear(); paint(); return; }
     if ("liveFx" in t.dataset) { efeitos = !efeitos; try { localStorage.setItem("radar:fx", efeitos ? "on" : "off"); } catch { /* private window: the choice lasts until the tab closes */ } paint(); return; }
     if (t.dataset.liveEscopo) { escopo = t.dataset.liveEscopo; ligar(); return; }
     if (t.dataset.liveCargo) { cargoTodos = t.dataset.liveCargo as Cargo; nac = null; brasil?.follow(cargoTodos); paint(); return; }
@@ -332,10 +344,12 @@ export function mountAoVivo(el: HTMLElement) {
     escopo = t.value;
     ligar();
   });
+  document.addEventListener("pointerdown", () => som.desbloquear());
   document.addEventListener("visibilitychange", () => { if (!document.hidden) { feeds.forEach((f) => f.refresh()); brasil?.refresh(); } });
 
   return {
     show(next: Contexto) {
+      som.desbloquear(); // called from the tab click: the only moment a browser lets sound start
       const outro = !ctx || ctx.uf !== next.uf;
       ctx = next;
       if (outro || !feeds.length) ligar(); else paint();
