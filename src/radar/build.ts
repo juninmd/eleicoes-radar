@@ -20,8 +20,10 @@ import { loadSuppliers } from "./suppliers/load";
 import { buildRede } from "./suppliers/graph";
 import { addressCounts, byPolitician, supplierView, type FornecedorView } from "./suppliers/view";
 import { loadCache } from "./suppliers/receita";
+import { loadPropostas, type Proposta } from "./enrich/propostas";
 
 export interface Enrich {
+  proposta?: Proposta;
   bens?: Bens;
   motivos?: string[];
   fornecedores?: FornecedorView[];
@@ -70,6 +72,7 @@ export function toPublic({ c, m, ind, perfil }: Scored, bio: Profile | null = nu
     nome: c.nome,
     urna: c.nomeUrna || null,
     ficha: c.nascimento !== undefined ? { nascimento: c.nascimento, ufNascimento: c.ufNascimento, ocupacao: c.ocupacao, instrucao: c.instrucao, federacao: c.federacao, estadoCivil: c.estadoCivil ?? null, coligacao: c.coligacao ?? null } : null,
+    proposta: extra.proposta ?? null,
     patrimonio: extra.bens ?? null,
     motivos: extra.motivos?.length ? extra.motivos : null,
     fornecedores: extra.fornecedores?.length ? extra.fornecedores : null,
@@ -144,6 +147,7 @@ async function main() {
   };
   const bens = await loadBens(new Map(cands.map((c) => [c.sq, personKey(c.cpf, c.nome, c.nascimento)])));
   const motivos = await loadMotivos();
+  const propostas = loadPropostas();
   console.log(`[enrich] ${bens.size} com bens declarados, ${[...bens.values()].filter((b) => b.total2022 !== null).length} com 2022 vinculado, ${motivos.size} com motivo de indeferimento`);
   const deputyBySq = new Map(items.flatMap((s) => (s.m ? [[s.c.sq, s.m.deputadoId] as const] : [])));
   const { all: suppliers, dir } = await loadSuppliers(cands, (c) => deputyBySq.get(c.sq) ?? null);
@@ -156,7 +160,7 @@ async function main() {
   for (const s of items) {
     const list = byUf.get(s.c.uf) ?? [];
     const foto = photoOf(s.c.sq);
-    list.push(toPublic(s, profiles[s.c.sq] ?? null, foto?.credito ?? null, porCandidato.get(s.c.sq) ?? null, { bens: bens.get(s.c.sq), motivos: motivos.get(s.c.sq), fornecedores: supplierView(s.c.sq, paidBy.get(s.c.sq) ?? [], dir, empresas, addrN) }));
+    list.push(toPublic(s, profiles[s.c.sq] ?? null, foto?.credito ?? null, porCandidato.get(s.c.sq) ?? null, { proposta: propostas.get(s.c.sq), bens: bens.get(s.c.sq), motivos: motivos.get(s.c.sq), fornecedores: supplierView(s.c.sq, paidBy.get(s.c.sq) ?? [], dir, empresas, addrN) }));
     byUf.set(s.c.uf, list);
   }
 

@@ -129,6 +129,14 @@ function registroBlock(motivos: Candidatura["motivos"]) {
     <p class="muted small">Não é condenação nem decisão final: pode haver recurso ou regularização. Confirme o andamento no DivulgaCandContas.</p></section>`;
 }
 
+export function propostaBlock(p: Candidatura["proposta"], id: string) {
+  if (!p) return "";
+  const tam = p.kb >= 1024 ? `${(p.kb / 1024).toFixed(1).replace(".", ",")} MB` : `${int(p.kb)} KB`;
+  return `<section><h3>Proposta de governo <small>registrada no TSE</small></h3>
+    <p><a class="ext" href="data/propostas/${h(id)}.pdf" download="proposta-${h(id)}.pdf">Baixar o plano (PDF, ${tam}) ↓</a></p>
+    <p class="muted small">Arquivo original enviado pela candidatura ao TSE, sem alteração. O Radar não resume nem avalia o conteúdo.</p></section>`;
+}
+
 function atuacaoBlock(bio: Candidatura["bio"]) {
   const a = bio?.atuacao;
   if (!a) return "";
@@ -176,6 +184,7 @@ export function renderDossier(c: Candidatura, s: ReturnType<typeof score>, inCol
     </div>
     ${prevBlock(c, exp)}
     ${resumoBlock(c.bio)}
+    ${propostaBlock(c.proposta, c.id)}
     ${registroBlock(c.motivos)}
     ${trajetoriaBlock(c)}
     ${atuacaoBlock(c.bio)}
