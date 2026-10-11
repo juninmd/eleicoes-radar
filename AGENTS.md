@@ -44,9 +44,11 @@ Base: `https://cdn.tse.jus.br/estatistica/sead/odsele/<pasta>/<arquivo>.zip`. Os
 | Fundamentos de indeferimento | `motivo_cassacao/motivo_cassacao_<ano>.zip` | `enrich/cassacao.ts` |
 | Coligações | `consulta_coligacao/consulta_coligacao_<ano>.zip` | (baixado; coligação por candidato vem do cadastro) |
 | Fotos | `foto_cand/foto_cand<ano>_<UF>_div.zip` (+ `BR`) | `profiles/tse-photos.ts` |
+| Propostas de governo (PDF) | `proposta_governo/proposta_governo_<ano>_<UF>.zip` (+ `BR` = Presidente) | `enrich/propostas.ts` |
 
+- Propostas: 28 zips, ~314 MB, ~220 PDFs `<UF>/<ano><UF><SQ>_<versão>.pdf` (+ `leiame.pdf`, ignorado). Salvar como `data/tse/proposta_governo_2026_<UF>.zip` (a URL tem o mesmo nome). O `build` copia o PDF original, sem alterar, para `web/data/propostas/<SQ>.pdf` (maior versão) e o dossiê oferece o download (`download` no link: o CSP `default-src 'none'` atrapalha o visualizador de PDF). Só o tamanho entra no JSON. 5 SQ não estão no cadastro. O `proposta_governo_2026.zip` sem UF dá 404; o certo tem o sufixo da UF. Descoberta pela API CKAN `dadosabertos.tse.jus.br/api/3/action/package_search?q=...`, que lista as URLs reais.
 - Salvar em `data/tse/`. O WAF do TSE devolveu 403 ao `fetch` do Bun, mas **`curl -s -A "Mozilla/5.0" -o arq.zip <url>`** funcionou (2026-09-29). Se falhar, baixar no navegador (`Start-Process <url>`).
-- `rede_social_candidato`, `proposta_governo`, `consulta_cand_complementar` deram **404** em 2026. A API `divulgacandcontas.tse.jus.br` dá 403. Reavaliar a cada eleição (`curl -I`).
+- `rede_social_candidato` (o certo é `consulta_cand/rede_social_candidato_2026.zip`), `consulta_cand_complementar` deram **404** em 2026 no caminho que tentei. A API `divulgacandcontas.tse.jus.br` dá 403. Reavaliar a cada eleição (`curl -I`).
 - Verificar cada zip com `unzip -tq` e `unzip -l` antes de usar.
 
 ## Chaves de cruzamento e armadilhas
