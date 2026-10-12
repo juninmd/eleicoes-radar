@@ -7,6 +7,11 @@ import { inherited } from "./succession";
 
 export interface AntQuery { sq: string; uf: string; cargo: string; pk: string; numero: string }
 
+const cleanPk = (pk: string) => {
+  const [nome, iso] = pk.split("|");
+  return nome && iso ? `${nome.replace(/\b(DE|DA|DO|DOS|DAS|E)\b/g, " ").replace(/\s+/g, " ").trim()}|${iso}` : pk;
+};
+
 export function buildAnt(prev: HistElection, cands: AntQuery[]): Map<string, Ant> {
   const race = new Map<string, number>(); // `${uf}|${cargo}` -> nominal votes
   const party = new Map<string, number>(); // `${uf}|${cargo}|${party}` -> nominal votes
@@ -25,9 +30,11 @@ export function buildAnt(prev: HistElection, cands: AntQuery[]): Map<string, Ant
     p.share.set(g, Math.max(p.share.get(g) ?? 0, c.votos / (race.get(g) || 1)));
     p.elected ||= isElected(c.sit);
     person.set(c.pk, p);
+    const ck = cleanPk(c.pk);
+    if (ck !== c.pk && !person.has(ck)) person.set(ck, p);
   }
   return new Map(cands.map((c) => {
-    const p = c.pk ? person.get(c.pk) : undefined;
+    const p = c.pk ? (person.get(c.pk) ?? person.get(cleanPk(c.pk))) : undefined;
     const g = `${c.uf}|${c.cargo}`;
     const share = p?.share.get(g);
     return [c.sq, {

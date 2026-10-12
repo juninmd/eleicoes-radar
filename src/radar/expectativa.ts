@@ -83,6 +83,8 @@ export function buildExpectativa(cands: Candidate[]) {
   const vagas = loadVagas();
   const corridas: unknown[] = [];
   const quem = new Map(cands.map((c) => [c.sq, { nome: c.nomeUrna || c.nome, partido: c.partido }]));
+  const blocos = new Map(cands.map((c) => [c.sq, c.coligacao || c.federacao || c.partido]));
+  const partidos = new Map(cands.map((c) => [c.sq, c.partido]));
   let pesquisas: { geradoEm: string; fontes: unknown[]; pesquisas: Poll[] } | null = null;
 
   if (existsSync(POLLS)) {
@@ -92,7 +94,7 @@ export function buildExpectativa(cands: Candidate[]) {
     for (const key of [...races].sort()) {
       const [cargo, uf] = key.split("|") as [Race, string];
       const polls = byRace.get(key) ?? [];
-      const f = forecast(cargo, uf, polls, vagas.get(`${uf}|${cargo.toUpperCase()}`) ?? (cargo === "Senador" ? 2 : 1));
+      const f = forecast(cargo, uf, polls, vagas.get(`${uf}|${cargo.toUpperCase()}`) ?? (cargo === "Senador" ? 2 : 1), undefined, blocos, partidos);
       if (!f) continue;
       for (const c of f.candidatos) {
         porCandidato.set(c.sq, { p: r4(c.pVitoria), fonte: "pesquisas", media: r4(c.media), lo: r4(c.lo), hi: r4(c.hi), p2t: c.p2turno === null ? null : r4(c.p2turno), tend: c.tendencia === null ? null : r4(c.tendencia) });

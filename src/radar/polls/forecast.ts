@@ -125,14 +125,65 @@ function rng(seed: string) {
   return () => Math.sqrt(-2 * Math.log(uniform() || 1e-12)) * Math.cos(2 * Math.PI * uniform());
 }
 
+export const SENATE_SLATE_RHO = 0.6;
+export const SENATE_SLATE_TRANSFER = 0.15;
+
+export const REGIONAL_DELTA: Record<string, number> = {
+  BR: 0.015,
+  SP: 0.035, RJ: 0.035, MG: 0.035, ES: 0.035,
+  PR: 0.035, RS: 0.035, SC: 0.035,
+  DF: 0.0175, GO: 0.0175, MT: 0.0175, MS: 0.0175,
+};
+
+export const RIGHT_PARTIES = new Set(["PL", "NOVO", "PP", "REPUBLICANOS"]);
+
 // `systematic` is a parameter so a recalibration can compare values (AGENTS.md); the build always uses SYSTEMATIC.
-export function forecast(cargo: Race, uf: string, polls: Poll[], vagas: number, systematic = SYSTEMATIC): Forecast | null {
+// `blocos` maps candidate SQ to their party or coalition slate for multi-seat correlation modeling.
+// `partidos` maps candidate SQ to their party for regional non-response differential calibration.
+export function forecast(cargo: Race, uf: string, polls: Poll[], vagas: number, systematic = SYSTEMATIC, blocos?: Map<string, string>, partidos?: Map<string, string>): Forecast | null {
   const first = selectPolls(polls.filter((p) => p.turno === 1));
   if (!first.length) return null;
   const { mean, nEff } = average(first);
   const sqs = [...mean.keys()];
+  const isMultiSeat = vagas > 1;
+  const blocOf = (sq: string) => blocos?.get(sq) || sq;
+  const blocs = [...new Set(sqs.map(blocOf))];
+  const byBloc = Map.groupBy(sqs, blocOf);
+
+  const effMean = new Map(mean);
+  const regDelta = REGIONAL_DELTA[uf];
+  if (regDelta && partidos) {
+    for (const sq of sqs) {
+      const p = partidos.get(sq);
+      if (p && RIGHT_PARTIES.has(p)) {
+        effMean.set(sq, effMean.get(sq)! + regDelta);
+      } else {
+        effMean.set(sq, Math.max(0, effMean.get(sq)! - regDelta * 0.5));
+      }
+    }
+    const sumTot = [...effMean.values()].reduce((a, b) => a + b, 0);
+    if (sumTot > 0) for (const [sq, v] of effMean) effMean.set(sq, v / sumTot);
+  }
+
+  // In multi-seat elections where polls ask for a single vote, slate partners divide the first-vote mention;
+  // on a multi-vote ballot voters cast both votes, so we apply slate expansion.
+  if (isMultiSeat && blocos) {
+    for (const members of byBloc.values()) {
+      if (members.length >= 2) {
+        const factor = SENATE_SLATE_TRANSFER / (members.length - 1);
+        const blocSum = members.reduce((s, m) => s + (effMean.get(m) ?? 0), 0);
+        for (const m of members) {
+          const self = effMean.get(m) ?? 0;
+          effMean.set(m, self + factor * (blocSum - self));
+        }
+      }
+    }
+    const sumTot = [...effMean.values()].reduce((a, b) => a + b, 0);
+    if (sumTot > 0) for (const [sq, v] of effMean) effMean.set(sq, v / sumTot);
+  }
+
   const sdOf = (p: number, sys: number) => Math.sqrt((p * (1 - p)) / nEff + systematicSd(p, sys) ** 2);
-  const sd = sqs.map((sq) => sdOf(mean.get(sq)!, systematic));
+  const sd = sqs.map((sq) => sdOf(effMean.get(sq)!, systematic));
   const newest = newestOf(first);
   const earlier = selectPolls(polls.filter((p) => p.turno === 1 && days(newest, p.fim) >= TREND_DAYS));
   // A reference much older than the fortnight would still be labelled "2 weeks ago": better no trend.
@@ -146,8 +197,17 @@ export function forecast(cargo: Race, uf: string, polls: Poll[], vagas: number, 
   let decided = 0;
 
   for (let s = 0; s < SIMS; s++) {
-    const x = sqs.map((sq, i) => Math.max(0, mean.get(sq)! + sd[i]! * gauss()));
-    const total = x.reduce((a, b) => a + b, 0) + Math.max(0, 1 - sqs.reduce((a, sq) => a + mean.get(sq)!, 0));
+    const bZ = isMultiSeat && blocos ? new Map(blocs.map((b) => [b, gauss()])) : null;
+    const x = sqs.map((sq, i) => {
+      const m = effMean.get(sq)!;
+      let z = gauss();
+      if (bZ) {
+        const zb = bZ.get(blocOf(sq))!;
+        z = Math.sqrt(SENATE_SLATE_RHO) * zb + Math.sqrt(1 - SENATE_SLATE_RHO) * z;
+      }
+      return Math.max(0, m + sd[i]! * z);
+    });
+    const total = x.reduce((a, b) => a + b, 0) + Math.max(0, 1 - sqs.reduce((a, sq) => a + effMean.get(sq)!, 0));
     const share = x.map((v) => v / total);
     const order = sqs.map((_, i) => i).sort((a, b) => share[b]! - share[a]!);
     if (!twoRounds) {
@@ -168,7 +228,7 @@ export function forecast(cargo: Race, uf: string, polls: Poll[], vagas: number, 
 
   const candidatos = sqs
     .map((sq, i) => {
-      const m = mean.get(sq)!;
+      const m = effMean.get(sq)!;
       const half = 1.645 * sdOf(m, SYSTEMATIC_BAND);
       return {
         sq,

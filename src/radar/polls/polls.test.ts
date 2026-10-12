@@ -186,6 +186,24 @@ describe("forecast", () => {
     expect(a.candidatos.reduce((s, c) => s + c.pVitoria, 0)).toBeCloseTo(2, 5);
   });
 
+  test("senate slate partners in 2-seat election expand shared reach", () => {
+    // Candidates 1 & 2 share a party slate; candidate 3 is solo
+    const polls = [poll("A", "2026-09-20", { "1": 25, "2": 25, "3": 35 })].map((p) => ({ ...p, cargo: "Senador" as const }));
+    const blocos = new Map([["1", "PL"], ["2", "PL"], ["3", "PT"]]);
+    const fSolo = forecast("Senador", "SP", polls, 2)!;
+    const fSlate = forecast("Senador", "SP", polls, 2, undefined, blocos)!;
+    // With slate expansion, candidate 1 & 2 gain from their partner's second vote
+    expect(fSlate.candidatos.find((c) => c.sq === "1")!.pVitoria).toBeGreaterThan(fSolo.candidatos.find((c) => c.sq === "1")!.pVitoria);
+  });
+
+  test("regional calibration applies non-response differential by state and party", () => {
+    const polls = [poll("A", "2026-09-20", { "1": 30, "2": 32 })];
+    const partidos = new Map([["1", "PL"], ["2", "PT"]]);
+    const fPlain = forecast("Governador", "SP", polls, 1)!;
+    const fCalib = forecast("Governador", "SP", polls, 1, undefined, undefined, partidos)!;
+    expect(fCalib.candidatos.find((c) => c.sq === "1")!.media).toBeGreaterThan(fPlain.candidatos.find((c) => c.sq === "1")!.media);
+  });
+
   test("trend compares the average now with the one TREND_DAYS earlier, from the same rules", () => {
     const polls = [
       poll("A", "2026-09-30", { "1": 50, "2": 30 }), poll("A", "2026-09-10", { "1": 40, "2": 40 }),
