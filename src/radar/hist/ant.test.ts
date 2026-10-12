@@ -40,6 +40,14 @@ describe("what the previous election says about a candidacy", () => {
     expect(out.get("n3")).toMatchObject({ ran: false, share: 0, elected: true });
   });
 
+  test("name preposition variants match the same person", () => {
+    const pWithPrep = buildAnt(prev, [
+      q("p1", "SP", "DEPUTADO FEDERAL", "ANA DE|1970-01-01", "2299"),
+    ]);
+    expect(pWithPrep.get("p1")).toMatchObject({ ran: true, elected: true });
+    expect(pWithPrep.get("p1")!.share).toBeCloseTo(0.6, 6);
+  });
+
   test("no person key means no match, never a false one", () => {
     expect(out.get("n4")).toMatchObject({ ran: false, elected: false });
   });
