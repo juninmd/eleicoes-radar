@@ -12,10 +12,12 @@ const cleanPk = (pk: string) => {
   return nome && iso ? `${nome.replace(/\b(DE|DA|DO|DOS|DAS|E)\b/g, " ").replace(/\s+/g, " ").trim()}|${iso}` : pk;
 };
 
+export const CROSS_OFFICE_FACTOR = 0.85;
+
 export function buildAnt(prev: HistElection, cands: AntQuery[]): Map<string, Ant> {
   const race = new Map<string, number>(); // `${uf}|${cargo}` -> nominal votes
   const party = new Map<string, number>(); // `${uf}|${cargo}|${party}` -> nominal votes
-  const person = new Map<string, { share: Map<string, number>; elected: boolean }>();
+  const person = new Map<string, { share: Map<string, number>; shareByUf: Map<string, number>; elected: boolean }>();
   for (const c of prev.cands) {
     if (!DEPUTIES.has(c.cargo)) continue;
     race.set(`${c.uf}|${c.cargo}`, (race.get(`${c.uf}|${c.cargo}`) ?? 0) + c.votos);
@@ -24,10 +26,12 @@ export function buildAnt(prev: HistElection, cands: AntQuery[]): Map<string, Ant
   }
   for (const c of prev.cands) {
     if (!DEPUTIES.has(c.cargo) || !c.pk) continue;
-    const p = person.get(c.pk) ?? { share: new Map(), elected: false };
+    const p = person.get(c.pk) ?? { share: new Map(), shareByUf: new Map(), elected: false };
     // The same person can appear twice in one race (a re-filed or substituted registration, one row with no votes).
     const g = `${c.uf}|${c.cargo}`;
-    p.share.set(g, Math.max(p.share.get(g) ?? 0, c.votos / (race.get(g) || 1)));
+    const s = c.votos / (race.get(g) || 1);
+    p.share.set(g, Math.max(p.share.get(g) ?? 0, s));
+    p.shareByUf.set(c.uf, Math.max(p.shareByUf.get(c.uf) ?? 0, s));
     p.elected ||= isElected(c.sit);
     person.set(c.pk, p);
     const ck = cleanPk(c.pk);
@@ -36,10 +40,13 @@ export function buildAnt(prev: HistElection, cands: AntQuery[]): Map<string, Ant
   return new Map(cands.map((c) => {
     const p = c.pk ? (person.get(c.pk) ?? person.get(cleanPk(c.pk))) : undefined;
     const g = `${c.uf}|${c.cargo}`;
-    const share = p?.share.get(g);
+    const exact = p?.share.get(g);
+    const cross = p?.shareByUf.get(c.uf);
+    const ran = exact !== undefined || cross !== undefined;
+    const share = exact ?? (cross !== undefined ? cross * CROSS_OFFICE_FACTOR : 0);
     return [c.sq, {
-      ran: share !== undefined,
-      share: share ?? 0,
+      ran,
+      share,
       elected: p?.elected ?? false,
       partido: inherited(prev.year, partyNumber(c.numero)).reduce((a, n) => a + (party.get(`${g}|${n}`) ?? 0), 0) / (race.get(g) || 1),
     }];

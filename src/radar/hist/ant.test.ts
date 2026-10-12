@@ -12,6 +12,7 @@ const prev: HistElection = {
     c("b", "SP", "DEPUTADO FEDERAL", "BIA|1980-02-02", "2202", 200, "NÃO ELEITO"),
     c("c", "SP", "DEPUTADO FEDERAL", "CID|1975-03-03", "1301", 200, "NÃO ELEITO"),
     c("d", "RJ", "DEPUTADO ESTADUAL", "DAN|1960-04-04", "2501", 50, "ELEITO POR MÉDIA"),
+    c("e", "SP", "DEPUTADO ESTADUAL", "EVA|1965-05-05", "2502", 100, "ELEITO POR MÉDIA"),
   ],
 };
 
@@ -20,8 +21,9 @@ describe("what the previous election says about a candidacy", () => {
   const out = buildAnt(prev, [
     q("n1", "SP", "DEPUTADO FEDERAL", "ANA|1970-01-01", "2299"), // same person, same race
     q("n2", "SP", "DEPUTADO FEDERAL", "NOVA|1990-05-05", "2288"), // never ran, but the party is the same
-    q("n3", "SP", "DEPUTADO FEDERAL", "DAN|1960-04-04", "1111"), // won a state seat last time, now runs federal
+    q("n3", "SP", "DEPUTADO FEDERAL", "DAN|1960-04-04", "1111"), // won a state seat in RJ last time, now runs federal in SP
     q("n4", "SP", "DEPUTADO FEDERAL", "", "1377"), // no key: cannot be matched
+    q("n5", "SP", "DEPUTADO FEDERAL", "EVA|1965-05-05", "1122"), // won state in SP last time, now runs federal in SP
   ]);
 
   test("a returning candidate carries the share of votes and the win", () => {
@@ -36,8 +38,13 @@ describe("what the previous election says about a candidacy", () => {
     expect(out.get("n4")!.partido).toBeCloseTo(0.2, 6);
   });
 
-  test("a win in another cargo counts as having been elected, but not as having run in this race", () => {
+  test("a win in another cargo and other state counts as having been elected, but not as having run in this state", () => {
     expect(out.get("n3")).toMatchObject({ ran: false, share: 0, elected: true });
+  });
+
+  test("a candidate in the same state across cargos carries cross-office share", () => {
+    expect(out.get("n5")).toMatchObject({ ran: true, elected: true });
+    expect(out.get("n5")!.share).toBeCloseTo(1.0 * 0.85, 6);
   });
 
   test("name preposition variants match the same person", () => {
