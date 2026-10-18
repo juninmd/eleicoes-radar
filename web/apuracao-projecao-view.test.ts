@@ -99,6 +99,25 @@ describe("renderProjecao", () => {
     expect(html).toMatch(/90% das seções/); // SP: 90 of 100
   });
 
+  test("it lists the estimated final votes per candidate: share x projected total, the leaders with their band", () => {
+    const total = r.base.validos + r.base.restante;
+    const ptb = tela(partes);
+    expect(ptb).toMatch(/Votos estimados no fim da apuração/);
+    expect(ptb).toMatch(/<ul class="bancadas apu-votos">/);
+    expect(ptb).toContain(`projeção ${pct(r.sim.faixa[r.a][1], 1)} · faixa`); // leader: median of the draws, with a band
+    expect(ptb).toContain(`projeção ${pct(r.base.final.C, 1)}</small>`); // third place: the share it already has, no band
+    const secao = ptb.slice(ptb.indexOf("Votos estimados"), ptb.indexOf("O que falta apurar"));
+    expect(secao.indexOf("Alfa Silva")).toBeLessThan(secao.indexOf("Gama")); // ordered by the projection
+    expect(total).toBeGreaterThan(0);
+  });
+
+  test("the estimated votes say how many candidates were left out, and never name a winner", () => {
+    const muitos = [{ ...X, votos: Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`K${i}`, 700 - i * 50])) }];
+    const out = tela(muitos);
+    expect(out).toMatch(/Mostra os 8 primeiros; outros 2 ficam de fora/);
+    expect(out.slice(out.indexOf("Votos estimados"))).not.toMatch(/será eleit|vai vencer|vai ganhar|vencerá/i);
+  });
+
   test("a race with a single file has no per-state chart", () => {
     expect(tela([X], null, { cargo: "Governador" })).not.toMatch(/O que falta apurar/);
   });

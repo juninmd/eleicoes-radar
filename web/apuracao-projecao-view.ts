@@ -15,6 +15,7 @@ export interface ProjecaoProps {
 }
 
 const TOP = 3;
+const TOP_VOTOS = 8;
 const PARTES_NO_GRAFICO = 12;
 
 const nomeDe = (nomes: Nomes, id: string) => h(titleName(nomes[id]?.nome ?? id));
@@ -53,6 +54,29 @@ function faixas(a: Analise, nomes: Nomes, cor: Cor) {
       <b>${pct(fim, 1)}</b><small>hoje ${pct(hoje(id), 1)}${f ? ` · faixa ${pct(f[0], 1)} a ${pct(f[2], 1)}` : ""}</small></li>`;
   }).join("")}</ul>
   <p class="muted small"><span class="leg"><i class="hoje"></i> hoje</span> <span class="leg"><i class="ponto"></i> projeção</span> <span class="leg"><i class="faixa"></i> faixa de 5% a 95% das simulações</span> <span class="leg"><i class="meta"></i> 50%</span></p>`;
+}
+
+// Projected valid votes per candidate = projected share x projected total of valid votes (counted + still to come).
+// The two leaders use the median of the draws and carry its band; the others repeat the share they already have.
+function votosEstimados(a: Analise, nomes: Nomes, cor: Cor) {
+  const ids = a.base.ordem.slice(0, TOP_VOTOS);
+  const total = a.base.validos + a.base.restante;
+  const linhas = ids.map((id) => {
+    const f = a.sim.faixa[id];
+    const share = f ? f[1] : a.base.final[id];
+    return { id, f, votos: share * total, hoje: a.base.contados[id] ?? 0 };
+  });
+  const maior = Math.max(...linhas.map((l) => l.votos));
+  const li = linhas.map(({ id, f, votos, hoje }) => {
+    const faixa = f ? ` · faixa ${votosCurto(f[0] * total)} a ${votosCurto(f[2] * total)}` : "";
+    return `<li><span class="nome"><i class="key" style="background:${h(corDe(cor, nomes, id))}"></i>${nomeDe(nomes, id)} <small>${partidoDe(nomes, id)}</small></span>
+      <span class="bar"><span class="fill" style="width:${((votos / maior) * 100).toFixed(1)}%;background:${h(corDe(cor, nomes, id))}"></span></span>
+      <b>${votosCurto(votos)}</b><small>hoje ${votosCurto(hoje)} (${pct(hoje / a.base.validos, 1)}) · projeção ${pct(votos / total, 1)}${faixa}</small></li>`;
+  }).join("");
+  const resto = a.base.ordem.length - ids.length;
+  return `<h3>Votos estimados no fim da apuração</h3>
+    <p class="muted small">Votos válidos que cada candidato teria ao final, se a conta se confirmar: % projetada × ${votosCurto(total)} de votos válidos projetados. Os dois primeiros usam a mediana da simulação (com a faixa de 5% a 95%); os demais repetem a % que já têm.${resto > 0 ? ` Mostra os ${ids.length} primeiros; ${resto === 1 ? "outro candidato fica" : `outros ${resto} ficam`} de fora.` : ""}</p>
+    <ul class="bancadas apu-votos">${li}</ul>`;
 }
 
 function precisa(a: Analise, nomes: Nomes, id: string) {
@@ -107,6 +131,7 @@ const formulas = `<details class="how" data-k="proj-como"><summary>Como calculam
   <li><b>Cenário base:</b> em cada parte, o que falta repete a % que cada candidato já tem ali. A projeção do país é a soma das partes, então estados grandes com pouco apurado pesam mais.</li>
   <li><b>Deslocamento:</b> entre duas versões do arquivo de uma parte, margem dos votos novos (A − B) menos a margem que a parte já tinha. A média, ponderada pelos votos novos, é aplicada ao que falta.</li>
   <li><b>Simulação:</b> 2.000 sorteios. A margem do que falta é a do cenário base + deslocamento + ruído comum a todas as partes (±1,5 p.p.) + ruído de cada parte (a variação medida, no mínimo 2 p.p.); o tamanho do que falta varia ±3%. A faixa é de 5% a 95% dos sorteios e só traz esse ruído, não o erro do próprio método.</li>
+  <li><b>Votos estimados:</b> % projetada do candidato × (votos válidos apurados + votos que faltam). Para os dois primeiros, a % é a mediana da simulação e a faixa vai de 5% a 95%; para os demais, é a % que já têm.</li>
   <li><b>Para passar de 50%:</b> (0,5 × (votos apurados + votos que faltam) − votos do candidato) ÷ votos que faltam.</li>
   <li><b>2º turno:</b> o segundo colocado precisaria de ½ + (a − b) ÷ (2 × O′) dos votos dos demais, com a e b as % finais dos dois e O′ = (100% − a − b) × (1 − abstenção entre os demais).</li>
   <li><b>O que a conta não sabe:</b> em que ordem as urnas chegam (capital e interior, por exemplo, entram em momentos diferentes e isso muda a margem do que falta), nem o que acontece no 2º turno.</li>
@@ -134,6 +159,7 @@ export function renderProjecao({ analise, nomes, cor, partes, cargo, esperadas =
     <dl class="apu-chances"><div><dt>Chance de decidir no 1º turno</dt><dd>${chance(p1)}</dd></div><div><dt>Vai a 2º turno</dt><dd>${chance(a.sim.segundoTurno)}</dd></div></dl>
     <p class="muted small">Faltam estimados ${int(Math.round(a.base.restante))} votos válidos ${onde} (${pct(a.base.restante / (a.base.validos + a.base.restante), 1)} do total projetado). As chances vêm da simulação descrita abaixo; ${p1 < 0.01 ? "quando dão 'menos de 1%' é porque o que falta não basta nem no pior caso simulado." : "valem só enquanto as hipóteses abaixo valerem."}</p>
     ${deslocamento(a, nomes, cargo)}
+    ${votosEstimados(a, nomes, cor)}
     ${falta(partes, nomes, cor, a.base.restante)}
     ${segundoTurno(a, nomes)}
     ${formulas}`;
