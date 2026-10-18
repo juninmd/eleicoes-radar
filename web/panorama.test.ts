@@ -1,14 +1,15 @@
 import { expect, test } from "bun:test";
-import { PAN_MODES, renderPanorama } from "./panorama.js";
+import { PAN_MODES, renderPanorama, vozDoVoto } from "./panorama.js";
 import type { PanCtx, Panorama } from "./panorama.js";
+import type { Apuracao } from "./apuracao-tse.js";
 import type { CargoAgg, PartyAgg, Perfil } from "../src/radar/panorama";
 import { FACETS, MIN_CELL, MIN_PERFIL, OUTRAS } from "./pan-perfil.js";
-import { agendaView } from "./pan-partidos.js";
-import { cor, genero, idade, instrucao, MIN_CELL as AGG_MIN_CELL, MIN_PERFIL as AGG_MIN_PERFIL, OUTRAS as AGG_OUTRAS } from "../src/radar/panorama.js";
+import { agendaView, partidosView } from "./pan-partidos.js";
+import { aggregate, cor, genero, idade, instrucao, MIN_CELL as AGG_MIN_CELL, MIN_PERFIL as AGG_MIN_PERFIL, OUTRAS as AGG_OUTRAS } from "../src/radar/panorama.js";
 
 type Cand = Parameters<typeof genero>[0];
 
-const party = (o: Partial<PartyAgg> = {}): PartyAgg => ({ n: 5, comReceita: 4, total: 1000, publico: 600, partido: 200, pf: 200, proprio: 0, outros: 0, mediana: 250, mulheres: 2, vagas: 1.5, ...o });
+const party = (o: Partial<PartyAgg> = {}): PartyAgg => ({ n: 5, comReceita: 4, total: 1000, publico: 600, partido: 200, pf: 200, proprio: 0, outros: 0, mediana: 250, mulheres: 2, vagas: 1.5, comCanal: 3, redes: { instagram: 3, tiktok: 1 }, ...o });
 const CONC = [0.5, 0.7, 0.8, 0.9, 0.95, 0.97, 0.98, 0.99, 1, 1];
 const agg = (o: Partial<CargoAgg> = {}): CargoAgg => ({
   n: 40, comReceita: 30, fontes: { publico: 1600, partido: 500, pf: 400, proprio: 0, outros: 0 },
@@ -244,4 +245,97 @@ test("alliances only use candidacies of the state on screen", () => {
   const cands = [cand("1", "Governador", "PL", "X: PL / PP"), { ...cand("2", "Governador", "PSOL", "Y: PSOL / PT"), uf: "RJ" }];
   const html = renderPanorama(ctx({ modo: "aliancas", cargo: "Governador", cands }));
   expect(html).not.toContain("PSOL");
+});
+
+test("digital presence counts candidacies per platform and publishes no links", () => {
+  const c = (canais: { r: string; u: string }[] | null) => ({ cargo: "Governador", partido: "AAA", canais });
+  const out = aggregate([c([{ r: "instagram", u: "https://a/1" }, { r: "instagram", u: "https://a/2" }, { r: "x", u: "https://a/3" }]), c(null), c([{ r: "tiktok", u: "https://a/4" }])]);
+  const p = out.Governador!.partidos.AAA!;
+  expect(p).toMatchObject({ n: 3, comCanal: 2, redes: { instagram: 1, x: 1, tiktok: 1 } });
+  expect(JSON.stringify(out)).not.toContain("https://");
+});
+
+test("the parties tab shows a share of candidacies for a platform and hides it under the minimum", () => {
+  const data = agg({ partidos: { AAA: party({ n: 4, redes: { instagram: 3 } }), BBB: party({ n: 2, redes: { instagram: 2 } }) } });
+  const html = partidosView({ data, cargo: "Governador", label: "Brasil", metrica: "instagram" });
+  expect(html).toContain("Instagram por partido");
+  expect(html).toContain("75%");
+  expect(html).toContain("não mede alcance");
+});
+
+test("the Redes tab reports platform coverage and dated followers, never a ranking", () => {
+  const data = agg({ n: 8, partidos: { AAA: party({ n: 5, comCanal: 4, redes: { instagram: 4, x: 1 } }), BBB: party({ n: 3, comCanal: 1, redes: { instagram: 1 } }) } });
+  const cands = [
+    { id: "1", cargo: "Governador", partido: "BBB", nome: "ZED", uf: "SP", bio: { seguidores: [{ rede: "x", n: 2_000_000, em: "2025-02-26" }] } },
+    { id: "2", cargo: "Governador", partido: "AAA", nome: "ABEL", uf: "SP", bio: { seguidores: [{ rede: "youtube", n: 1_500, em: "2024-03-01" }] } },
+    { id: "3", cargo: "Governador", partido: "AAA", nome: "OUTRO UF", uf: "RJ", bio: { seguidores: [{ rede: "x", n: 5, em: "2025-01-01" }] } },
+  ] as Parameters<typeof renderPanorama>[0]["cands"];
+  const pan = { geradoEm: "", escopos: { SP: { Governador: data } }, agenda: { votacoes: [], partidos: {} } } as unknown as Panorama;
+  const html = renderPanorama({ modo: "redes", pan, cargo: "Governador", uf: "SP", cands });
+  expect(html).toContain("5</b> de 8 candidaturas");
+  expect(html).toContain("Instagram");
+  expect(html).toContain("02/2025");
+  expect(html).not.toContain("OUTRO UF");
+  expect(html.indexOf("ABEL")).toBeLessThan(html.indexOf("ZED")); // party order (AAA before BBB), not follower count
+  expect(html).not.toMatch(/\bmelhor\b|\bmais popular\b/i);
+});
+
+test("Câmara-only links do not count as channels declared to the TSE", () => {
+  const c = (canais: { r: string; c?: 1 }[]) => ({ cargo: "Deputado Federal", partido: "AAA", canais });
+  const p = aggregate([c([{ r: "instagram" }]), c([{ r: "instagram", c: 1 }, { r: "x", c: 1 }])])["Deputado Federal"]!.partidos.AAA!;
+  expect(p).toMatchObject({ comCanal: 1, redes: { instagram: 1 } });
+  expect(p.redes.x).toBeUndefined();
+});
+
+// "Redes e voto" slot: stale-response guard, shared download and cache rule.
+const apCom = (situacao: string, fase: "concluida" | "parcial" = "concluida") => ({
+  versao: { data: "", hora: "" }, cargo: { codigo: "1", nome: "Presidente", vagas: 1 }, fase,
+  secoes: { total: 1, totalizadas: 1 }, eleitorado: { apto: 1, apurado: 1, comparecimento: 1, abstencao: 0 },
+  votos: { total: 1, validos: 1, brancos: 0, nulos: 0 }, quociente: null, partidos: [],
+  candidatos: [{ id: "1", num: "1", nome: "X", partido: "AAA", votos: 1, pct: 1, destaque: false, situacao, lista: "L" }],
+}) as Apuracao;
+const slotRoot = () => {
+  const slot = { innerHTML: `<h3>Redes e voto</h3>`, querySelector: (_: string) => ({ outerHTML: "<h3>Redes e voto</h3>" }) };
+  const root = { querySelector: (s: string) => (s === "#pan-voto" ? slot : null) } as unknown as HTMLElement;
+  return { root, slot };
+};
+const ctxRedes = (cargo = "Presidente"): PanCtx => ({ modo: "redes", pan: {} as Panorama, cargo, uf: "BR", cands: [] });
+
+test("vozDoVoto: two draws in a row share one download, and a runoff file marked '2º turno' is cached", async () => {
+  const { root } = slotRoot();
+  let calls = 0;
+  const fill = vozDoVoto(root, () => ctxRedes(), () => "uf", async () => { calls++; return apCom("2º turno"); });
+  await Promise.all([fill(), fill()]);
+  await fill();
+  expect(calls).toBe(1);
+});
+
+test("vozDoVoto: a partial count is read again, and the late answer of an older draw never overwrites the newer one", async () => {
+  const { root, slot } = slotRoot();
+  const waiting: ((a: Apuracao) => void)[] = [];
+  let ctx = ctxRedes("Presidente");
+  const fill = vozDoVoto(root, () => ctx, () => "uf", (url) => new Promise((res) => { waiting.push((a) => res(a)); void url; }));
+  const first = fill();
+  ctx = ctxRedes("Governador"); ctx.uf = "SP";
+  const second = fill();
+  waiting[1]!(apCom("", "parcial"));
+  await second;
+  const after = slot.innerHTML;
+  waiting[0]!(apCom("", "parcial"));
+  await first;
+  expect(slot.innerHTML).toBe(after);
+  void fill();
+  expect(waiting.length).toBe(3); // partial -> not cached, so it asks again
+});
+
+test("vozDoVoto: a failed download leaves an escaped message and does not break the next draw", async () => {
+  const { root, slot } = slotRoot();
+  let fail = true;
+  const fill = vozDoVoto(root, () => ctxRedes(), () => "uf", async () => { if (fail) throw new Error("<b>x</b>"); return apCom("Eleito"); });
+  await fill();
+  expect(slot.innerHTML).toContain("&lt;b&gt;x&lt;/b&gt;");
+  expect(slot.innerHTML).not.toContain("<b>x</b>");
+  fail = false;
+  await fill();
+  expect(slot.innerHTML).not.toContain("Não deu para ler");
 });

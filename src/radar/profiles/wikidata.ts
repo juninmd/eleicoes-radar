@@ -3,6 +3,7 @@
 // name agrees with the TSE civil name and no other hit also agrees.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { normalizeName } from "../stats";
+import type { Rede } from "../enrich/redes";
 
 const API = "https://www.wikidata.org/w/api.php";
 const CACHE = "data/wikidata";
@@ -15,12 +16,18 @@ export interface Position {
   inicio: string | null;
   fim: string | null;
 }
+export interface Seguidores {
+  rede: Rede;
+  n: number;
+  em: string; // date the count was recorded (YYYY-MM-DD): counts go stale, the page shows it
+}
 export interface WikiProfile {
   qid: string;
   nascimento: string | null;
   naturalidade: string | null;
   cargos: Position[];
   imagem: string | null; // Commons file name
+  seguidores: Seguidores[];
 }
 
 type Entity = { id: string; labels?: Record<string, { value: string }>; aliases?: Record<string, { value: string }[]>; claims?: Record<string, any[]> };
@@ -106,6 +113,23 @@ export async function findPerson(civilName: string): Promise<Entity | null> {
   return ok.length === 1 ? ok[0]! : null;
 }
 
+// P8687 (social media followers) names the platform only through a qualifier holding the
+// account id: YouTube channel, X user, Instagram and Facebook numeric ids.
+const FOLLOWER_QUALIFIER: Record<string, Rede> = { P2397: "youtube", P6552: "x", P12546: "instagram", P11705: "facebook" };
+
+// Latest recorded count per platform; undated or non-positive counts are ignored.
+export function seguidoresDe(e: Entity): Seguidores[] {
+  const best = new Map<Rede, Seguidores>();
+  for (const c of e.claims?.P8687 ?? []) {
+    const rede = Object.entries(FOLLOWER_QUALIFIER).find(([q]) => c.qualifiers?.[q])?.[1];
+    const em = claimTime(c, "P585");
+    const n = Number(c.mainsnak?.datavalue?.value?.amount);
+    if (!rede || !em || !(n > 0) || c.rank === "deprecated") continue;
+    if (!best.has(rede) || em > best.get(rede)!.em) best.set(rede, { rede, n, em });
+  }
+  return [...best.values()];
+}
+
 export async function toProfile(e: Entity): Promise<WikiProfile> {
   const positions = e.claims?.P39 ?? [];
   const birthplace = claimIds(e, "P19");
@@ -125,5 +149,6 @@ export async function toProfile(e: Entity): Promise<WikiProfile> {
     naturalidade: birthplace[0] ? label(birthplace[0]) : null,
     cargos,
     imagem: e.claims?.P18?.[0]?.mainsnak?.datavalue?.value ?? null,
+    seguidores: seguidoresDe(e),
   };
 }

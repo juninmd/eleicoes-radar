@@ -74,6 +74,19 @@ describe("tse finance", () => {
   });
 });
 
+test("boosting counts only the TSE expense origin 20420000, and stays inside the contracted total", () => {
+  const rows = [
+    { SQ_CANDIDATO: "1", NR_CPF_CNPJ_FORNECEDOR: "55", VR_DESPESA_CONTRATADA: "300,00", CD_ORIGEM_DESPESA: "20420000" },
+    { SQ_CANDIDATO: "1", NR_CPF_CNPJ_FORNECEDOR: "55", VR_DESPESA_CONTRATADA: "1.200,50", CD_ORIGEM_DESPESA: "20420000" },
+    { SQ_CANDIDATO: "1", NR_CPF_CNPJ_FORNECEDOR: "66", VR_DESPESA_CONTRATADA: "100,00", CD_ORIGEM_DESPESA: "20140000" }, // printed material
+    { SQ_CANDIDATO: "2", NR_CPF_CNPJ_FORNECEDOR: "66", VR_DESPESA_CONTRATADA: "50,00", CD_ORIGEM_DESPESA: "" },
+  ];
+  const got = aggregate([], rows);
+  expect(got.get("1")!.finance.impulsionamento).toBe(1500.5);
+  expect(got.get("1")!.finance.despesasContratadas).toBe(1600.5);
+  expect(got.get("2")!.finance.impulsionamento).toBe(0);
+});
+
 describe("chamber votes", () => {
   test("party orientation matches truncated names and federations, never blocs", () => {
     expect(bancadaMatchesParty("Fdr PT-PCdoB-PV", "PT")).toBe(true);

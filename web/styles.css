@@ -372,3 +372,9 @@ body.sobre .metodo > :nth-child(3) { animation-delay: 0.08s; } body.sobre .metod
 }
 
 body[data-visao="aovivo"] #cedulas { display: none; } /* the Ao vivo tab shows every race at once: no ballot to pick */
+
+.canais { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px; }
+.canais a { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; }
+.canais a:hover, .canais a:focus-visible { background: var(--sunk); }
+.seguidores { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.seguidores li { display: flex; justify-content: space-between; gap: 10px; }
