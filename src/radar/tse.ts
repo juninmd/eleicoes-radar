@@ -37,11 +37,13 @@ export interface Finance {
   doadoresPF: number;
   maiorDoadorShare: number; // 0-1, any single source key
   despesasContratadas: number;
+  impulsionamento: number; // paid boosting of online content, the TSE's own expense origin
   maiorFornecedorShare: number; // 0-1
   dataRetrato: string;
 }
 
-const PUBLIC_SOURCES = new Set(["FUNDO ESPECIAL", "FUNDO PARTIDARIO"]);
+const IMPULSIONAMENTO = "20420000"; // CD_ORIGEM_DESPESA "Despesa com Impulsionamento de Conteúdos"
+const PUBLIC_SOURCES =new Set(["FUNDO ESPECIAL", "FUNDO PARTIDARIO"]);
 
 function originKind(origem: string): "proprio" | "pf" | "partido" | "candidato" | "outro" {
   const o = origem.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -54,7 +56,7 @@ function originKind(origem: string): "proprio" | "pf" | "partido" | "candidato" 
 
 export const emptyFinance = (): Finance => ({
   total: 0, publico: 0, proprio: 0, pessoasFisicas: 0, partidoPrivado: 0, outrosCandidatos: 0,
-  doadoresPF: 0, maiorDoadorShare: 0, despesasContratadas: 0, maiorFornecedorShare: 0, dataRetrato: "",
+  doadoresPF: 0, maiorDoadorShare: 0, despesasContratadas: 0, impulsionamento: 0, maiorFornecedorShare: 0, dataRetrato: "",
 });
 
 // Pure aggregation over parsed rows so it can be tested without the zip.
@@ -110,6 +112,7 @@ export function aggregate(receitas: Iterable<Row>, despesas: Iterable<Row>): Map
     const c = ensure(r);
     const v = parseNumber(r.VR_DESPESA_CONTRATADA);
     c.finance.despesasContratadas += v;
+    if (r.CD_ORIGEM_DESPESA === IMPULSIONAMENTO) c.finance.impulsionamento += v;
     const key = onlyDigits(r.NR_CPF_CNPJ_FORNECEDOR) || r.NM_FORNECEDOR || "?";
     const m = suppliers.get(c.sq) ?? new Map<string, number>();
     m.set(key, (m.get(key) ?? 0) + v);

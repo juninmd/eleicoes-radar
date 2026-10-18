@@ -1,6 +1,7 @@
 import { INDICATORS } from "./score.js";
 import { fornecedoresBlock } from "./fornecedores.js";
 import { prevBlock } from "./prev.js";
+import { canaisBlock } from "./dossier-canais.js";
 import type { ExpPrev } from "./prev.js";
 import type { score } from "./score.js";
 import type { SourceKey } from "./charts.js";
@@ -147,17 +148,6 @@ function atuacaoBlock(bio: Candidatura["bio"]) {
     ${a.frentesDestaque?.length ? `<p class="muted small">Frentes (amostra): ${a.frentesDestaque.map(h).join(" · ")}</p>` : ""}</section>`;
 }
 
-const REDE: Record<string, string> = { "twitter.com": "X/Twitter", "x.com": "X/Twitter", "facebook.com": "Facebook", "instagram.com": "Instagram", "youtube.com": "YouTube", "tiktok.com": "TikTok", "kwai.com": "Kwai", "threads.net": "Threads" };
-function contatoBlock(bio: Candidatura["bio"]) {
-  const links = [...(bio?.redes ?? [])].map((u) => {
-    const host = new URL(u).hostname.replace(/^www\./, "");
-    return `<a class="ext" href="${h(u)}" target="_blank" rel="noopener noreferrer">${h(REDE[host] ?? host)} ↗</a>`;
-  });
-  if (bio?.site) links.unshift(`<a class="ext" href="${h(bio.site)}" target="_blank" rel="noopener noreferrer">Site ↗</a>`);
-  if (!links.length && !bio?.escolaridade) return "";
-  return `<section><h3>Contato público</h3><p>${links.join(" · ")}</p>${bio!.escolaridade ? `<p class="muted">Escolaridade (Câmara): ${h(bio!.escolaridade)}</p>` : ""}</section>`;
-}
-
 function resumoBlock(bio: Candidatura["bio"]) {
   const r = bio?.resumo;
   return r ? `<section><h3>Resumo <a class="ext" href="${h(r.url)}" target="_blank" rel="noopener noreferrer">Wikipédia ↗</a></h3><p>${h(r.texto)}</p><p class="muted small">Texto de enciclopédia colaborativa; confira no link.</p></section>` : "";
@@ -198,5 +188,5 @@ export function renderDossier(c: Candidatura, s: ReturnType<typeof score>, inCol
     </section>
     ${fornecedoresBlock(c.fornecedores, c.id)}
     ${mandateBlock(c.mandato)}
-    ${contatoBlock(c.bio)}`;
+    ${canaisBlock(c)}`;
 }

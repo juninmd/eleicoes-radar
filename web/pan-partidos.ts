@@ -11,6 +11,9 @@ const ONE_SEAT = new Set(["Governador", "Presidente"]);
 const share = (a: number, b: number) => (b > 0 ? a / b : null);
 const dec = (v: number) => v.toFixed(1).replace(".", ",");
 
+const REDES: [string, string][] = [["instagram", "Instagram"], ["facebook", "Facebook"], ["tiktok", "TikTok"], ["youtube", "YouTube"], ["x", "X"]];
+const DIGITAL = new Set(["canal", ...REDES.map(([k]) => k)]);
+
 export function metricas(cargo: string): Record<string, Metrica> {
   const unica = ONE_SEAT.has(cargo);
   return {
@@ -18,6 +21,8 @@ export function metricas(cargo: string): Record<string, Metrica> {
     n: { nome: "Candidaturas", val: (p) => p.n, fmt: int },
     publico: { nome: "Fundos públicos", val: (p) => (p.n >= MIN_N ? share(p.publico, p.total) : null), fmt: (v) => pct(v) },
     mulheres: { nome: "Mulheres", val: (p) => (p.n >= MIN_N && p.mulheres != null ? share(p.mulheres, p.n) : null), fmt: (v) => pct(v) }, // null: the file withholds it (see womenShown)
+    canal: { nome: "Com canais", val: (p) => (p.n >= MIN_N ? share(p.comCanal, p.n) : null), fmt: (v) => pct(v) },
+    ...Object.fromEntries(REDES.map(([k, nome]) => [k, { nome, val: (p: PartyAgg) => (p.n >= MIN_N ? share(p.redes?.[k] ?? 0, p.n) : null), fmt: (v: number) => pct(v) }])),
     vagas: { nome: unica ? "Chance de eleição" : "Vagas esperadas", val: (p) => p.vagas, fmt: unica ? (v) => pct(v) : dec },
   };
 }
@@ -44,7 +49,7 @@ export function partidosView({ data, cargo, label, metrica }: { data: CargoAgg; 
     <h3>${h(m.nome)} por partido <small>${h(cargo)} · ${h(label)}</small></h3>
     ${bars}
     ${rows.length > 15 ? `<p class="muted small">Mostrando os 15 primeiros de ${rows.length} partidos; a tabela abaixo traz todos.</p>` : ""}
-    ${(ativa === "publico" || ativa === "mulheres") ? `<p class="muted small">Partidos com menos de ${MIN_N} candidaturas ficam sem percentual: uma ou duas pessoas não descrevem um partido.${ativa === "mulheres" ? " Também fica sem percentual quando a disputa inteira tem menos de 5 mulheres." : ""}</p>` : ""}
+    ${(ativa === "publico" || ativa === "mulheres" || DIGITAL.has(ativa)) ? `<p class="muted small">Partidos com menos de ${MIN_N} candidaturas ficam sem percentual: uma ou duas pessoas não descrevem um partido.${DIGITAL.has(ativa) ? " Canais são os que a candidatura declarou ao TSE; ter perfil não mede alcance nem qualidade." : ""}${ativa === "mulheres" ? " Também fica sem percentual quando a disputa inteira tem menos de 5 mulheres." : ""}</p>` : ""}
     <h3>Dinheiro × ${h(eixoY)}</h3>
     <p class="muted small">Cada bolha é um partido. Para a direita, mais dinheiro arrecadado (escala logarítmica). Para cima, ${h(eixoY)}${temVagas ? " segundo o modelo, que usa arrecadação, força da lista e ocupação declarada" : ""}. O tamanho é o número de candidaturas. Passe o mouse sobre uma bolha para ver os valores.</p>
     ${bubbles(pontos, { xFmt: moneyShort, yFmt: (v: number) => (temVagas && !ONE_SEAT.has(cargo) ? v.toFixed(v < 10 ? 1 : 0).replace(".", ",") : pct(v)) })}

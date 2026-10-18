@@ -169,3 +169,20 @@ describe("aggregateAgenda", () => {
     expect(Object.keys(a.partidos)).toEqual(["AAA"]);
   });
 });
+
+describe("boosting spend", () => {
+  test("is summed per party and per race, with the share of candidacies that paid for it", () => {
+    const g = aggregate([
+      cand({ partido: "AAA", fin: { total: 100, gastos: 80, impuls: 30 } }),
+      cand({ partido: "AAA", fin: { total: 100, gastos: 20, impuls: 0 } }),
+      cand({ partido: "BBB", fin: { total: 100, gastos: 100, impuls: 20.4 } }),
+    ])["Deputado Federal"]!;
+    expect(g.impuls).toEqual({ total: 50, gastos: 200, comGasto: 2 });
+    expect(g.partidos.AAA).toMatchObject({ impuls: 30, comImpuls: 1 });
+    expect(g.partidos.BBB).toMatchObject({ impuls: 20, comImpuls: 1 });
+  });
+  test("an older UF file without the field counts as no boosting instead of failing", () => {
+    const g = aggregate([cand({ fin: { total: 100 } })])["Deputado Federal"]!;
+    expect(g.impuls).toEqual({ total: 0, gastos: 0, comGasto: 0 });
+  });
+});

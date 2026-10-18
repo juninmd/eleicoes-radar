@@ -19,14 +19,17 @@ interface Cand {
   genero?: string;
   corRaca?: string;
   ficha?: { instrucao?: string; nascimento?: string };
-  fin?: { total?: number; publico?: number; partido?: number; pf?: number; proprio?: number };
+  fin?: { total?: number; publico?: number; partido?: number; pf?: number; proprio?: number; gastos?: number; impuls?: number };
   prev?: { p?: number };
+  canais?: { r: string; c?: 1 }[] | null;
   mandato?: { agenda?: { votos?: Record<string, string> } };
 }
 type Counts = Record<string, number>;
 export interface PartyAgg {
   n: number; comReceita: number; total: number; publico: number; partido: number; pf: number; proprio: number;
   outros: number; mediana: number; mulheres: number | null; vagas: number;
+  comCanal: number; redes: Counts; // candidacies with at least one declared channel, and per platform
+  impuls?: number; comImpuls?: number; // R$ contracted to boost online content, and how many candidacies paid for it
 }
 const FACETS = ["genero", "cor", "instrucao", "idade"] as const;
 type Facet = (typeof FACETS)[number];
@@ -37,6 +40,7 @@ export interface CargoAgg {
   partidos: Record<string, PartyAgg>;
   conc: number[]; // share of all money held by the top 10%, 20%, ... 100% of candidacies
   perfil: Perfil | null;
+  impuls?: { total: number; gastos: number; comGasto: number }; // boosting vs all contracted expenses of the race
 }
 export interface AgendaAgg {
   votacoes: { id: string; tema: string; proposicao: string; resumo: string; posicao: string }[];
@@ -78,14 +82,31 @@ function fontes(list: Cand[]) {
   return { publico: sum((c) => c.fin?.publico ?? 0), partido: sum((c) => c.fin?.partido ?? 0), pf: sum((c) => c.fin?.pf ?? 0), proprio: sum((c) => c.fin?.proprio ?? 0), outros: sum(outros) };
 }
 
+// Counts of candidacies, never links: who has which channel stays in the per-candidate file.
+function canais(list: Cand[]): Pick<PartyAgg, "comCanal" | "redes"> {
+  const redes: Counts = {};
+  // Only channels declared to the TSE count: the Câmara's extra links would favour parties with incumbents.
+  const declared = (c: Cand) => (c.canais ?? []).filter((k) => !k.c);
+  for (const c of list) for (const r of new Set(declared(c).map((k) => k.r))) bump(redes, r);
+  return { comCanal: list.filter((c) => declared(c).length).length, redes };
+}
+
+const boosted = (c: Cand) => c.fin?.impuls ?? 0;
+function impulsionamento(list: Cand[]) {
+  return { total: Math.round(list.reduce((a, c) => a + boosted(c), 0)), gastos: Math.round(list.reduce((a, c) => a + (c.fin?.gastos ?? 0), 0)), comGasto: list.filter((c) => boosted(c) > 0).length };
+}
+
 function party(list: Cand[], showWomen: boolean): PartyAgg {
   const totals = list.map((c) => c.fin?.total ?? 0);
+  const boost = impulsionamento(list);
   return {
     n: list.length, comReceita: totals.filter((t) => t > 0).length,
     total: Math.round(totals.reduce((a, b) => a + b, 0)), ...fontes(list),
     mediana: Math.round(median(totals.filter((t) => t > 0))),
     mulheres: showWomen ? list.filter((c) => genero(c) === "Feminino").length : null,
     vagas: round(list.reduce((a, c) => a + (c.prev?.p ?? 0), 0), 2),
+    ...canais(list),
+    impuls: boost.total, comImpuls: boost.comGasto,
   };
 }
 
@@ -158,7 +179,7 @@ export function aggregate(cands: Cand[]): Record<string, CargoAgg> {
       n: list.length, comReceita: list.filter((c) => (c.fin?.total ?? 0) > 0).length,
       fontes: fontes(list),
       partidos: Object.fromEntries([...byParty].map(([p, l]) => [p, party(l, showWomen)])),
-      conc: concentration(list), perfil: perfil(list),
+      conc: concentration(list), perfil: perfil(list), impuls: impulsionamento(list),
     };
     return [cargo, agg];
   }));

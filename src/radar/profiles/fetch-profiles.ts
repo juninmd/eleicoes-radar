@@ -8,7 +8,7 @@ import { parseCsv } from "../csv";
 import { normalizeName } from "../stats";
 import { legislatureStartYear } from "../incumbency";
 import { senatorProfile } from "./senado";
-import { findPerson, toProfile, type Position } from "./wikidata";
+import { findPerson, toProfile, type Position, type Seguidores } from "./wikidata";
 import { commonsPhoto, thumbnail } from "./photos";
 import { camaraExtra, senadoExtra, wikipediaResumo, type Extra } from "./extra";
 
@@ -20,6 +20,7 @@ export interface Profile extends Partial<Extra> {
   trajetoria: (Position & { fonte: string })[];
   foto: { file: string; credito: string } | null;
   wikidata: string | null;
+  seguidores?: Seguidores[];
 }
 
 const cands = await loadCandidates();
@@ -71,6 +72,7 @@ for (const c of cands) {
     if (e) {
       const w = await toProfile(e);
       p.wikidata = w.qid;
+      if (w.seguidores.length) p.seguidores = w.seguidores;
       p.resumo = await safe(() => wikipediaResumo(w.qid)) ?? null;
       p.naturalidade ??= w.naturalidade;
       p.nascimento ??= w.nascimento;
