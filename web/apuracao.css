@@ -160,6 +160,8 @@
 .apu-falta li > small { grid-column: 2 / -1; font: 500 11px var(--mono); color: var(--muted); }
 .apu-falta .fill { border-radius: 0 4px 4px 0; }
 .apu-falta abbr { text-decoration: none; cursor: help; }
+.apu-votos li { grid-template-columns: 150px minmax(0, 1fr) 64px; row-gap: 0; }
+.apu-votos li > small { grid-column: 2 / -1; font: 500 11px var(--mono); color: var(--muted); }
 .apu-cad { border: 1px solid var(--line); border-radius: var(--r-lg); padding: 8px 12px; background: var(--surface); }
 .apu-cad + .apu-cad { margin-top: 6px; }
 .apu-cad summary { cursor: pointer; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -223,6 +225,8 @@
   .apu .bancadas li > span:first-child { grid-column: 1 / -1; overflow-wrap: anywhere; }
   .apu .apu-falta li { grid-template-columns: minmax(0, 1fr) 64px; }
   .apu .apu-falta li > small { grid-column: 1 / -1; }
+  .apu .apu-votos li { grid-template-columns: minmax(0, 1fr) 64px; }
+  .apu .apu-votos li > small { grid-column: 1 / -1; }
   .apu .exp-bars td.num { font-size: 13px; }
   .apu .cmp-inline { line-height: 1.35; }
   .apu .cmp-inline .faixa-txt { display: block; }
