@@ -20,6 +20,9 @@ import { createCores } from "./apuracao-nacional.js";
 import { PALETA } from "./apuracao-mapa.js";
 import { renderCamara } from "./apuracao-camara.js";
 import { renderNacional } from "./apuracao-nacional-view.js";
+import { renderMunicipios } from "./apuracao-municipios-view.js";
+import type { MunProps } from "./apuracao-municipios-view.js";
+import type { Confronto } from "./apuracao-municipios.js";
 import { comparar, delta, resumoFaixa } from "./apuracao-pesquisa.js";
 import { fmtDate, pp } from "./prev.js";
 import type { Apuracao, Candidato, Cargo, Fase, Turno } from "./apuracao-tse.js";
@@ -36,10 +39,10 @@ import type { Candidatura } from "./types.js";
 
 // What the view reads of a feed snapshot: the feed's own `url` is not needed to draw it.
 export type SnapView = Pick<FeedSnapshot, "status" | "dados"> & Partial<Pick<FeedSnapshot, "buscadoEm" | "erro">>;
-export type Vista = "placar" | "linha" | "mapa" | "projecao" | "cadeiras" | "camara" | "graficos";
+export type Vista = "placar" | "linha" | "mapa" | "projecao" | "cadeiras" | "camara" | "graficos" | "municipios";
 type Avatar = (c: Candidatura, size: string) => string;
 // What the view reads of data/expectativa.json: the poll summary of each race.
-export interface Corrida extends CorridaMapa { pesquisas: number; ultima?: string | null }
+export interface Corrida extends CorridaMapa { pesquisas: number; ultima?: string | null; confrontos?: Confronto[] }
 export interface Exp { corridas?: Corrida[] }
 // A candidate row of the scoreboard: the TSE line, our own candidacy (when we know them), the poll comparison and the two kinds of "elected" label.
 interface Linha { c: Candidato; own: Candidatura | undefined; cmp: Comparacao | null; ele: boolean; mat: boolean }
@@ -63,6 +66,7 @@ export interface RenderProps {
   modoMapa?: string;
   selUf?: string | null;
   cor?: Cores;
+  mun?: Omit<MunProps, "cargo" | "uf" | "cor"> | null; // the runoff estimate per municipality, assembled by the mount
 }
 
 const FASES: Partial<Record<Fase, string>> = { aguardando: "Aguardando início", parcial: "Apuração em andamento", concluida: "Apuração concluída" };
@@ -194,10 +198,10 @@ const aviso = (txt: string) => `<p class="empty">${txt}</p>`;
 
 const MAPA_CARGOS = new Set(["Presidente", "Governador", "Senador"]);
 const UMA_VAGA = new Set(["Presidente", "Governador"]); // one seat, one vote: the arithmetic of the Projeção view applies
-const ROTULOS: Record<Vista, string> = { placar: "Placar", linha: "Linha do tempo", mapa: "Mapa", projecao: "Projeção", cadeiras: "Cadeiras", camara: "Câmara", graficos: "Gráficos" };
+const ROTULOS: Record<Vista, string> = { placar: "Placar", linha: "Linha do tempo", mapa: "Mapa", projecao: "Projeção", cadeiras: "Cadeiras", camara: "Câmara", graficos: "Gráficos", municipios: "Cidades" };
 // The Projeção is built on first-round arithmetic (who reaches 50%, who goes to a runoff): it has no place in the runoff itself.
 export const vistasDe = (cargo: Cargo, turno: Turno = 1): Vista[] => {
-  if (UMA_VAGA.has(cargo)) return turno === 2 ? ["placar", "linha", "mapa", "graficos"] : ["placar", "linha", "mapa", "projecao", "graficos"];
+  if (UMA_VAGA.has(cargo)) return turno === 2 ? ["placar", "linha", "mapa", "municipios", "graficos"] : ["placar", "linha", "mapa", "projecao", "graficos"];
   if (MAPA_CARGOS.has(cargo)) return ["placar", "linha", "mapa", "graficos"];
   return cargo === "Deputado Federal" ? ["placar", "linha", "cadeiras", "camara", "graficos"] : ["placar", "linha", "cadeiras", "graficos"];
 };
@@ -215,7 +219,7 @@ function graficos(d: Apuracao | null | undefined, rows: Linha[], hist: Ponto[], 
 
 // proj: what apuracao-projecao-estado.js hands over ({ analise, partes, nomes, esperadas }), or null while the files are loading.
 // novidades: the lines of apuracao-novidades.js kept by the mount since the tab was opened.
-export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, turno = 1, exp, vista = "placar", hist = [], novidades = [], eleitos, nac = null, proj = null, mapa, modoMapa = "lider", selUf = null, cor = createCores(PALETA) }: RenderProps): string {
+export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, turno = 1, exp, vista = "placar", hist = [], novidades = [], eleitos, nac = null, proj = null, mun = null, mapa, modoMapa = "lider", selUf = null, cor = createCores(PALETA) }: RenderProps): string {
   const d = snap?.dados;
   const t = turnoDe(cargo, turno);
   const vistas = vistasDe(cargo, t);
@@ -236,6 +240,8 @@ export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, turno = 1
     corpo = renderCamara({ nac, cor });
   } else if (aberta === "mapa") {
     corpo = renderNacional({ nac, cargo, corridas, modo: modoMapa, sel: selUf, cor, mapa });
+  } else if (aberta === "municipios") {
+    corpo = mun ? renderMunicipios({ ...mun, cargo, uf, cor }) : aviso("Carregando a estimativa por município…");
   } else if (aberta === "projecao") {
     corpo = proj ? renderProjecao({ ...proj, cor, cargo }) : aviso("Consultando o TSE…");
   } else if (!d) {

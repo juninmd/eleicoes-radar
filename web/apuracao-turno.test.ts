@@ -16,5 +16,8 @@ describe("turno", () => {
   });
   test("sem Projeção no 2º turno", () => {
     expect(vistasDe("Presidente", 2).includes("projecao")).toBe(false);
+    expect(vistasDe("Presidente", 2).includes("municipios")).toBe(true); // the runoff estimate per municipality
+    expect(vistasDe("Presidente", 1).includes("municipios")).toBe(false);
+    expect(vistasDe("Senador", 2).includes("municipios")).toBe(false);
   });
 });

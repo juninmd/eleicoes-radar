@@ -417,3 +417,29 @@
 .apu-turno-datas { display: inline-block; margin: 0 0 8px 10px; font-family: var(--mono); }
 .live-filtro .apu-turnos { margin: 0; }
 .live-filtro .apu-turno-datas { margin: 0; }
+
+/* Cidades: the runoff estimate per municipality */
+.mun-cenarios button:disabled { opacity: 0.45; cursor: not-allowed; }
+.mun-alvo { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 14px; }
+.mun-alvo input[type="range"] { flex: 1 1 220px; max-width: 420px; accent-color: var(--confirma); }
+.mun-alvo output { font: 700 14px var(--mono); min-width: 5ch; }
+.mun-tot { display: flex; flex-direction: column; gap: 8px; }
+.mun-tot .apu-duelo-bar { height: 22px; }
+.mun-tot-leg { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 14px; }
+.mun-tot-leg li { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.mun-tot-leg small { font: 500 11px var(--mono); color: var(--muted); }
+.mun-tot-leg span { font: 700 13px var(--mono); }
+.mun-filtros { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: end; }
+.mun-filtros label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--ink-2); }
+.mun-filtros select, .mun-filtros input { font: 500 14px var(--body); padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); color: var(--ink); min-width: 160px; }
+.mun-filtros select:focus-visible, .mun-filtros input:focus-visible, .mun-alvo input:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
+.mun-cid th small, .mun-cid thead small { font: 500 11px var(--mono); color: var(--muted); }
+.mun-cid td small { font: 500 11px var(--mono); color: var(--muted); }
+.mun-cid .mun-bar { display: flex; height: 12px; min-width: 90px; border-radius: var(--r-md); overflow: hidden; background: var(--sunk); }
+.mun-cid .mun-bar i { display: block; height: 100%; min-width: 1px; }
+.mun-cid td:nth-child(3) { width: 28%; }
+.mun-1t { white-space: nowrap; color: var(--ink-2); }
+.mun-ufs button.linkish[aria-pressed="true"] { text-decoration: underline; }
+@media (max-width: 640px) {
+  .mun-cid .mun-bar, .mun-cid th:nth-child(3), .mun-cid td:nth-child(3), .mun-1t { display: none; }
+}
