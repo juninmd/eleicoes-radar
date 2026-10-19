@@ -18,6 +18,9 @@
     "radar:panorama": "bun run src/radar/panorama.ts",
     "radar:geo": "bun run src/radar/geo/uf-map.ts",
     "radar:hist": "bun run src/radar/hist/aggregate.ts",
+    "radar:mun-hist": "bun run src/radar/municipal/aggregate.ts",
+    "radar:mun-backtest": "bun run src/radar/municipal/backtest.ts",
+    "radar:municipal": "bun run src/radar/municipal/build.ts",
     "radar:mc-backtest": "bun run src/radar/mc/backtest.ts"
   },
   "dependencies": {

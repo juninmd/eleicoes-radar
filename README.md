@@ -16,6 +16,9 @@ bun run radar:suppliers # CNPJ dos fornecedores na Receita (BrasilAPI + minharec
 bun run radar:build     # gera web/data/ (uf/<UF>.json, fotos/, expectativa.json, meta.json)
 bun run radar:panorama  # agregados das abas Partidos/Dinheiro/Perfil -> web/data/panorama.json (depois do build)
 bun run radar:geo       # uma vez: malha dos estados (IBGE) -> web/mapa-uf.json (versionado; o mapa da Apuração usa)
+bun run radar:mun-hist <ano> # votos de Presidente e Governador por município (2002-2026), um ano por vez -> data/hist/mun-<ano>.json
+bun run radar:mun-backtest   # ajuste e erros do 2º turno por município (2002-2022) -> data/municipal-modelo.json
+bun run radar:municipal      # 1º turno de 2026 por município das disputas com 2º turno -> web/data/municipal/ (vista "Cidades")
 bun run radar:serve     # http://127.0.0.1:4173  (health: /health)
 bun run css             # gera web/app.css (Tailwind v4 + as folhas); depois de editar um .css
 bun test src/radar web
@@ -128,6 +131,12 @@ Nenhuma entra na nota. Descritivo, sem ranking de qualidade e sem recomendação
 - Sem `panorama.json` as abas mostram como gerá-lo; o resto do Radar não depende dele.
 
 ## Apuração em tempo real
+
+No 2º turno de Presidente e Governador, a vista **Cidades** estima os votos válidos de cada finalista em cada município a partir
+do 1º turno de 2026 e do comportamento dos segundos turnos de 2002 a 2022 (`web/apuracao-municipios*.ts`,
+`web/municipio-modelo.ts`, `src/radar/municipal/`). O total da disputa é escolha do leitor (sem âncora, média das pesquisas ou
+cenário próprio); o erro medido no passado aparece na própria página. Método, números e o que foi testado e descartado:
+AGENTS.md, seção "Estimativa do 2º turno por município".
 
 Aba **Apuração**: o navegador lê direto os arquivos de resultados do TSE (`web/apuracao-tse.ts`,
 `apuracao-feed.ts`, `apuracao.ts`), sem passar pelo servidor do Radar, e consulta de novo a cada 60 s

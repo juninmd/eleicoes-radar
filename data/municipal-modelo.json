@@ -1,0 +1,85 @@
+{
+ "geradoEm": "2026-10-19T18:08:55.515Z",
+ "Presidente": {
+  "params": {
+   "kappa": 0.952,
+   "eta": -0.492,
+   "ratio": 0.9976398301142507
+  },
+  "erros": {
+   "cidade": 3.2,
+   "porTamanho": [
+    {
+     "ate": 5000,
+     "rmse": 4.4
+    },
+    {
+     "ate": 20000,
+     "rmse": 3.5
+    },
+    {
+     "ate": 100000,
+     "rmse": 2.9
+    },
+    {
+     "ate": null,
+     "rmse": 2.8
+    }
+   ],
+   "nacionalSemAncora": 3.6,
+   "nacionalSemAncoraRmse": 4.1,
+   "acertoVencedor": 95.3,
+   "erroVotos": 3,
+   "disputas": 6,
+   "anos": [
+    2002,
+    2006,
+    2010,
+    2014,
+    2018,
+    2022
+   ]
+  }
+ },
+ "Governador": {
+  "params": {
+   "kappa": 0.815,
+   "eta": -0.721,
+   "ratio": 1.0105525999516443
+  },
+  "erros": {
+   "cidade": 5.2,
+   "porTamanho": [
+    {
+     "ate": 5000,
+     "rmse": 7.9
+    },
+    {
+     "ate": 20000,
+     "rmse": 6.2
+    },
+    {
+     "ate": 100000,
+     "rmse": 5
+    },
+    {
+     "ate": null,
+     "rmse": 4.3
+    }
+   ],
+   "nacionalSemAncora": 5.1,
+   "nacionalSemAncoraRmse": 7.1,
+   "acertoVencedor": 90.2,
+   "erroVotos": 7.8,
+   "disputas": 74,
+   "anos": [
+    2002,
+    2006,
+    2010,
+    2014,
+    2018,
+    2022
+   ]
+  }
+ }
+}

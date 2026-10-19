@@ -13,10 +13,13 @@ import { createProjecao } from "./apuracao-projecao-estado.js";
 import { atualizar, vazio } from "./apuracao-novidades.js";
 import { atualizar as atualizarEleitos, vazio as vazioEleitos } from "./apuracao-eleitos.js";
 import { renderApuracao, vistasDe } from "./apuracao.js";
+import { PAGE_MUN } from "./apuracao-municipios-view.js";
 import type { RenderProps, Vista } from "./apuracao.js";
 import type { FeedSnapshot } from "./apuracao-feed.js";
 import type { BrasilSnapshot } from "./apuracao-uf.js";
 import type { Turno } from "./apuracao-tse.js";
+import type { Cenario, MunArquivo, MunIndice } from "./apuracao-municipios.js";
+import type { Disputa } from "./apuracao-municipios-view.js";
 import type { Fonte } from "./apuracao-projecao-estado.js";
 import type { Ponto } from "./apuracao-graficos.js";
 import type { UfMap } from "../src/radar/geo/uf-map";
@@ -51,6 +54,44 @@ export function mountApuracao(el: HTMLElement) {
   anuncio.setAttribute("aria-live", "polite");
   el.after(anuncio);
 
+  // The runoff estimate per municipality (Cidades view): an index of the races that have one, then the file of the open race.
+  let munIndice: MunIndice | null | undefined; // undefined: not asked yet; null: it failed (asked again on the next visit)
+  let buscandoIndice = false;
+  const munArqs = new Map<string, MunArquivo | null | undefined>(); // by file name; undefined while loading
+  let munCenario: Cenario = { modo: "pesquisa", alvo: 0.5 };
+  let munFiltro = { uf: "", busca: "" };
+  let munLimit = PAGE_MUN;
+  const getJson = <T>(url: string): Promise<T> => fetch(url).then((r) => (r.ok ? (r.json() as Promise<T>) : Promise.reject(new Error(`HTTP ${r.status}`))));
+  const disputaDe = (): Disputa | null => (ctx && munIndice ? munIndice.disputas.find((d) => d.cargo === ctx!.cargo && d.uf === (ctx!.cargo === "Presidente" ? "BR" : ctx!.uf)) ?? null : null);
+  const carregarMun = () => {
+    if (!munIndice && !buscandoIndice) {
+      buscandoIndice = true;
+      getJson<MunIndice>("data/municipal/index.json")
+        .then((i) => { munIndice = i; })
+        .catch((e) => { console.error("apuração: municípios", e); munIndice = null; })
+        .then(() => { buscandoIndice = false; carregarMun(); paint(); });
+      return;
+    }
+    const d = disputaDe();
+    if (d && !munArqs.has(d.arquivo)) {
+      munArqs.set(d.arquivo, undefined);
+      getJson<MunArquivo>(`data/municipal/${d.arquivo}`)
+        .then((a) => { munArqs.set(d.arquivo, a); })
+        .catch((e) => { console.error("apuração: municípios", e); munArqs.delete(d.arquivo); munArqs.set(d.arquivo, null); })
+        .then(paint);
+    }
+  };
+  const munProps = (): RenderProps["mun"] => {
+    if (vista !== "municipios" || !ctx) return null;
+    const disputa = disputaDe();
+    const arquivo = disputa ? munArqs.get(disputa.arquivo) : undefined;
+    const corrida = ctx.exp?.corridas?.find((x) => x.cargo === ctx!.cargo && x.uf === ctx!.uf);
+    // The TSE's count so far, only to put beside the estimate; the estimate never reads it.
+    const d = snap?.dados;
+    const ca = d?.candidatos.find((c) => c.id === arquivo?.a.sq), cb = d?.candidatos.find((c) => c.id === arquivo?.b.sq);
+    const oficial = d && d.fase !== "aguardando" && ca && cb && d.secoes.total > 0 ? { a: ca.pct, b: cb.pct, secoes: Math.floor((d.secoes.totalizadas / d.secoes.total) * 1000) / 1000 } : null;
+    return { indice: munIndice, arquivo, disputa, cenario: munCenario, filtro: munFiltro, limit: munLimit, confrontos: corrida?.confrontos, ultimaPesquisa: corrida?.ultima, oficial };
+  };
   const nacional = () => !!ctx && (vista === "mapa" || vista === "camara" || (vista === "projecao" && ctx.cargo === "Presidente"));
   // The president's projection sums the 28 state files, so it waits for every one to answer once: fewer would pass a few
   // states off as the country. A governor's is its one file.
@@ -65,7 +106,7 @@ export function mountApuracao(el: HTMLElement) {
 
   const paint = () => {
     if (!ctx) return;
-    const html = renderApuracao({ ...ctx, turno, snap, nac, proj: projDe(), hist, novidades: novidades.itens, eleitos, limit, vista, modoMapa, selUf, mapa, cor: vista === "camara" ? corCamara : cor });
+    const html = renderApuracao({ ...ctx, turno, snap, nac, proj: projDe(), mun: munProps(), hist, novidades: novidades.itens, eleitos, limit, vista, modoMapa, selUf, mapa, cor: vista === "camara" ? corCamara : cor });
     const key = semRelogio(html);
     const quando = el.querySelector<HTMLElement>("#apu-quando");
     if (key === painted && quando) {
@@ -109,9 +150,12 @@ export function mountApuracao(el: HTMLElement) {
   };
 
   el.addEventListener("click", (e) => {
-    const t = (e.target as Element).closest<HTMLElement>("[data-vista], [data-turno], [data-modo-mapa], [data-uf], [data-abrir-uf], #apu-mais");
+    const t = (e.target as Element).closest<HTMLElement>("[data-vista], [data-turno], [data-modo-mapa], [data-uf], [data-abrir-uf], [data-mun-modo], [data-mun-uf], #apu-mais, #mun-mais");
     if (!t) return;
     if (t.id === "apu-mais") { limit += PAGE; paint(); }
+    else if (t.id === "mun-mais") { munLimit += PAGE_MUN; paint(); }
+    else if (t.dataset.munModo) { munCenario = { modo: t.dataset.munModo as Cenario["modo"], alvo: t.dataset.alvo ? Number(t.dataset.alvo) : munCenario.alvo }; munLimit = PAGE_MUN; paint(); }
+    else if (t.dataset.munUf) { munFiltro = { ...munFiltro, uf: munFiltro.uf === t.dataset.munUf ? "" : t.dataset.munUf }; munLimit = PAGE_MUN; paint(); }
     else if (t.dataset.turno) {
       const novo: Turno = t.dataset.turno === "2" ? 2 : 1;
       if (novo === turno) return;
@@ -121,12 +165,31 @@ export function mountApuracao(el: HTMLElement) {
       const ef = turnoDe(ctx!.cargo, turno);
       if (!vistasDe(ctx!.cargo, ef).includes(vista)) vista = "placar";
       feed.follow(tseUrl(ctx!.cargo, ctx!.uf, TSE_BASE, ef));
-      brasil.stop(); nac = null; seguirMapa(); paint();
+      brasil.stop(); nac = null; seguirMapa(); if (vista === "municipios") carregarMun(); paint();
     }
-    else if (t.dataset.vista) { vista = t.dataset.vista as Vista; seguirMapa(); paint(); }
+    else if (t.dataset.vista) { vista = t.dataset.vista as Vista; seguirMapa(); if (vista === "municipios") carregarMun(); paint(); }
     else if (t.dataset.modoMapa) { modoMapa = t.dataset.modoMapa; paint(); }
     else if (t.dataset.abrirUf) { vista = "placar"; seguirMapa(); ctx!.abrirUf?.(t.dataset.abrirUf); }
     else if (t.dataset.uf) escolher(t.dataset.uf);
+  });
+  // Controls of the Cidades view. The text box and the slider act on "change" (Enter, blur, release), not on every keystroke or drag:
+  // redrawing the page under a caret or a thumb the reader is still moving would break both.
+  // Redrawing removes the focused box, and the browser may fire a second "change" while it does (blur with an uncommitted value): that one is ignored.
+  let mudando = false;
+  el.addEventListener("change", (e) => {
+    const t = e.target as HTMLInputElement | HTMLSelectElement;
+    if (mudando) return;
+    if (t.id === "mun-uf") munFiltro = { ...munFiltro, uf: t.value };
+    else if (t.id === "mun-busca") munFiltro = { ...munFiltro, busca: t.value.trim() };
+    else if (t.id === "mun-alvo") munCenario = { modo: "meu", alvo: Number(t.value) / 100 };
+    else return;
+    munLimit = PAGE_MUN;
+    mudando = true;
+    try { paint(); } finally { mudando = false; }
+  });
+  el.addEventListener("input", (e) => {
+    const t = e.target as HTMLInputElement;
+    if (t.id === "mun-alvo") { const o = el.querySelector("#mun-alvo-txt"); if (o) o.textContent = `${Number(t.value).toFixed(1).replace(".", ",")}%`; }
   });
   // The shapes are role="button": Enter and Space must work like a click.
   el.addEventListener("keydown", (e) => {
@@ -142,13 +205,14 @@ export function mountApuracao(el: HTMLElement) {
       turno = lido;
       if (mudou) { brasil.stop(); nac = null; }
       const outra = mudou || !ctx || ctx.cargo !== next.cargo || ctx.uf !== next.uf;
-      if (outra) { limit = PAGE; hist = []; novidades = vazio(); eleitos = vazioEleitos(); projecao.reiniciar(); }
+      if (outra) { limit = PAGE; hist = []; novidades = vazio(); eleitos = vazioEleitos(); projecao.reiniciar(); munFiltro = { uf: "", busca: "" }; munLimit = PAGE_MUN; }
       if (!ctx || ctx.cargo !== next.cargo) selUf = null; // the national map keeps its selection when only the state of the ballot changes
       ctx = next;
       const ef = turnoDe(next.cargo, turno);
       if (!vistasDe(next.cargo, ef).includes(vista)) vista = "placar";
       feed.follow(tseUrl(next.cargo, next.uf, TSE_BASE, ef));
       seguirMapa();
+      if (vista === "municipios") carregarMun();
       paint();
     },
     hide() { feed.stop(); brasil.stop(); ctx = null; snap = null; nac = null; painted = null; anuncio.textContent = ""; },
