@@ -7,7 +7,7 @@ const texto = (id: string) => (html: string): string | null => html.match(new Re
 export const relogio = texto("apu-quando");
 export const idade = texto("apu-idade");
 
-const CHAVES = ["data-open", "data-vista", "data-modo-mapa", "data-uf", "data-abrir-uf", "data-live-escopo", "data-live-cargo", "data-live-fx", "data-live-som", "data-turno", "data-abrir-corrida", "data-mun-modo", "data-mun-uf"];
+const CHAVES = ["data-open", "data-vista", "data-modo-mapa", "data-uf", "data-abrir-uf", "data-live-escopo", "data-live-cargo", "data-live-fx", "data-live-som", "data-turno", "data-abrir-corrida", "data-mun-modo", "data-mun-uf", "data-fx-pref", "data-demo-toggle", "data-demo"];
 
 // What identifies the focused control after a redraw: its id, or its tag plus the data attribute it carries,
 // and its position among the controls that match the same way (a small state is a chip and a table button).

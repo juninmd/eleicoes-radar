@@ -57,4 +57,22 @@ describe("som do embate", () => {
     som.desbloquear();
     expect(() => som.ko()).not.toThrow();
   });
+
+  test("passou e vira: curtos, só com o som ligado e depois do primeiro clique", () => {
+    const { ctx, feito } = falso("suspended");
+    let ligado = true;
+    const som = criarSom(() => ligado, () => ctx);
+    som.passou(); som.vira();
+    expect(feito.osc).toBe(0); // the context is still suspended: nothing plays and nothing breaks
+    som.desbloquear();
+    som.passou();
+    expect(feito.osc).toBeGreaterThanOrEqual(2);
+    const antes = feito.osc;
+    som.vira();
+    expect(feito.osc).toBeGreaterThan(antes);
+    ligado = false;
+    const parado = feito.osc;
+    som.passou(); som.vira();
+    expect(feito.osc).toBe(parado);
+  });
 });

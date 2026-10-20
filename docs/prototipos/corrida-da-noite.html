@@ -1,0 +1,436 @@
+<title>Corrida da Noite</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Public+Sans:wght@400;600;700&family=Spline+Sans+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: the ranking is the stage (rows slide past each other on a spring), the instruments sit beside it (progress ring, lines of the night, event feed), one deck of controls underneath. Stacks on phones. */
+:root {
+  color-scheme: dark;
+  --ground: #07050c; --surface: #0e0a18; --sunk: #060410; --line: #2a2142;
+  --ink: #ece9f5; --ink-2: #c6c1d8; --muted: #a29cba;
+  --accent: #a78bfa; --accent-ink: #120a24; --warn: #f08a43; --focus: #c4b5fd;
+  --c1: #8b5cf6; --c2: #d55e00; --c3: #009e73; --c4: #cc79a7; --c5: #e69f00; --c6: #6b7fd6;
+  --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --body: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "Spline Sans Mono", ui-monospace, Consolas, monospace;
+  --spring: linear(0, 0.036 2.5%, 0.128 5.0%, 0.255 7.5%, 0.398 10.0%, 0.545 12.5%, 0.683 15.0%, 0.806 17.5%, 0.909 20.0%, 0.991 22.5%, 1.052 25.0%, 1.093 27.5%, 1.116 30.0%, 1.126 32.5%, 1.124 35.0%, 1.114 37.5%, 1.1 40.0%, 1.082 42.5%, 1.063 45.0%, 1.045 47.5%, 1.029 50.0%, 1.015 52.5%, 1.004 55.0%, 0.996 57.5%, 0.99 60.0%, 0.986 62.5%, 0.984 65.0%, 0.984 67.5%, 0.985 70.0%, 0.987 72.5%, 0.989 75.0%, 0.991 77.5%, 0.994 80.0%, 0.996 82.5%, 0.998 85.0%, 0.999 87.5%, 1.0 90.0%, 1.001 92.5%, 1.002 95.0%, 1.002 97.5%, 1);
+  --soft: linear(0, 0.018 2.5%, 0.064 5.0%, 0.13 7.5%, 0.208 10.0%, 0.292 12.5%, 0.378 15.0%, 0.462 17.5%, 0.541 20.0%, 0.615 22.5%, 0.683 25.0%, 0.743 27.5%, 0.796 30.0%, 0.841 32.5%, 0.88 35.0%, 0.913 37.5%, 0.94 40.0%, 0.961 42.5%, 0.979 45.0%, 0.992 47.5%, 1.002 50.0%, 1.009 52.5%, 1.014 55.0%, 1.018 57.5%, 1.019 60.0%, 1.02 62.5%, 1.02 65.0%, 1.019 67.5%, 1.018 70.0%, 1.016 72.5%, 1.014 75.0%, 1.013 77.5%, 1.011 80.0%, 1.009 82.5%, 1.008 85.0%, 1.007 87.5%, 1.005 90.0%, 1.004 92.5%, 1.003 95.0%, 1.003 97.5%, 1);
+  --dur: 0.9s;
+  --h: 72px;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --ground: #f4f2f9; --surface: #ffffff; --sunk: #efecf6; --line: #dcd7ea;
+    --ink: #17131f; --ink-2: #4a4458; --muted: #615a70;
+    --accent: #6d28d9; --accent-ink: #ffffff; --warn: #b24d10; --focus: #5b21b6;
+  }
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --ground: #f4f2f9; --surface: #ffffff; --sunk: #efecf6; --line: #dcd7ea;
+  --ink: #17131f; --ink-2: #4a4458; --muted: #615a70;
+  --accent: #6d28d9; --accent-ink: #ffffff; --warn: #b24d10; --focus: #5b21b6;
+}
+@property --value { syntax: "<number>"; inherits: true; initial-value: 0; }
+@property --v { syntax: "<number>"; inherits: true; initial-value: 0; } /* inherits: the ::after that prints it reads it from .pct */
+@property --t { syntax: "<number>"; inherits: true; initial-value: 0; }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--ground); color: var(--ink); font: 15px/1.5 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 28px; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+h1, h2 { text-wrap: balance; margin: 0; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.wrap { max-width: 1240px; margin-inline: auto; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 340px); gap: 20px; align-items: start; }
+.top { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+h1 { font: 900 clamp(34px, 6vw, 60px)/0.95 var(--display); text-transform: uppercase; letter-spacing: 0.01em; }
+.sim { font: 700 11px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent-ink); background: var(--warn); padding: 3px 8px; border-radius: 6px; }
+.sub { flex-basis: 100%; margin: 0; color: var(--ink-2); max-width: 70ch; }
+
+/* Ranking: rows are absolutely placed; changing --i makes the row slide to its new place with a spring (compositor-only: translate) */
+.board { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.axis, .row { display: grid; grid-template-columns: 34px minmax(130px, 210px) minmax(80px, 1fr) minmax(128px, 150px) 78px; column-gap: 12px; align-items: center; }
+.axis { padding-inline: 12px; font: 500 11px var(--mono); color: var(--muted); }
+.axis .eixo { display: flex; justify-content: space-between; }
+.axis .eixo span:nth-child(6) { color: var(--ink); font-weight: 700; }
+.rows { position: relative; height: calc(var(--h) * 6); margin: 0; padding: 0; list-style: none; }
+.row { position: absolute; inset-inline: 0; top: 0; height: calc(var(--h) - 8px); padding-inline: 12px;
+  translate: 0 calc(var(--i) * var(--h)); background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  animation: entra 0.6s var(--soft) both; animation-delay: calc(var(--sibling-index, 1) * 70ms); animation-delay: calc(sibling-index() * 70ms); }
+.pronto .row { transition: translate var(--dur) var(--spring), border-color 0.4s, box-shadow 0.4s; }
+@keyframes entra { from { opacity: 0; scale: 0.96; } }
+.row[data-pos="0"] { border-color: color-mix(in srgb, var(--c) 70%, var(--line)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--c) 40%, transparent), 0 14px 40px -22px var(--c); }
+.rk { font: 900 26px/1 var(--display); color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
+.nm { min-width: 0; display: flex; flex-direction: column; line-height: 1.2; }
+.nm b { display: flex; align-items: center; gap: 8px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nm i { flex: none; width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
+.nm small { font: 500 11px var(--mono); color: var(--muted); }
+.track { position: relative; height: 14px; border-radius: 7px; overflow: hidden; background-color: var(--sunk);
+  background-image: repeating-linear-gradient(90deg, transparent 0 calc(100% / 6 - 1px), var(--line) 0 calc(100% / 6)); }
+.fill { position: absolute; inset: 0; transform-origin: left; scale: var(--w, 0) 1; border-radius: 0 7px 7px 0;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--c) 62%, #000), var(--c)); }
+.pronto .fill { transition: scale var(--dur) var(--soft); }
+.tick50 { position: absolute; top: 0; bottom: 0; left: calc(50 / 60 * 100%); width: 2px; margin-left: -1px; background: var(--ink); opacity: 0.75; }
+
+/* Odometer: a column of 0-9 per digit; the digit is picked by sliding the column */
+.vt { font: 700 17px/1.15 var(--mono); text-align: right; display: flex; justify-content: flex-end; font-variant-numeric: tabular-nums; }
+.odo { display: inline-flex; }
+.dg { display: inline-block; height: 1.15em; overflow: hidden; mask-image: linear-gradient(transparent, #000 22%, #000 78%, transparent); }
+.dg > span { display: block; translate: 0 calc(var(--d) * -1.15em); }
+.pronto .dg > span { transition: translate var(--dur) var(--soft); }
+.dg i { display: block; font-style: normal; height: 1.15em; }
+.sep { display: inline-block; width: 0.45em; text-align: center; }
+
+/* Percentage counted by CSS alone: --v (tenths of a point) is a registered number, so it can transition; counters print it */
+.pc { text-align: right; font: 700 22px/1 var(--display); letter-spacing: 0.01em; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.pct { --v: 0; font-variant-numeric: tabular-nums; }
+.pronto .pct { transition: --v var(--dur) var(--soft); }
+@supports (counter-reset: x round(down, 1.5, 1)) {
+  .pct .pt { font-size: 0; }
+  .pct::after { counter-reset: i round(down, calc(var(--v) / 10), 1) d round(down, mod(var(--v), 10), 1); content: counter(i) "," counter(d) "%"; }
+}
+.dlt { font: 500 11px var(--mono); color: var(--muted); }
+
+/* Overtake: a streak sweeps the row, the badge pops, the one passed dims */
+.row::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0;
+  background: linear-gradient(100deg, transparent 20%, color-mix(in srgb, var(--c) 45%, transparent) 50%, transparent 80%); }
+.row.up::before { animation: varre 1.1s ease-out; }
+.row.up .rk { animation: pop 0.7s var(--spring); color: var(--ink); }
+.row.down { animation: some 0.9s ease-out; }
+@keyframes varre { 0% { opacity: 1; clip-path: inset(0 100% 0 0); } 60% { opacity: 1; clip-path: inset(0 0 0 0); } 100% { opacity: 0; clip-path: inset(0 0 0 0); } }
+@keyframes pop { 0% { scale: 1; } 30% { scale: 1.6; } 100% { scale: 1; } }
+@keyframes some { 40% { opacity: 0.55; } }
+.selo { position: absolute; right: 10px; top: -10px; z-index: 2; font: 900 13px/1 var(--display); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-ink); background: var(--accent); padding: 5px 9px; border-radius: 6px; rotate: -6deg; animation: carimbo 0.7s var(--spring) both; }
+@keyframes carimbo { from { scale: 3; opacity: 0; rotate: -18deg; } 40% { opacity: 1; } }
+
+/* Instruments */
+.instr { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 16px; min-width: 0; }
+.card h2 { font: 700 12px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; font-weight: 700; }
+.relogio { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 16px; align-items: center; }
+.ring { --value: 0; position: relative; width: 132px; aspect-ratio: 1; display: grid; place-items: center; }
+.ring .arco { position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(var(--accent) calc(var(--value) * 1%), var(--sunk) 0);
+  mask-image: radial-gradient(circle farthest-side, transparent calc(100% - 14px), #000 calc(100% - 13px)); }
+.pronto .ring .arco { transition: --value var(--dur) var(--soft); }
+.ring .orbita { position: absolute; inset: -7px; border-radius: 50%; border: 1px dashed var(--line); }
+.tocando .ring .orbita { animation: giro 24s linear infinite; }
+@keyframes giro { to { rotate: 1turn; } }
+.ring b { font: 900 30px/1 var(--display); font-variant-numeric: tabular-nums; }
+.ring small { display: block; font: 500 10px var(--mono); color: var(--muted); text-align: center; }
+.hora { font: 700 30px/1 var(--mono); letter-spacing: -0.02em; }
+.arq { margin: 4px 0 0; font-size: 12.5px; color: var(--ink-2); }
+.ponto { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); margin-right: 6px; }
+.tocando .ponto { background: var(--c3); animation: pulsa 1.4s ease-in-out infinite; }
+@keyframes pulsa { 50% { opacity: 0.25; } }
+
+.grafico { position: relative; }
+.grafico svg { display: block; width: 100%; height: auto; overflow: visible; }
+.grafico .linhas { position: absolute; inset: 0; clip-path: inset(0 calc(100% - var(--t) * 1%) 0 0); }
+.pronto .grafico .linhas { transition: --t var(--dur) linear; }
+.grade line { stroke: var(--line); stroke-width: 1; }
+.grade text { font: 500 9px var(--mono); fill: var(--muted); }
+.l { fill: none; stroke: var(--c); stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
+.fim { fill: var(--c); stroke: var(--surface); stroke-width: 2; }
+.pronto .fim { transition: translate var(--dur) var(--soft); }
+
+.feed { list-style: none; margin: 0; padding: 4px 2px 4px 0; max-height: 252px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; scrollbar-width: thin; }
+.ev { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 8px; font-size: 13px; line-height: 1.35; padding: 7px 9px; border-radius: 10px; background: var(--sunk); border-left: 3px solid var(--c, var(--line)); transition: translate 0.5s var(--soft), background-color 1.4s ease-out; }
+@starting-style { .ev { translate: -16px 0; background-color: color-mix(in srgb, var(--accent) 40%, transparent); } }
+.ev time { font: 500 11px var(--mono); color: var(--muted); padding-top: 1px; }
+.ev.pausa { border-left-style: dashed; color: var(--ink-2); }
+.ev.marco { --c: var(--accent); }
+@supports ((animation-timeline: view()) and (animation-range: 0% 100%)) {
+  .ev { animation: borda linear both; animation-timeline: view(block); }
+  @keyframes borda { 0% { opacity: 0.2; scale: 0.96; } 22%, 78% { opacity: 1; scale: 1; } 100% { opacity: 0.2; scale: 0.96; } }
+}
+
+/* Deck */
+.deck { grid-column: 1 / -1; position: sticky; bottom: 0; z-index: 5; display: grid; grid-template-columns: auto minmax(160px, 1fr) auto; gap: 10px 16px; align-items: center; padding: 12px 14px; background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(10px); border: 1px solid var(--line); border-radius: 18px; }
+.grupo { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+button { font: 700 13px var(--body); color: var(--ink); background: var(--sunk); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-height: 38px; cursor: pointer; }
+button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button.play { min-width: 96px; }
+.cursor { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.marcas { position: relative; height: 14px; margin-inline: 8px; }
+.marcas i { position: absolute; top: 2px; width: 9px; height: 9px; margin-left: -4px; rotate: 45deg; background: var(--c, var(--accent)); }
+.marcas i.p { rotate: 0deg; width: 3px; height: 11px; margin-left: -1px; top: 1px; background: var(--muted); }
+input[type="range"] { width: 100%; accent-color: var(--accent); margin: 0; min-height: 28px; }
+.leg { font: 500 11px var(--mono); color: var(--muted); }
+.nota { grid-column: 1 / -1; margin: 0; font-size: 12.5px; color: var(--muted); max-width: 90ch; }
+
+/* Motion off: no springs, no sweeps, no orbit; rows still move so the order is readable */
+:root[data-fx="off"] .row, :root[data-fx="off"] .row *, :root[data-fx="off"] .ring .orbita, :root[data-fx="off"] .ponto, :root[data-fx="off"] .selo { animation: none !important; }
+:root[data-fx="off"] .pronto .row { transition: translate 0.25s ease-out, border-color 0.2s; }
+:root[data-fx="off"] .pronto .fill { transition: scale 0.25s ease-out; }
+:root[data-fx="off"] .pronto .dg > span, :root[data-fx="off"] .pronto .pct, :root[data-fx="off"] .pronto .ring .arco, :root[data-fx="off"] .pronto .grafico .linhas, :root[data-fx="off"] .pronto .fim { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .row, .ev { animation: none !important; }
+  .tocando .ring .orbita, .tocando .ponto { animation: none; }
+}
+
+@media (max-width: 960px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); }
+  .instr { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+}
+@media (max-width: 640px) {
+  :root { --h: 94px; }
+  .axis { display: none; }
+  .row { grid-template-columns: 30px minmax(0, 1fr) 76px; grid-template-areas: "rk nm pc" "tr tr vt"; row-gap: 6px; align-content: center; }
+  .rk { grid-area: rk; } .nm { grid-area: nm; } .pc { grid-area: pc; } .track { grid-area: tr; } .vt { grid-area: vt; }
+  .row .track { margin-inline: 0; }
+  .deck { grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; padding: 8px 10px; }
+  .deck .g2 { grid-column: 1 / -1; gap: 5px; }
+  .deck button { min-height: 34px; padding: 6px 8px; font-size: 12px; }
+  .deck .vel, .deck .cursor .leg { display: none; }
+  .selo { right: auto; left: 42px; top: -9px; }
+}
+</style>
+
+<div class="wrap" id="app">
+  <header class="top">
+    <h1>Corrida da Noite</h1>
+    <span class="sim">Dados simulados</span>
+    <p class="sub">Governador, 1º turno. Seis candidaturas fictícias, uma noite de apuração em 60 arquivos do TSE. As barras deslizam, os números rolam e cada ultrapassagem deixa rastro.</p>
+  </header>
+
+  <section class="board" aria-labelledby="t-rank">
+    <h2 id="t-rank" class="sr">Ranking por votos válidos</h2>
+    <div class="axis" aria-hidden="true"><span></span><span>Candidatura</span>
+      <div class="eixo"><span>0</span><span>10</span><span>20</span><span>30</span><span>40</span><span>50%</span><span>60</span></div>
+      <span style="text-align:right">Votos válidos</span><span style="text-align:right">%</span></div>
+    <ol class="rows" id="rows"></ol>
+    <p class="sr" id="resumo"></p>
+  </section>
+
+  <aside class="instr" aria-label="Instrumentos da apuração">
+    <section class="card">
+      <h2>Seções totalizadas</h2>
+      <div class="relogio">
+        <div class="ring" id="ring" role="img" aria-label="Seções totalizadas"><div class="orbita"></div><div class="arco"></div>
+          <div><b id="ring-n">0%</b><small id="ring-s">0 de 94.812</small></div></div>
+        <div><div class="hora" id="hora">17:30</div>
+          <p class="arq"><span class="ponto"></span><span id="arq">Arquivo do TSE</span></p></div>
+      </div>
+    </section>
+    <section class="card">
+      <h2>Votos válidos de cada um ao longo da noite</h2>
+      <div class="grafico" id="grafico"></div>
+    </section>
+    <section class="card">
+      <h2>Ao longo da noite</h2>
+      <ol class="feed" id="feed" aria-label="Fatos da apuração"></ol>
+    </section>
+  </aside>
+
+  <div class="deck" role="group" aria-label="Controles da reprodução">
+    <div class="g1"><button type="button" class="play" id="play" aria-pressed="false">Pausar</button></div>
+    <div class="cursor">
+      <div class="marcas" id="marcas" aria-hidden="true"></div>
+      <input type="range" id="scrub" min="0" max="59" step="1" value="10" aria-label="Momento da apuração">
+      <div class="leg">◆ ultrapassagem · ▏pausa do TSE (simulada)</div>
+    </div>
+    <div class="grupo g2">
+      <button type="button" id="reinicia">Recomeçar</button>
+      <span class="leg vel">Velocidade</span>
+      <button type="button" data-vel="1" aria-pressed="true">×1</button>
+      <button type="button" data-vel="3" aria-pressed="false">×3</button>
+      <button type="button" data-vel="8" aria-pressed="false">×8</button>
+      <button type="button" id="fx" aria-pressed="true">Efeitos</button>
+      <button type="button" id="som" aria-pressed="false">Som</button>
+    </div>
+  </div>
+  <p class="nota">Tudo aqui é simulado: nomes, partidos, votos e horários não existem. O protótipo mostra técnicas de animação para a aba Apuração: molas com <code>linear()</code>, números que rolam, percentual contado só por CSS (<code>@property</code>), anel de progresso, linhas que se revelam com <code>clip-path</code> e a lista de fatos ligada à rolagem. Efeitos desligam sozinhos com "reduzir movimento" do sistema.</p>
+</div>
+<div class="sr" aria-live="polite" id="anuncio"></div>
+
+<script>
+(() => {
+  const N = 60, TOTAL_SECOES = 94812, VALIDOS = 6214880, START = 10;
+  const PAUSAS = new Set([17, 18, 44]); // the TSE publishes in rounds: these steps repeat the previous file
+  const MARCOS = [0.25, 0.5, 0.75, 0.9, 0.99];
+  const C = [
+    { nome: "Helena Cardoso", sg: "AUR", n: 12, ini: 0.245, fim: 0.382, cor: "var(--c1)" },
+    { nome: "Rui Almeida", sg: "NOR", n: 33, ini: 0.345, fim: 0.369, cor: "var(--c2)" },
+    { nome: "Marta Vieira", sg: "VER", n: 45, ini: 0.290, fim: 0.114, cor: "var(--c3)" },
+    { nome: "Tadeu Brandão", sg: "PRA", n: 27, ini: 0.040, fim: 0.079, cor: "var(--c4)" },
+    { nome: "Iara Montenegro", sg: "LIT", n: 18, ini: 0.060, fim: 0.036, cor: "var(--c5)" },
+    { nome: "Otávio Peixe", sg: "CEN", n: 50, ini: 0.020, fim: 0.020, cor: "var(--c6)" },
+  ];
+  const share = (k, p) => C[k].fim + (C[k].ini - C[k].fim) * (1 - p); // early files lean toward the first-reporting regions; the lean fades as sections arrive
+  const pAt = (i) => (i >= N - 1 ? 1 : 1 - Math.pow(1 - i / (N - 1), 1.8));
+  const fmtInt = (n) => n.toLocaleString("pt-BR");
+  const fmtPct = (x, d = 1) => (x * 100).toFixed(d).replace(".", ",") + "%";
+  const hora = (i) => { const m = 17 * 60 + 30 + i * 3; return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; };
+
+  // The whole night is computed up front: one snapshot per file, so the scrubber can jump anywhere
+  const S = [];
+  for (let i = 0; i < N; i++) {
+    const pausa = PAUSAS.has(i) && i > 0;
+    const p = pausa ? S[i - 1].p : pAt(i);
+    const sh = C.map((_, k) => share(k, p));
+    const votos = sh.map((x) => Math.round(VALIDOS * p * x));
+    const rank = [...C.keys()].sort((a, b) => votos[b] - votos[a]);
+    S.push({ i, p, pausa, sh, votos, rank, pos: C.map((_, k) => rank.indexOf(k)), secoes: Math.floor(p * TOTAL_SECOES), hora: hora(i) });
+  }
+  const EV = S.map(() => []); // facts per step
+  for (let i = 1; i < N; i++) {
+    const a = S[i - 1], b = S[i];
+    if (a.p > 0) for (let x = 0; x < C.length; x++) for (let y = 0; y < C.length; y++) if (a.pos[x] > a.pos[y] && b.pos[x] < b.pos[y]) EV[i].push({ t: "passou", x, y, hora: b.hora, txt: `${C[x].nome} (${C[x].sg}) passou ${C[y].nome} (${C[y].sg}) e agora é ${b.pos[x] + 1}º.` });
+    if (b.pausa && !a.pausa) EV[i].push({ t: "pausa", hora: b.hora, txt: "Sem arquivo novo do TSE. A pausa é do TSE, que publica em rodadas (simulado)." });
+    for (const m of MARCOS) if (a.p < m && b.p >= m) EV[i].push({ t: "marco", hora: b.hora, txt: `${Math.round(m * 100)}% das seções totalizadas.` });
+  }
+  { const f = S[N - 1]; EV[N - 1].push({ t: "marco", hora: f.hora, txt: `Apuração concluída. Situação do TSE (simulada): "2º turno" para ${C[f.rank[0]].nome} e ${C[f.rank[1]].nome}.` }); }
+
+  // ---- DOM
+  const $ = (s) => document.querySelector(s);
+  const root = document.documentElement;
+  const rowsEl = $("#rows"), feedEl = $("#feed");
+  const rows = C.map((c, k) => {
+    const li = document.createElement("li");
+    li.className = "row";
+    li.style.setProperty("--c", c.cor);
+    li.style.setProperty("--sibling-index", k + 1);
+    li.innerHTML = `<span class="rk" aria-hidden="true"></span>
+      <span class="nm"><b><i></i>${c.nome}</b><small>${c.sg} · ${c.n}</small></span>
+      <span class="track" aria-hidden="true"><span class="fill"></span><span class="tick50"></span></span>
+      <span class="vt"><span class="odo" aria-hidden="true"></span><span class="sr vt-sr"></span></span>
+      <span class="pc"><span class="pct"><span class="pt"></span></span><span class="dlt"></span></span>`;
+    rowsEl.append(li);
+    return { li, rk: li.querySelector(".rk"), odo: li.querySelector(".odo"), vsr: li.querySelector(".vt-sr"), pct: li.querySelector(".pct"), pt: li.querySelector(".pt"), dlt: li.querySelector(".dlt") };
+  });
+
+  // Odometer: rebuilt only when the number of digits changes
+  function odometer(el, n) {
+    const txt = fmtInt(n);
+    if (el.dataset.len !== String(txt.length)) {
+      el.dataset.len = txt.length;
+      el.innerHTML = [...txt].map((ch) => (/\d/.test(ch) ? `<span class="dg" style="--d:0"><span>${"0123456789".replace(/./g, "<i>$&</i>")}</span></span>` : `<span class="sep">${ch}</span>`)).join("");
+    }
+    [...txt].forEach((ch, j) => { if (/\d/.test(ch)) el.children[j].style.setProperty("--d", ch); });
+  }
+
+  // Lines of the night
+  const W = 300, H = 130, PADX = 6, PADY = 10, YMAX = 0.45;
+  const gx = (i) => PADX + (i / (N - 1)) * (W - 2 * PADX), gy = (v) => H - PADY - (v / YMAX) * (H - 2 * PADY);
+  $("#grafico").innerHTML = `<svg viewBox="0 0 ${W} ${H}" class="grade" aria-hidden="true">${[0, 0.1, 0.2, 0.3, 0.4].map((v) => `<line x1="${PADX}" x2="${W - PADX}" y1="${gy(v)}" y2="${gy(v)}"/><text x="${W - PADX}" y="${gy(v) - 3}" text-anchor="end">${Math.round(v * 100)}%</text>`).join("")}</svg>
+    <svg viewBox="0 0 ${W} ${H}" class="linhas" role="img" aria-label="Fatia de votos válidos de cada candidatura ao longo da noite">${C.map((c, k) => `<g style="--c:${c.cor}"><polyline class="l" points="${S.map((s) => `${gx(s.i).toFixed(1)},${gy(s.sh[k]).toFixed(1)}`).join(" ")}"/></g>`).join("")}${C.map((c, k) => `<circle class="fim" style="--c:${c.cor}" r="4" cx="0" cy="0" data-k="${k}"/>`).join("")}</svg>`;
+  const gLines = $("#grafico .linhas"), dots = [...document.querySelectorAll(".fim")];
+  // The reveal is clipped to --t, but the dots are not: they follow the data, so they sit on the clip edge
+  $("#marcas").innerHTML = S.flatMap((s) => [...EV[s.i].filter((e) => e.t === "passou").map(() => `<i style="left:${(s.i / (N - 1)) * 100}%"></i>`), ...(s.pausa && !S[s.i - 1].pausa ? [`<i class="p" style="left:${(s.i / (N - 1)) * 100}%"></i>`] : [])]).join("");
+
+  // ---- sound (off until the reader asks)
+  let ac = null, somOn = false;
+  function tom(f0, f1, dur, vol = 0.05, tipo = "sine") {
+    if (!somOn) return;
+    try {
+      ac ??= new AudioContext();
+      const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
+      o.type = tipo; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g).connect(ac.destination); o.start(t); o.stop(t + dur);
+    } catch { /* no audio: nothing to do */ }
+  }
+
+  // ---- render one file
+  let cur = -1;
+  const timers = new Set();
+  const later = (fn, ms) => { const t = setTimeout(() => { timers.delete(t); fn(); }, ms); timers.add(t); };
+  function feedItem(e) {
+    const li = document.createElement("li");
+    li.className = `ev ${e.t}`;
+    if (e.t === "passou") li.style.setProperty("--c", C[e.x].cor);
+    li.innerHTML = `<time>${e.hora}</time><span>${e.txt}</span>`;
+    return li;
+  }
+  function show(i, { jump = false } = {}) {
+    const s = S[i], prev = S[Math.max(0, i - 1)];
+    cur = i;
+    rows.forEach((r, k) => {
+      const pos = s.pos[k];
+      r.li.style.setProperty("--i", pos);
+      r.li.dataset.pos = pos;
+      r.li.style.setProperty("--w", Math.min(1.02, s.sh[k] / 0.6).toFixed(4));
+      r.rk.textContent = `${pos + 1}º`;
+      odometer(r.odo, s.votos[k]);
+      r.vsr.textContent = `${fmtInt(s.votos[k])} votos`;
+      r.pct.style.setProperty("--v", (s.sh[k] * 1000).toFixed(2));
+      r.pt.textContent = fmtPct(s.sh[k]);
+      const d = (s.sh[k] - prev.sh[k]) * 100;
+      r.dlt.textContent = Math.abs(d) < 0.005 ? "▬ 0,0 p.p." : `${d > 0 ? "▲" : "▼"} ${Math.abs(d).toFixed(1).replace(".", ",")} p.p.`;
+      r.li.setAttribute("aria-label", `${pos + 1}º lugar: ${C[k].nome}, ${fmtPct(s.sh[k])}, ${fmtInt(s.votos[k])} votos`);
+      r.li.querySelector(".selo")?.remove();
+      if (i === N - 1 && pos < 2) r.li.insertAdjacentHTML("beforeend", `<span class="selo">2º turno</span>`);
+    });
+    $("#resumo").textContent = s.rank.map((k, j) => `${j + 1}º ${C[k].nome} ${fmtPct(s.sh[k])}`).join(". ");
+    $("#ring").style.setProperty("--value", (s.p * 100).toFixed(2));
+    $("#ring-n").textContent = fmtPct(s.p, 1);
+    $("#ring-s").textContent = `${fmtInt(s.secoes)} de ${fmtInt(TOTAL_SECOES)}`;
+    $("#ring").setAttribute("aria-label", `${fmtPct(s.p, 1)} das seções totalizadas`);
+    $("#hora").textContent = s.hora;
+    $("#arq").textContent = s.pausa ? "Sem arquivo novo (pausa do TSE)" : `Arquivo do TSE de ${s.hora}`;
+    gLines.style.setProperty("--t", ((i / (N - 1)) * 100).toFixed(2));
+    dots.forEach((d, k) => { d.style.translate = `${gx(i).toFixed(1)}px ${gy(s.sh[k]).toFixed(1)}px`; });
+    $("#scrub").value = i;
+
+    // feed + overtake effects
+    if (jump) {
+      feedEl_rebuild(i);
+    } else {
+      EV[i].forEach((e) => { feedEl_add(e); });
+    }
+    if (!jump) EV[i].forEach((e) => {
+      if (e.t === "passou") {
+        const up = rows[e.x].li, down = rows[e.y].li;
+        up.classList.remove("up"); down.classList.remove("down"); void up.offsetWidth;
+        up.classList.add("up"); down.classList.add("down");
+        later(() => { up.classList.remove("up"); down.classList.remove("down"); }, 1400);
+        tom(330, 740, 0.28, 0.05, "triangle");
+        $("#anuncio").textContent = e.txt;
+      } else if (e.t === "marco") { tom(520, 520, 0.08, 0.025); }
+    });
+    if (!jump && i === N - 1) { tom(110, 55, 0.6, 0.12); tom(220, 220, 0.3, 0.04, "square"); $("#anuncio").textContent = EV[i][EV[i].length - 1].txt; }
+    $("#play").textContent = playing ? "Pausar" : cur >= N - 1 ? "Rever" : "Continuar";
+    $("#play").setAttribute("aria-pressed", String(playing));
+  }
+  function feedEl_add(e) { feedEl.prepend(feedItem(e)); while (feedEl.children.length > 40) feedEl.lastChild.remove(); }
+  function feedEl_rebuild(i) { feedEl.replaceChildren(); for (let j = 1; j <= i; j++) EV[j].forEach((e) => feedEl.prepend(feedItem(e))); while (feedEl.children.length > 40) feedEl.lastChild.remove(); }
+
+  // ---- playback
+  let playing = false, speed = 1, timer = 0;
+  const stepMs = () => ({ 1: 1500, 3: 520, 8: 200 })[speed];
+  const syncDur = () => root.style.setProperty("--dur", `${Math.min(900, stepMs() * 0.85) / 1000}s`);
+  function tick() {
+    if (cur >= N - 1) { stop(); return; }
+    show(cur + 1);
+    if (cur >= N - 1) { stop(); return; }
+    timer = setTimeout(tick, stepMs());
+  }
+  function play() { if (cur >= N - 1) show(0, { jump: true }); playing = true; document.body.classList.add("tocando"); show(cur, { jump: true }); timer = setTimeout(tick, 250); }
+  function stop() { playing = false; clearTimeout(timer); document.body.classList.remove("tocando"); $("#play").textContent = cur >= N - 1 ? "Rever" : "Continuar"; $("#play").setAttribute("aria-pressed", "false"); }
+  $("#play").addEventListener("click", () => (playing ? stop() : play()));
+  $("#reinicia").addEventListener("click", () => { stop(); show(0, { jump: true }); play(); });
+  $("#scrub").addEventListener("input", (e) => { stop(); show(Number(e.target.value), { jump: true }); });
+  document.querySelectorAll("[data-vel]").forEach((b) => b.addEventListener("click", () => {
+    speed = Number(b.dataset.vel);
+    document.querySelectorAll("[data-vel]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    syncDur();
+  }));
+  $("#fx").addEventListener("click", (e) => { const on = e.currentTarget.getAttribute("aria-pressed") !== "true"; e.currentTarget.setAttribute("aria-pressed", String(on)); root.dataset.fx = on ? "on" : "off"; });
+  $("#som").addEventListener("click", (e) => { somOn = !somOn; e.currentTarget.setAttribute("aria-pressed", String(somOn)); if (somOn) tom(440, 660, 0.12, 0.05); });
+  addEventListener("keydown", (e) => { if (e.code === "Space" && !/^(BUTTON|INPUT|SELECT|TEXTAREA)$/.test(document.activeElement?.tagName ?? "")) { e.preventDefault(); playing ? stop() : play(); } });
+
+  // ---- start: the first frame is a readable moment of the night; motion starts only if the system allows it
+  const reduzido = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduzido) { root.dataset.fx = "off"; $("#fx").setAttribute("aria-pressed", "false"); }
+  if (!CSS.supports("animation-delay: calc(sibling-index() * 1ms)")) { /* --sibling-index is already set on each row */ }
+  syncDur();
+  show(START, { jump: true });
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.body.classList.add("pronto"); // transitions only after the first paint, so the page does not fly in from zero
+    if (!reduzido) play(); else stop();
+  }));
+})();
+</script>
