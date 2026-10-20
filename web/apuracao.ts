@@ -39,7 +39,7 @@ import type { Candidatura } from "./types.js";
 
 // What the view reads of a feed snapshot: the feed's own `url` is not needed to draw it.
 export type SnapView = Pick<FeedSnapshot, "status" | "dados"> & Partial<Pick<FeedSnapshot, "buscadoEm" | "erro">>;
-export type Vista = "placar" | "linha" | "mapa" | "projecao" | "cadeiras" | "camara" | "graficos" | "municipios";
+export type Vista = "placar" | "linha" | "mapa" | "projecao" | "cadeiras" | "camara" | "graficos" | "municipios" | "corrida" | "noite";
 type Avatar = (c: Candidatura, size: string) => string;
 // What the view reads of data/expectativa.json: the poll summary of each race.
 export interface Corrida extends CorridaMapa { pesquisas: number; ultima?: string | null; confrontos?: Confronto[] }
@@ -198,13 +198,38 @@ const aviso = (txt: string) => `<p class="empty">${txt}</p>`;
 
 const MAPA_CARGOS = new Set(["Presidente", "Governador", "Senador"]);
 const UMA_VAGA = new Set(["Presidente", "Governador"]); // one seat, one vote: the arithmetic of the Projeção view applies
-const ROTULOS: Record<Vista, string> = { placar: "Placar", linha: "Linha do tempo", mapa: "Mapa", projecao: "Projeção", cadeiras: "Cadeiras", camara: "Câmara", graficos: "Gráficos", municipios: "Cidades" };
+const ROTULOS: Record<Vista, string> = { placar: "Placar", linha: "Linha do tempo", mapa: "Mapa", projecao: "Projeção", cadeiras: "Cadeiras", camara: "Câmara", graficos: "Gráficos", municipios: "Cidades", corrida: "Corrida", noite: "Noite no mapa" };
 // The Projeção is built on first-round arithmetic (who reaches 50%, who goes to a runoff): it has no place in the runoff itself.
 export const vistasDe = (cargo: Cargo, turno: Turno = 1): Vista[] => {
-  if (UMA_VAGA.has(cargo)) return turno === 2 ? ["placar", "linha", "mapa", "municipios", "graficos"] : ["placar", "linha", "mapa", "projecao", "graficos"];
-  if (MAPA_CARGOS.has(cargo)) return ["placar", "linha", "mapa", "graficos"];
-  return cargo === "Deputado Federal" ? ["placar", "linha", "cadeiras", "camara", "graficos"] : ["placar", "linha", "cadeiras", "graficos"];
+  // "corrida" and "noite" are added to the views each office already had; none was taken away.
+  if (UMA_VAGA.has(cargo)) return turno === 2 ? ["placar", "linha", "mapa", "municipios", "corrida", "noite", "graficos"] : ["placar", "linha", "mapa", "projecao", "corrida", "noite", "graficos"];
+  if (MAPA_CARGOS.has(cargo)) return ["placar", "linha", "mapa", "corrida", "graficos"];
+  return cargo === "Deputado Federal" ? ["placar", "linha", "cadeiras", "camara", "corrida", "graficos"] : ["placar", "linha", "cadeiras", "corrida", "graficos"];
 };
+
+// The two animated views are not drawn from this string: the tab redraws strings, which would throw away what has to slide. This is only their
+// frame (buttons, a place to put them, the explanation); apuracao-mount.js fills `data-fx-host` with a DOM that updates in place. Nothing in this
+// frame changes with the count, so a new file from the TSE never redraws it. The state of the buttons is set by the mount, for the same reason.
+const FX_TEXTO: Record<"corrida" | "noite", string> = {
+  corrida: `<li><b>O que é.</b> Os mais votados como uma corrida: as linhas trocam de lugar com uma mola, os votos rolam, a parcela é contada na tela e uma ultrapassagem deixa um rastro. Só aparecem os 8 primeiros.</li>
+    <li><b>O que mostra.</b> Os números do TSE, a cada arquivo novo. Quem o TSE marca com situação (por exemplo "Eleito" ou "2º turno") ganha o texto dele, nunca um rótulo do Radar.</li>
+    <li><b>A linha de cada um</b> começa quando você abriu a aba: o Radar não guarda os arquivos do TSE, então não há história anterior.</li>`,
+  noite: `<li><b>O que é.</b> O mapa da apuração ao vivo. Um estado acende quando chega o primeiro arquivo dele e muda de cor quando quem está à frente muda. "Cartograma" dá o mesmo tamanho a todos os estados.</li>
+    <li><b>O que a cor diz.</b> O partido de quem está à frente no estado (a mesma cor das outras visões) e, quanto mais forte, maior a diferença para o segundo. Não é projeção nem resultado final.</li>
+    <li><b>Presidente:</b> a faixa de cima soma os arquivos dos estados e mostra os dois mais votados. <b>Governador:</b> cada estado tem a sua disputa, então a faixa conta em quantos estados cada partido está à frente.</li>`,
+};
+function fxQuadro(vista: "corrida" | "noite"): string {
+  return `<div class="fx-barra">
+      <button type="button" class="ghost" data-fx-pref="fx">Efeitos</button>
+      <button type="button" class="ghost" data-fx-pref="som">Som</button>
+      <button type="button" class="ghost" data-demo-toggle>Ver simulação</button>
+    </div>
+    <div class="fx-deck" data-fx-deck hidden></div>
+    <div class="fx-host" data-fx-host="${vista}"></div>
+    <details class="how" data-k="fx-como"><summary>Como ler esta visão</summary><ol class="muted small">${FX_TEXTO[vista]}
+      <li><b>Efeitos e som.</b> Os botões acima valem para as duas visões e para o Ao vivo. Com "reduzir movimento" ligado no sistema as animações ficam desligadas. Nada pisca mais de três vezes por segundo.</li>
+      <li><b>Ver simulação.</b> Toca uma noite inventada (candidaturas, partidos e números fictícios) para você ver o movimento antes de haver apuração. Nada ali é dado real.</li></ol></details>`;
+}
 
 const quemDe = (d: Apuracao) => Object.fromEntries(d.candidatos.map((c) => [c.id, { nome: c.nome, partido: c.partido }]));
 
@@ -240,6 +265,8 @@ export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, turno = 1
     corpo = renderCamara({ nac, cor });
   } else if (aberta === "mapa") {
     corpo = renderNacional({ nac, cargo, corridas, modo: modoMapa, sel: selUf, cor, mapa });
+  } else if (aberta === "corrida" || aberta === "noite") {
+    corpo = fxQuadro(aberta);
   } else if (aberta === "municipios") {
     corpo = mun ? renderMunicipios({ ...mun, cargo, uf, cor }) : aviso("Carregando a estimativa por município…");
   } else if (aberta === "projecao") {
@@ -266,11 +293,14 @@ export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, turno = 1
            ${proporcional(cargo) ? `${vagasPorLista(d)}<p class="muted small">Não há pesquisa por candidato a deputado, então esta lista não tem comparação com pesquisas.</p>` : comparacao(rows, corrida, d.fase, d.cargo.vagas)}
            ${tabela(d.fase, rows, avatar, limit)}`}`;
   }
-  const quando = aberta === "mapa" || aberta === "camara" || (aberta === "projecao" && cargo === "Presidente") ? nac?.buscadoEm : snap?.buscadoEm;
+  // On the animated views the phase badge is set by the mount, in place: a badge that changes with the count would redraw the frame, and a redraw
+  // would throw away the view (its feed of facts, the stamps the TSE just gave) at the very moment the count ends.
+  const fxVista = aberta === "corrida" || aberta === "noite";
+  const quando = aberta === "mapa" || aberta === "camara" || aberta === "noite" || (aberta === "projecao" && cargo === "Presidente") ? nac?.buscadoEm : snap?.buscadoEm;
   const nav = `${seletorTurno(cargo, t)}<div class="apu-vistas" role="group" aria-label="Visão da apuração">${vistas.map((v) => `<button type="button" data-vista="${v}" aria-pressed="${v === aberta}">${ROTULOS[v]}</button>`).join("")}</div>
     ${t === 2 ? `<p class="muted small">2º turno: só os dois finalistas. As médias das pesquisas e a Projeção são do 1º turno e não aparecem aqui.</p>` : ""}`;
   return `<section class="exp-card apu" aria-labelledby="apu-t">
-    <h2 id="apu-t">${h(cargo)}${local}${t === 2 ? " · 2º turno" : ""} <span class="rot ${d?.fase === "parcial" ? "aberta" : d?.fase === "concluida" ? "alta" : "baixa"}">${h(FASES[d?.fase as Fase] ?? "Consultando")}</span></h2>
+    <h2 id="apu-t">${h(cargo)}${local}${t === 2 ? " · 2º turno" : ""} ${fxVista ? `<span class="rot baixa" data-fx-fase></span>` : `<span class="rot ${d?.fase === "parcial" ? "aberta" : d?.fase === "concluida" ? "alta" : "baixa"}">${h(FASES[d?.fase as Fase] ?? "Consultando")}</span>`}</h2>
     ${nav}
     <p class="muted exp-meta">${quando ? `Consultado às <span id="apu-quando">${h(quando.toLocaleTimeString("pt-BR"))}</span> · ` : ""}atualiza sozinho a cada ${POLL_MS / 1000} s enquanto você estiver nesta aba.</p>
     ${corpo}

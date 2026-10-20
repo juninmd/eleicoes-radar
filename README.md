@@ -132,6 +132,8 @@ Nenhuma entra na nota. Descritivo, sem ranking de qualidade e sem recomendação
 
 ## Apuração em tempo real
 
+As visões **Corrida** (os mais votados como uma corrida: linhas que trocam de lugar, votos que rolam, ultrapassagens) e **Noite no mapa** (os estados acendem e viram, com cartograma e faixa de duelo) são acréscimos à aba, com fotos, efeitos e som opcionais e uma simulação para ver o movimento antes da apuração (`web/apuracao-corrida.ts`, `apuracao-noite.ts`, `apuracao-fx*.ts`, `apuracao-demo.ts`; AGENTS.md, seção "Visões animadas da Apuração").
+
 No 2º turno de Presidente e Governador, a vista **Cidades** estima os votos válidos de cada finalista em cada município a partir
 do 1º turno de 2026 e do comportamento dos segundos turnos de 2002 a 2022 (`web/apuracao-municipios*.ts`,
 `web/municipio-modelo.ts`, `src/radar/municipal/`). O total da disputa é escolha do leitor (sem âncora, média das pesquisas ou

@@ -14,6 +14,7 @@ import { atualizar, vazio } from "./apuracao-novidades.js";
 import { atualizar as atualizarEleitos, vazio as vazioEleitos } from "./apuracao-eleitos.js";
 import { renderApuracao, vistasDe } from "./apuracao.js";
 import { PAGE_MUN } from "./apuracao-municipios-view.js";
+import { criarFx } from "./apuracao-fx-mount.js";
 import type { RenderProps, Vista } from "./apuracao.js";
 import type { FeedSnapshot } from "./apuracao-feed.js";
 import type { BrasilSnapshot } from "./apuracao-uf.js";
@@ -92,7 +93,9 @@ export function mountApuracao(el: HTMLElement) {
     const oficial = d && d.fase !== "aguardando" && ca && cb && d.secoes.total > 0 ? { a: ca.pct, b: cb.pct, secoes: Math.floor((d.secoes.totalizadas / d.secoes.total) * 1000) / 1000 } : null;
     return { indice: munIndice, arquivo, disputa, cenario: munCenario, filtro: munFiltro, limit: munLimit, confrontos: corrida?.confrontos, ultimaPesquisa: corrida?.ultima, oficial };
   };
-  const nacional = () => !!ctx && (vista === "mapa" || vista === "camara" || (vista === "projecao" && ctx.cargo === "Presidente"));
+  // The two animated views (Corrida, Noite no mapa) keep their own DOM and are updated in place after every paint; see apuracao-fx-mount.js.
+  const fx = criarFx({ el, anunciar: (txt) => { anuncio.textContent = txt; }, estado: () => ({ ctx, vista, snap, nac, hist, mapa, cor }) });
+  const nacional = () => !!ctx && (vista === "mapa" || vista === "camara" || vista === "noite" || (vista === "projecao" && ctx.cargo === "Presidente"));
   // The president's projection sums the 28 state files, so it waits for every one to answer once: fewer would pass a few
   // states off as the country. A governor's is its one file.
   const projDe = () => {
@@ -113,10 +116,12 @@ export function mountApuracao(el: HTMLElement) {
       quando.textContent = relogio(html) ?? quando.textContent;
       const i = el.querySelector<HTMLElement>("#apu-idade");
       if (i) i.textContent = idade(html) ?? i.textContent;
+      fx.sync();
       return;
     }
     painted = key;
     repaint(el, html);
+    fx.sync();
   };
   // The national feed reports once per state: draw at most once per frame.
   const agendar = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; paint(); }); };
@@ -141,7 +146,7 @@ export function mountApuracao(el: HTMLElement) {
       .then(() => { buscandoMapa = false; paint(); });
   };
   const seguirMapa = () => {
-    if (nacional()) { if (vista === "mapa") carregarMapa(); brasil.follow(ctx!.cargo); } else { brasil.stop(); nac = null; }
+    if (nacional()) { if (vista === "mapa" || vista === "noite") carregarMapa(); brasil.follow(ctx!.cargo); } else { brasil.stop(); nac = null; }
   };
   const escolher = (uf: string) => {
     selUf = selUf === uf ? null : uf;
@@ -150,8 +155,9 @@ export function mountApuracao(el: HTMLElement) {
   };
 
   el.addEventListener("click", (e) => {
-    const t = (e.target as Element).closest<HTMLElement>("[data-vista], [data-turno], [data-modo-mapa], [data-uf], [data-abrir-uf], [data-mun-modo], [data-mun-uf], #apu-mais, #mun-mais");
+    const t = (e.target as Element).closest<HTMLElement>("[data-vista], [data-turno], [data-modo-mapa], [data-uf], [data-abrir-uf], [data-mun-modo], [data-mun-uf], [data-fx-pref], [data-demo-toggle], [data-demo], #apu-mais, #mun-mais");
     if (!t) return;
+    if (fx.clique(t)) return;
     if (t.id === "apu-mais") { limit += PAGE; paint(); }
     else if (t.id === "mun-mais") { munLimit += PAGE_MUN; paint(); }
     else if (t.dataset.munModo) { munCenario = { modo: t.dataset.munModo as Cenario["modo"], alvo: t.dataset.alvo ? Number(t.dataset.alvo) : munCenario.alvo }; munLimit = PAGE_MUN; paint(); }
@@ -161,7 +167,7 @@ export function mountApuracao(el: HTMLElement) {
       if (novo === turno) return;
       turno = novo;
       gravarTurno(turno);
-      limit = PAGE; hist = []; novidades = vazio(); eleitos = vazioEleitos(); projecao.reiniciar(); selUf = null;
+      limit = PAGE; hist = []; novidades = vazio(); eleitos = vazioEleitos(); projecao.reiniciar(); selUf = null; fx.reiniciar();
       const ef = turnoDe(ctx!.cargo, turno);
       if (!vistasDe(ctx!.cargo, ef).includes(vista)) vista = "placar";
       feed.follow(tseUrl(ctx!.cargo, ctx!.uf, TSE_BASE, ef));
@@ -188,6 +194,7 @@ export function mountApuracao(el: HTMLElement) {
     try { paint(); } finally { mudando = false; }
   });
   el.addEventListener("input", (e) => {
+    if (fx.entrada(e)) return;
     const t = e.target as HTMLInputElement;
     if (t.id === "mun-alvo") { const o = el.querySelector("#mun-alvo-txt"); if (o) o.textContent = `${Number(t.value).toFixed(1).replace(".", ",")}%`; }
   });
@@ -205,7 +212,7 @@ export function mountApuracao(el: HTMLElement) {
       turno = lido;
       if (mudou) { brasil.stop(); nac = null; }
       const outra = mudou || !ctx || ctx.cargo !== next.cargo || ctx.uf !== next.uf;
-      if (outra) { limit = PAGE; hist = []; novidades = vazio(); eleitos = vazioEleitos(); projecao.reiniciar(); munFiltro = { uf: "", busca: "" }; munLimit = PAGE_MUN; }
+      if (outra) { limit = PAGE; hist = []; novidades = vazio(); eleitos = vazioEleitos(); projecao.reiniciar(); munFiltro = { uf: "", busca: "" }; munLimit = PAGE_MUN; fx.reiniciar(); }
       if (!ctx || ctx.cargo !== next.cargo) selUf = null; // the national map keeps its selection when only the state of the ballot changes
       ctx = next;
       const ef = turnoDe(next.cargo, turno);
@@ -215,6 +222,6 @@ export function mountApuracao(el: HTMLElement) {
       if (vista === "municipios") carregarMun();
       paint();
     },
-    hide() { feed.stop(); brasil.stop(); ctx = null; snap = null; nac = null; painted = null; anuncio.textContent = ""; },
+    hide() { fx.parar(); feed.stop(); brasil.stop(); ctx = null; snap = null; nac = null; painted = null; anuncio.textContent = ""; },
   };
 }

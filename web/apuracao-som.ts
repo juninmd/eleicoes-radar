@@ -5,6 +5,8 @@ export interface Som {
   desbloquear(): void;
   intro(): void;
   ko(): void;
+  passou(): void; // an overtake in the Corrida view
+  vira(): void; // a state (or the whole country) changes side in the Noite no mapa view
 }
 
 type Ligado = () => boolean;
@@ -81,6 +83,21 @@ export function criarSom(ligado: Ligado, fabrica: Fabrica = padrao): Som {
         ruido(c, "bandpass", 2400, t + 0.1, 0.4, 0.05);
         tom(c, "sine", 110, 38, t + 0.55, 0.5, 0.55);
         ruido(c, "lowpass", 900, t + 0.55, 0.3, 0.35);
+      });
+    },
+    // A short rising sweep: someone moved up a place.
+    passou() {
+      tocar((c, t) => {
+        tom(c, "triangle", 330, 740, t, 0.26, 0.09);
+        tom(c, "sine", 660, 990, t + 0.1, 0.18, 0.04);
+      });
+    },
+    // Two notes and a soft thud: the map changed side somewhere.
+    vira() {
+      tocar((c, t) => {
+        tom(c, "triangle", 392, 392, t, 0.12, 0.08);
+        tom(c, "triangle", 587, 587, t + 0.1, 0.2, 0.08);
+        tom(c, "sine", 90, 50, t, 0.3, 0.12);
       });
     },
     // Impact, crash, the fall of the loser, a rumble, then a short fanfare for the one the TSE marked.

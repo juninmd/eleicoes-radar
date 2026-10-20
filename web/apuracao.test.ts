@@ -219,12 +219,42 @@ describe("vistas (Placar, Mapa, Gráficos)", () => {
   const ver = (over: Partial<RenderProps> = {}) => renderApuracao({ snap: { status: "ok", dados: parsed(), buscadoEm: new Date("2026-10-04T20:15:30"), erro: null }, cargo: "Governador", uf: "SP", byId, avatar, limit: 40, cor: createCores(PALETA), mapa, ...over });
 
   test("the map exists for the offices that have a state-by-state race, and the charts for all", () => {
-    expect(vistasDe("Presidente")).toEqual(["placar", "linha", "mapa", "projecao", "graficos"]);
-    expect(vistasDe("Governador")).toEqual(["placar", "linha", "mapa", "projecao", "graficos"]);
-    expect(vistasDe("Senador")).toEqual(["placar", "linha", "mapa", "graficos"]); // two votes per voter: the one-seat arithmetic does not apply
-    expect(vistasDe("Deputado Federal")).toEqual(["placar", "linha", "cadeiras", "camara", "graficos"]); // the Chamber is the one national picture for deputies
-    expect(vistasDe("Deputado Estadual")).toEqual(["placar", "linha", "cadeiras", "graficos"]);
-    expect(vistasDe("Deputado Distrital")).toEqual(["placar", "linha", "cadeiras", "graficos"]);
+    expect(vistasDe("Presidente")).toEqual(["placar", "linha", "mapa", "projecao", "corrida", "noite", "graficos"]);
+    expect(vistasDe("Governador")).toEqual(["placar", "linha", "mapa", "projecao", "corrida", "noite", "graficos"]);
+    expect(vistasDe("Senador")).toEqual(["placar", "linha", "mapa", "corrida", "graficos"]); // two votes per voter: the one-seat arithmetic does not apply
+    expect(vistasDe("Deputado Federal")).toEqual(["placar", "linha", "cadeiras", "camara", "corrida", "graficos"]); // the Chamber is the one national picture for deputies
+    expect(vistasDe("Deputado Estadual")).toEqual(["placar", "linha", "cadeiras", "corrida", "graficos"]);
+    expect(vistasDe("Deputado Distrital")).toEqual(["placar", "linha", "cadeiras", "corrida", "graficos"]);
+  });
+
+  test("the animated views only add: every view an office had before is still there, in the same order", () => {
+    const antes: Record<string, string[]> = {
+      Presidente: ["placar", "linha", "mapa", "projecao", "graficos"], Governador: ["placar", "linha", "mapa", "projecao", "graficos"], Senador: ["placar", "linha", "mapa", "graficos"],
+      "Deputado Federal": ["placar", "linha", "cadeiras", "camara", "graficos"], "Deputado Estadual": ["placar", "linha", "cadeiras", "graficos"],
+    };
+    for (const [cargo, lista] of Object.entries(antes)) {
+      const agora: string[] = vistasDe(cargo as never).filter((v) => v !== "corrida" && v !== "noite");
+      expect(agora).toEqual(lista);
+    }
+    const t2: string[] = vistasDe("Presidente", 2).filter((v) => v !== "corrida" && v !== "noite");
+    expect(t2).toEqual(["placar", "linha", "mapa", "municipios", "graficos"]);
+    expect(vistasDe("Presidente", 2)).toEqual(expect.arrayContaining(["corrida", "noite"]));
+    expect(vistasDe("Senador")).not.toContain("noite"); // two seats per state: "who is ahead" is not one name
+  });
+
+  test("the frame of an animated view has the buttons and the placeholder, and nothing that changes with the count", () => {
+    for (const v of ["corrida", "noite"] as const) {
+      const a = ver({ vista: v });
+      expect(a).toMatch(new RegExp(`data-vista="${v}"[^>]*aria-pressed="true"`));
+      expect(a).toContain(`data-fx-host="${v}"`);
+      expect(a).toContain(`data-fx-pref="fx"`);
+      expect(a).toContain("data-demo-toggle");
+      expect(a).toContain("data-fx-fase"); // the phase badge is filled in place by the mount
+      expect(a).not.toMatch(/Apuração (em andamento|concluída)|Aguardando início/); // ...so it is never part of the frame the count can change
+      // a newer file changes the snapshot, not the frame: the tab must not redraw it
+      const b = ver({ vista: v, snap: { status: "ok", dados: parseApuracao(file({ cands: dois.map((c) => ({ ...c, vap: "9999", pvap: "55,00" })) })), buscadoEm: new Date("2026-10-04T20:15:30"), erro: null } });
+      expect(semRelogio(b)).toBe(semRelogio(a));
+    }
   });
 
   test("the sub-navigation marks the open view; the default is the scoreboard", () => {
