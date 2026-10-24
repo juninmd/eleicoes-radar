@@ -21,7 +21,8 @@
     "radar:mun-hist": "bun run src/radar/municipal/aggregate.ts",
     "radar:mun-backtest": "bun run src/radar/municipal/backtest.ts",
     "radar:municipal": "bun run src/radar/municipal/build.ts",
-    "radar:mc-backtest": "bun run src/radar/mc/backtest.ts"
+    "radar:mc-backtest": "bun run src/radar/mc/backtest.ts",
+    "screenshots": "node src/radar/screenshots.ts"
   },
   "dependencies": {
     "fflate": "0.8.3",
@@ -31,6 +32,7 @@
     "@biomejs/biome": "^2.5.15",
     "@tailwindcss/cli": "4.3.3",
     "@types/bun": "^1.4.2",
+    "playwright": "1.64.0",
     "tailwindcss": "4.3.3",
     "typescript": "^7.0.2"
   }
