@@ -128,6 +128,13 @@ async function loadUf() {
   for (const uf of [state.uf, "BR"]) forn.aplicar(state.cands, uf); // a sidecar already read for this UF is merged before the first paint
   render();
   if (foco) $("#lista").focus({ preventScroll: true });
+  pedirDoRadar();
+}
+
+// Ao vivo, the landing tab, needs none of this: the ballot photos (up to 5,6 MB for a UF's deputies) and the supplier sidecars are
+// fetched once the reader is on a tab that shows them (renderModo asks again on every switch; what was fetched is not fetched twice).
+function pedirDoRadar() {
+  if (state.modo === "aovivo" || state.cands.length === 0) return;
   loadFotos();
   ocioso(() => pedirFornecedores(ufsPendentes(state.cands, [state.uf, "BR"])));
 }
@@ -143,12 +150,15 @@ $("#lista").addEventListener("click", (e) => {
 });
 
 // Photos load per open ballot, after the list; a missing file just means initials. Off means no bytes: a ballot file is up to 7 MB gzipped.
+const fotosPedidas = new Set<string>();
 async function loadFotos() {
-  if (!state.mostrarFotos) return;
+  if (!state.mostrarFotos || state.modo === "aovivo") return;
   const b = BALLOTS[state.ballot];
   const cargo = state.uf === "DF" && b.alt ? b.alt : b.cargo;
   const file = `data/fotos/${b.national ? "BR" : state.uf}-${slug(cargo)}.json`;
-  const fotos = await loadJson<Record<string, string>>(file).catch(() => ({}));
+  if (fotosPedidas.has(file)) return; // the redraw at the end of this function asks again through renderModo: that is not a new fetch
+  fotosPedidas.add(file);
+  const fotos = await loadJson<Record<string, string>>(file).catch(() => { fotosPedidas.delete(file); return {}; }); // a failed file is asked again next time
   Object.assign(state.fotos, fotos);
   renderList();
   renderDossierPanel();
@@ -340,6 +350,18 @@ function abrirCorrida(cargo: Cargo) {
   renderModo();
 }
 
+// Panorama and Rede each read one aggregate file (~110 KB on the wire together), fetched when its tab first opens and not with the page.
+// A failed file leaves the state null, as it always did, and is asked again on the next open.
+const agregados = new Map<string, Promise<void>>();
+function agregado(chave: "pan" | "rede", arquivo: string): Promise<void> {
+  let p = agregados.get(chave);
+  if (!p) {
+    p = loadJson<never>(arquivo).then((d) => { state[chave] = d; }).catch(() => { agregados.delete(chave); });
+    agregados.set(chave, p);
+  }
+  return p;
+}
+
 function renderModo() {
   for (const b of document.querySelectorAll<HTMLElement>("#modos [data-modo]")) b.setAttribute("aria-selected", String(b.dataset.modo === state.modo));
   syncTabs($("#modos"));
@@ -360,11 +382,19 @@ function renderModo() {
       ap.show({ ...raceOf(), ufEleitor: state.uf, byId: new Map(state.cands.map((c) => [c.id, c] as const)), avatar, exp: state.exp, abrirUf });
     });
   } else apuracao.get()?.hide();
-  if (state.modo in PAN_MODES) { quandoPronta(panorama, $("#pan-view"), () => state.modo in PAN_MODES, (p) => p.show({ modo: state.modo, pan: state.pan, ...raceOf(), cands: state.cands })); return; }
+  pedirDoRadar();
+  if (state.modo in PAN_MODES) {
+    panorama.baixar();
+    agregado("pan", "data/panorama.json").then(() => quandoPronta(panorama, $("#pan-view"), () => state.modo in PAN_MODES, (p) => p.show({ modo: state.modo, pan: state.pan, ...raceOf(), cands: state.cands })));
+    return;
+  }
   if (state.modo === "rede") {
-    const cand = state.redeFoco && state.cands.find((x) => x.id === state.redeFoco);
-    quandoPronta(redeAba, $("#rede-view"), () => state.modo === "rede", (renderRede) => {
-      keepFocus($("#rede-view"), () => { $("#rede-view").innerHTML = renderRede({ rede: state.rede, cand: cand || null, sel: state.redeSel, forn: cand ? estadoForn(cand) : "pronto" }); });
+    redeAba.baixar();
+    agregado("rede", "data/rede.json").then(() => {
+      const cand = state.redeFoco && state.cands.find((x) => x.id === state.redeFoco);
+      quandoPronta(redeAba, $("#rede-view"), () => state.modo === "rede", (renderRede) => {
+        keepFocus($("#rede-view"), () => { $("#rede-view").innerHTML = renderRede({ rede: state.rede, cand: cand || null, sel: state.redeSel, forn: cand ? estadoForn(cand) : "pronto" }); });
+      });
     });
     return;
   }
@@ -692,10 +722,8 @@ async function main() {
   renderWeights(); // needs no data: render it before the downloads so the rail does not grow under the reader
   abaDo(state.modo)?.baixar(); // the saved heavy tab downloads beside the data, not after it
   const link = abrirLink(); // beside the data: it only has to settle the tab before the first render
-  const dados = Promise.all([loadJson<Meta>("data/meta.json"), loadJson<AppState["agenda"]>("data/agenda.json"), loadJson<AppState["exp"]>("data/expectativa.json").catch(() => null), loadJson<AppState["rede"]>("data/rede.json").catch(() => null), loadJson<AppState["pan"]>("data/panorama.json").catch(() => null)]);
-  const [, [meta, agenda, exp, rede, pan]] = await Promise.all([link, dados]);
-  state.rede = rede;
-  state.pan = pan;
+  const dados = Promise.all([loadJson<Meta>("data/meta.json"), loadJson<AppState["agenda"]>("data/agenda.json"), loadJson<AppState["exp"]>("data/expectativa.json").catch(() => null)]);
+  const [, [meta, agenda, exp]] = await Promise.all([link, dados]);
   state.agenda = agenda;
   state.exp = exp;
   $("#uf").innerHTML = meta.ufs.filter((u) => u.uf !== "BR").map((u) => `<option value="${u.uf}">${u.uf}</option>`).join("");
