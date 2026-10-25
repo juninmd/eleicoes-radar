@@ -10,7 +10,7 @@ import { PAN_MODES } from "./pan-modos.js";
 import { matches, SORTS, semEvidencia } from "./lista.js";
 import { achados } from "./achados.js";
 import { LEVELS, presetsHtml, weightsHtml } from "./pesos.js";
-import { knownTab, mountTabs, syncTabs } from "./tabs.js";
+import { knownTab, mountTabs, syncTabs, tituloDaAba } from "./tabs.js";
 import { keepFocus, visibleOpener } from "./focus.js";
 import type { AppState, AvatarSrc, Meta } from "./app-tipos.js";
 import type { Candidatura } from "./types.js";
@@ -91,10 +91,11 @@ async function tentarCarregar(acao: "uf" | "main", btn?: HTMLButtonElement) {
       await main();
     }
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
+    console.error(err);
     document.body.classList.add("ready");
     document.body.dataset.visao = "radar";
-    $("#lista").innerHTML = `<li class="empty"><p>Não foi possível carregar os dados (${h(msg)}).</p><button type="button" class="btn-confirma" data-retry-main>Tentar novamente</button></li>`;
+    $("#lista").classList.remove("carregando");
+    $("#lista").innerHTML = `<li class="empty"><p role="alert">Não foi possível carregar os dados${acao === "uf" ? " desta UF" : ""}. Verifique a conexão e tente de novo.</p><button type="button" class="btn-confirma" data-retry-${acao}>Tentar novamente</button></li>`;
   } finally {
     retrying = false;
   }
@@ -102,6 +103,8 @@ async function tentarCarregar(acao: "uf" | "main", btn?: HTMLButtonElement) {
 
 async function loadUf() {
   const reqUf = state.uf;
+  // The retry button lives in the list, which render() replaces: remember focus to give it back.
+  const foco = $("#lista").contains(document.activeElement);
   $("#lista").setAttribute("aria-busy", "true");
   try {
     const [local, br] = await Promise.all([loadJson<Candidatura[]>(`data/uf/${reqUf}.json`), loadJson<Candidatura[]>("data/uf/BR.json")]);
@@ -110,14 +113,18 @@ async function loadUf() {
   } catch {
     if (state.uf !== reqUf) return;
     // Sem isto a lista ficaria em aria-busy para sempre e sem aviso.
-    $("#lista").innerHTML = `<li class="empty"><p>Não foi possível carregar os dados desta UF.</p><button type="button" class="btn-confirma" data-retry-uf>Tentar novamente</button></li>`;
+    $("#lista").classList.remove("carregando");
+    $("#lista").innerHTML = `<li class="empty"><p role="alert">Não foi possível carregar as candidaturas desta UF. Verifique a conexão.</p><button type="button" class="btn-confirma" data-retry-uf>Tentar novamente</button></li>`;
+    if (foco) $<HTMLButtonElement>("#lista button[data-retry-uf]")?.focus();
     return;
   } finally {
     if (state.uf === reqUf) {
       $("#lista").removeAttribute("aria-busy");
     }
   }
+  $("#lista").classList.remove("carregando");
   render();
+  if (foco) $("#lista").focus({ preventScroll: true });
   loadFotos();
 }
 
@@ -191,8 +198,8 @@ function renderList() {
       <span class="num">${h(c.num.padStart(ballot.digits, " "))}</span>
       ${avatar(c, "sm")}
       <span class="who"><b>${h(displayName(c))}</b><small>${h(c.partido)}${STATUS[c.perfil?.status as string]?.curto ? ` · <em class="tag st-${h(c.perfil!.status)}">${h(STATUS[c.perfil!.status].curto)}</em>` : ""}${seen.get(c.num)! > 1 ? ` · <em class="tag st-reeleicao">número repetido no TSE</em>` : ""}${isPicked(state.cola, c) ? ` · <em class="tag ok">na cola</em>` : ""}</small></span>
-      <span class="money">${moneyShort(c.fin.total)}</span>
-      <span class="score"><b>${s.nota ?? "–"}</b><span class="ev" aria-label="Evidência ${pct(s.cobertura)}">${[0.01, 0.5, 0.99].map((t) => `<i class="${s.cobertura >= t ? "on" : ""}"></i>`).join("")}</span></span>
+      <span class="money"><span class="sr">Arrecadação </span>${moneyShort(c.fin.total)}</span>
+      <span class="score"><span class="sr">Nota </span><b>${s.nota ?? "–"}</b><span class="ev"><span class="sr">Evidência ${pct(s.cobertura)}</span>${[0.01, 0.5, 0.99].map((t) => `<i class="${s.cobertura >= t ? "on" : ""}"></i>`).join("")}</span></span>
     </button></li>`).join("") : `<li class="empty"><p>Nenhuma candidatura encontrada com esses filtros.</p><button type="button" class="btn-confirma" data-limpar-filtros>Limpar filtros</button></li>`;
   $("#mais").hidden = list.length <= state.limit;
   $("#mais").textContent = `Mostrar mais ${Math.min(PAGE, list.length - state.limit)} de ${int(list.length - state.limit)} restantes`;
@@ -271,6 +278,7 @@ function renderModo() {
   syncTabs($("#modos"));
   document.body.dataset.visao = state.modo; // CSS hides the controls that only the radar list uses; not data-modo, which selects the tabs
   $("#painel").setAttribute("aria-labelledby", `tab-${state.modo}`);
+  document.title = tituloDaAba($(`#tab-${state.modo}`).textContent!.trim());
   $("#radar-view").hidden = state.modo !== "radar";
   $("#exp-view").hidden = state.modo !== "expectativa";
   $("#rede-view").hidden = state.modo !== "rede";
@@ -329,7 +337,13 @@ function bind() {
   $<HTMLInputElement>("#mostrarFotos").checked = state.mostrarFotos;
   $("#mostrarFotos").addEventListener("change", (e) => { state.mostrarFotos = (e.target as HTMLInputElement).checked; store.set("fotos", state.mostrarFotos); renderList(); renderDossierPanel(); if (state.mostrarFotos) loadFotos(); mostrarAoVivo(); });
   $("#situacao").addEventListener("change", (e) => { state.situacao = (e.target as HTMLSelectElement).value; state.limit = PAGE; render(); });
-  $("#mais").addEventListener("click", () => { state.limit += PAGE; renderList(); });
+  $("#mais").addEventListener("click", () => {
+    const primeiroNovo = state.limit;
+    state.limit += PAGE;
+    renderList();
+    // The button hides at the end of the list and would drop focus to <body>.
+    if ($("#mais").hidden) document.querySelectorAll<HTMLElement>("#lista .cand")[primeiroNovo]?.focus();
+  });
   let pesosRaf = 0;
   $("#pesos").addEventListener("input", (e) => {
     const input = e.target as HTMLInputElement;
@@ -468,7 +482,14 @@ async function abrirLink() {
   linkPendente = v;
 }
 
-const sobre = () => { const on = location.hash === "#sobre"; document.body.classList.toggle("sobre", on); if (on) scrollTo(0, 0); }; // the explanations are their own screen, available even before the data loads
+// The explanations are their own screen, available even before the data loads. Focus follows the screen: the heading in, the main landmark back.
+const sobre = () => {
+  const on = location.hash === "#sobre";
+  const estava = document.body.classList.contains("sobre");
+  document.body.classList.toggle("sobre", on);
+  if (on) { scrollTo(0, 0); $("#metodo-t").focus({ preventScroll: true }); }
+  else if (estava) $("#principal").focus({ preventScroll: true });
+};
 addEventListener("hashchange", sobre);
 sobre();
 
@@ -491,7 +512,8 @@ async function main() {
   bind();
   await loadUf();
   document.body.classList.add("ready"); // the method text below stays hidden until the list has its final height
+  if (location.hash === "#sobre") $("#metodo-t").focus({ preventScroll: true }); // sobre() ran before the method text was shown
 }
 
-// The error goes in the radar list, so show the radar view even when another tab was saved (renderModo never ran).
-main().catch((e) => { document.body.classList.add("ready"); document.body.dataset.visao = "radar"; $("#lista").innerHTML = `<li class="empty"><p>Não foi possível carregar os dados (${h(e.message)}).</p><button type="button" class="btn-confirma" data-retry-main>Tentar novamente</button></li>`; });
+// The cause goes to the console: the page only tells the reader what to do, not the file that failed.
+main().catch((e) => { console.error(e); document.body.classList.add("ready"); document.body.dataset.visao = "radar"; $("#lista").classList.remove("carregando"); $("#lista").innerHTML = `<li class="empty"><p role="alert">Não foi possível carregar os dados. Verifique a conexão e tente de novo.</p><button type="button" class="btn-confirma" data-retry-main>Tentar novamente</button></li>`; });

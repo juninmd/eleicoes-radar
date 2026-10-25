@@ -126,8 +126,8 @@ export function renderRede({ rede, cand, sel }: { rede: Rede | null; cand?: Cand
       ${cand ? `<button type="button" class="btn-confirma" data-rede-geral>Voltar à visão geral</button>` : ""}</p>
     <svg viewBox="0 0 ${W} ${H}" role="group" aria-label="Grafo de partidos, fornecedores e políticos">${edges}${dots}</svg>
     <div class="rede-detail" aria-live="polite">${detail(selNode, rede)}</div>
-    ${cand ? "" : `<h3>Fornecedores mais compartilhados</h3><div class="scroll"><table class="agenda"><thead><tr><th>Empresa</th><th>Políticos</th><th>Recebido</th><th></th></tr></thead><tbody>${top}</tbody></table></div>`}
-    ${cand || !novas ? "" : `<h3>Empresas novas que mais receberam <small>abertas menos de 1 ano antes do 1º pagamento, mín. R$ 50 mil</small></h3><div class="scroll"><table class="agenda"><thead><tr><th>Empresa</th><th>Abertura</th><th>Políticos</th><th>Recebido</th></tr></thead><tbody>${novas}</tbody></table></div>`}
+    ${cand ? "" : `<h3>Fornecedores mais compartilhados</h3><div class="scroll"><table class="agenda"><caption class="sr">Fornecedores que receberam de mais políticos</caption><thead><tr><th scope="col">Empresa</th><th scope="col">Políticos</th><th scope="col">Recebido</th><th scope="col"></th></tr></thead><tbody>${top}</tbody></table></div>`}
+    ${cand || !novas ? "" : `<h3>Empresas novas que mais receberam <small>abertas menos de 1 ano antes do 1º pagamento, mín. R$ 50 mil</small></h3><div class="scroll"><table class="agenda"><caption class="sr">Empresas abertas há menos de 1 ano que mais receberam</caption><thead><tr><th scope="col">Empresa</th><th scope="col">Abertura</th><th scope="col">Políticos</th><th scope="col">Recebido</th></tr></thead><tbody>${novas}</tbody></table></div>`}
     <p class="muted small">Dados do TSE, da cota parlamentar e da Receita Federal. Uma empresa atender vários políticos, ou aparecer com sinal, não indica irregularidade por si só.</p>
   </section>`;
 }

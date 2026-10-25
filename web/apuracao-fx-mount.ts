@@ -53,7 +53,7 @@ export function criarFx({ el, anunciar, estado }: FxDeps) {
       caixa.innerHTML = `<p class="apu-aviso"><b>Simulação.</b> Candidaturas, partidos, horários e números inventados: nada aqui é dado real. Use os controles para tocar, pausar ou voltar no tempo.</p>
         <div class="fx-deck-linha">
           <button type="button" class="ghost" data-demo="play"></button><button type="button" class="ghost" data-demo="reinicia">Recomeçar</button>
-          <span class="muted small">Velocidade</span>${[1, 3, 8].map((v) => `<button type="button" class="ghost" data-demo="vel" data-vel="${v}">×${v}</button>`).join("")}
+          <span class="muted small">Velocidade</span>${[1, 3, 8].map((v) => `<button type="button" class="ghost" data-demo="vel" data-vel="${v}" aria-label="Velocidade ${v} ${v === 1 ? "vez" : "vezes"}">×${v}</button>`).join("")}
           <label class="demo-cursor"><span class="sr">Momento da noite simulada</span><input type="range" id="demo-scrub" min="0" max="${PASSOS - 1}" step="1" value="${demo.i}"></label>
           <output class="demo-hora" for="demo-scrub"></output>
         </div>`;

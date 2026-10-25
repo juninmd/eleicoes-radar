@@ -28,7 +28,7 @@ export function criarTopo({ topo, mudarFonte, irPara, pronto, telaCheia, cheia }
       <p class="apu-aviso"><b>Simulação.</b> Cada disputa termina no resultado final real do 1º turno no TSE (o 2º turno vem do modelo da visão Cidades), mas nomes, partidos, horários e o caminho da noite são inventados: nenhuma candidatura real aparece com número inventado. Nada aqui é resultado.</p>
       <div class="fx-deck-linha">
         <button type="button" class="ghost" data-sim="play"></button><button type="button" class="ghost" data-sim="reinicia">Recomeçar</button>
-        <span class="muted small">Velocidade</span>${[1, 3, 8].map((v) => `<button type="button" class="ghost" data-sim="vel" data-vel="${v}">×${v}</button>`).join("")}
+        <span class="muted small">Velocidade</span>${[1, 3, 8].map((v) => `<button type="button" class="ghost" data-sim="vel" data-vel="${v}" aria-label="Velocidade ${v} ${v === 1 ? "vez" : "vezes"}">×${v}</button>`).join("")}
         <label class="demo-cursor"><span class="sr">Momento da noite simulada</span><input type="range" id="sim-scrub" min="0" max="${PASSOS - 1}" step="1" value="${st.k}"></label>
         <output class="demo-hora" for="sim-scrub"></output>
       </div>

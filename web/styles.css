@@ -122,7 +122,7 @@ body:not(.ready) .metodo { display: none; } /* it would sit in view until the li
 .legend { font-size: 12px; color: var(--muted); margin: 0 0 8px; }
 
 #lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-.cand { box-shadow: var(--shadow); width: 100%; display: grid; grid-template-columns: 28px 76px 36px minmax(0, 1fr) 96px 70px; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: 10px 12px; text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
+.cand { box-shadow: var(--shadow); position: relative; width: 100%; display: grid; grid-template-columns: 28px 76px 36px minmax(0, 1fr) 96px 70px; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: 10px 12px; text-align: left; font: inherit; color: var(--ink); cursor: pointer; }
 .cand:hover { border-color: var(--ink-2); }
 .cand.open { border-color: var(--confirma); box-shadow: inset 4px 0 0 var(--confirma); }
 .cand .pos { font: 500 12px var(--mono); color: var(--muted); text-align: right; }
@@ -332,8 +332,10 @@ html { scroll-behavior: smooth; }
 #dossie:not([hidden]) { animation: slide-in 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 body.sobre .metodo > * { animation: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 body.sobre .metodo > :nth-child(3) { animation-delay: 0.08s; } body.sobre .metodo > :nth-child(4) { animation-delay: 0.16s; }
-#achados:empty, #lista:empty { background: linear-gradient(100deg, var(--surface) 30%, var(--panel-2) 50%, var(--surface) 70%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
-#lista:empty { min-height: 160px; border-radius: var(--r-lg); }
+#achados:empty, #lista.carregando { background: linear-gradient(100deg, var(--surface) 30%, var(--panel-2) 50%, var(--surface) 70%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+/* A class, not :empty: the loading text inside the list would otherwise drop the reserved height (CLS). */
+#lista.carregando { min-height: 160px; border-radius: var(--r-lg); }
+#lista.carregando .empty { background: none; } /* the shimmer is the loading state; the message sits on it */
 @supports (animation-timeline: view()) {
   .box, .metodo > div { animation: rise linear both; animation-timeline: view(); animation-range: entry 0% entry 35%; }
 }
@@ -382,6 +384,7 @@ body[data-visao="aovivo"] #cedulas { display: none; } /* the Ao vivo tab shows e
 
 .canais { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px; }
 .canais a { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 4px 12px; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; }
+@media (max-width: 860px) { .btn-ghost, .canais a { min-height: 44px; } } /* WCAG 2.5.5 touch target on phones */
 .canais a:hover, .canais a:focus-visible { background: var(--sunk); }
 .seguidores { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
 .seguidores li { display: flex; justify-content: space-between; gap: 10px; }

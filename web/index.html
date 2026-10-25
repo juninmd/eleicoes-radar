@@ -76,7 +76,7 @@
     <div id="painel" role="tabpanel" aria-labelledby="tab-radar">
     <div id="cedulas" role="tablist" aria-label="Cédulas na ordem da urna"></div>
     <div id="cedula-painel" role="tabpanel">
-    <div id="exp-view" hidden aria-live="polite"></div>
+    <div id="exp-view" hidden></div>
     <div id="rede-view" hidden></div>
     <div id="live-view" hidden></div>
     <div id="apu-view" hidden></div>
@@ -98,7 +98,7 @@
       <p><b>Nenhuma candidatura desta cédula tem dado para os indicadores que você escolheu.</b> Agenda e mandato vêm de votos e gastos na Câmara, que quem disputa este cargo em geral não tem. Sem nota, a ordem “Nota técnica” e “Mais evidência” cai para a arrecadação.</p>
       <button type="button" class="btn-confirma" id="usar-campanha">Usar os pesos de Campanha</button>
     </div>
-    <ol id="lista" aria-label="Candidaturas" tabindex="-1"></ol>
+    <ol id="lista" class="carregando" aria-label="Candidaturas" tabindex="-1"><li class="empty"><p role="status">Carregando candidaturas…</p></li></ol>
     <button type="button" id="mais" hidden>Mostrar mais</button>
     </div>
     </div>
@@ -111,7 +111,7 @@
 
 <section class="wrap metodo" id="sobre" aria-labelledby="metodo-t">
   <a class="voltar" href="#">← Voltar ao radar</a>
-  <h2 id="metodo-t">Como funciona</h2>
+  <h2 id="metodo-t" tabindex="-1">Como funciona</h2>
   <div>
     <h3>Em uma frase</h3>
     <p>A nota olha para o que cada candidato fez, com os pesos que você escolhe. Indicadores de agenda usam votos reais em plenário; quem não tem mandato na Câmara fica no meio da escala. Fotos podem ser escondidas para uma avaliação às cegas.</p>
