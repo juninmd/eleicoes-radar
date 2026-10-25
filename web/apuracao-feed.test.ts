@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { createFeed, HttpError, maisRecente, POLL_MS } from "./apuracao-feed.js";
+import { POLL_LENTO_MS } from "./apuracao-ritmo.js";
 import type { Feed, FeedSnapshot } from "./apuracao-feed.js";
 import type { Apuracao } from "./apuracao-tse.js";
 
@@ -104,7 +105,7 @@ describe("createFeed", () => {
     expect(r.events.at(-1)).toMatchObject({ status: "ok", dados: data(3), erro: null });
   });
 
-  test("consecutive failures back off (doubling, capped at 5 min) and the first good answer restores the rhythm", async () => {
+  test("consecutive failures back off (tolerates one, then doubling, capped at 2 min) and the first good answer restores the rhythm", async () => {
     const r = rig();
     r.feed.follow("u1");
     const esperas: number[] = [];
@@ -114,7 +115,7 @@ describe("createFeed", () => {
       esperas.push(r.timers[0].ms);
       await r.fire();
     }
-    expect(esperas).toEqual([120_000, 240_000, 300_000]); // POLL_MS = 60 s, doubled per failure
+    expect(esperas).toEqual([POLL_MS, POLL_LENTO_MS, POLL_LENTO_MS]); // the first failure is tolerated; then doubled, capped at 2 min
     r.calls[3].resolve(data(1));
     await flush();
     expect(r.timers[0].ms).toBe(POLL_MS);
@@ -127,7 +128,7 @@ describe("createFeed", () => {
     r.feed.follow("b"); abortada(0); await flush();
     r.feed.follow("c"); abortada(1); await flush();
     r.calls[2].reject(new TypeError("Failed to fetch")); await flush();
-    expect(r.timers[0].ms).toBe(120_000); // one real failure only: the two cancelled requests do not count
+    expect(r.timers[0].ms).toBe(POLL_MS); // one real failure only: the two cancelled requests do not count
   });
 
   test("refresh() cancels the request in flight without counting it as a failure", async () => {
@@ -136,7 +137,7 @@ describe("createFeed", () => {
     r.feed.refresh();
     r.calls[0].reject(Object.assign(new Error("The operation was aborted."), { name: "AbortError" })); await flush();
     r.calls[1].reject(new TypeError("Failed to fetch")); await flush();
-    expect(r.timers[0].ms).toBe(120_000);
+    expect(r.timers[0].ms).toBe(POLL_MS);
   });
 
   test("a new race starts with a clean count of failures", async () => {
@@ -145,7 +146,7 @@ describe("createFeed", () => {
     r.calls[0].reject(new TypeError("Failed to fetch")); await flush();
     r.feed.follow("b");
     r.calls[1].reject(new TypeError("Failed to fetch")); await flush();
-    expect(r.timers[0].ms).toBe(120_000); // the failure of "a" does not double the wait of "b"
+    expect(r.timers[0].ms).toBe(POLL_MS); // the failure of "a" does not double the wait of "b"
   });
 
   test("a 404 means the TSE has not published this file, and is not a failure", async () => {

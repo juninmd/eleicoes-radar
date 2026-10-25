@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { HttpError, POLL_MS } from "./apuracao-feed.js";
+import { POLL_LENTO_MS } from "./apuracao-ritmo.js";
 import { createBrasilFeed, EXTERIOR, UFS, ufsDo } from "./apuracao-uf.js";
 import type { BrasilFeed, BrasilSnapshot } from "./apuracao-uf.js";
 import type { Apuracao } from "./apuracao-tse.js";
@@ -51,7 +52,7 @@ describe("ufsDo", () => {
 });
 
 describe("createBrasilFeed", () => {
-  test("a cycle where the TSE fails everywhere backs off: the wait doubles up to 5 min, and one good state restores it", async () => {
+  test("a cycle where the TSE fails everywhere backs off: one failure is tolerated, then the wait doubles up to 2 min, and one good state restores it", async () => {
     const r = rig();
     const ciclo = async (resposta: (c: Call) => void) => { while (r.inflight().length) { resposta(r.inflight()[0]); await flush(); } };
     r.feed.follow("Governador");
@@ -62,7 +63,7 @@ describe("createBrasilFeed", () => {
       esperas.push(r.timers[0].ms);
       await r.fire();
     }
-    expect(esperas).toEqual([2 * POLL_MS, 4 * POLL_MS, 5 * 60_000]);
+    expect(esperas).toEqual([POLL_MS, POLL_LENTO_MS, POLL_LENTO_MS]);
     await ciclo((c) => { c.done = true; c.resolve({ fase: "parcial", n: 1 } as unknown as Apuracao); });
     expect(r.timers[0].ms).toBe(POLL_MS);
   });

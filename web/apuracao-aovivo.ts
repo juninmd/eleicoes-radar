@@ -473,6 +473,7 @@ export function mountAoVivo(el: HTMLElement) {
   });
   document.addEventListener("pointerdown", () => som.desbloquear());
   document.addEventListener("visibilitychange", () => { if (!document.hidden) { feeds.forEach((f) => f.refresh()); brasil?.refresh(); nacFeed?.refresh(); } });
+  window.addEventListener("online", () => { feeds.forEach((f) => f.refresh()); brasil?.refresh(); nacFeed?.refresh(); }); // back online: skip the wait the backoff set
 
   return {
     show(next: Contexto) {

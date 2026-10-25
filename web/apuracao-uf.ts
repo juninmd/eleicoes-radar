@@ -1,7 +1,7 @@
 // Polls the results file of every state for one office (the map and the national tally need all of
 // them). Same rules as createFeed: injected clock/network/visibility, a token against stale answers,
 // a failing state keeps its last numbers, and a renderer error never stops the cycle.
-import { BACKOFF_MAX_MS, HttpError, loadResultado, maisRecente, POLL_MS } from "./apuracao-feed.js";
+import { esperaComRecuo, HttpError, loadResultado, maisRecente, POLL_MS } from "./apuracao-feed.js";
 import type { FeedStatus, Loader, Timers } from "./apuracao-feed.js";
 import { tseUrl } from "./apuracao-tse.js";
 import type { Apuracao, Cargo } from "./apuracao-tse.js";
@@ -67,13 +67,14 @@ export function createBrasilFeed({ load = loadResultado, url = tseUrl, onChange,
     falhas = !estados.includes("ok") && estados.includes("erro") ? falhas + 1 : 0;
     snap = { ...snap, ciclo: snap.ciclo + 1, buscadoEm: now() };
     notify();
-    timer = timers.set(tick, falhas === 0 ? every : Math.min(every * 2 ** falhas, BACKOFF_MAX_MS));
+    timer = timers.set(tick, esperaComRecuo(every, falhas));
   }
 
   return {
     follow(next) {
       if (next === cargo) return;
       cancel();
+      falhas = 0;
       cargo = next;
       snap = { cargo, ciclo: 0, buscadoEm: null, ufs: Object.fromEntries(ufsDo(cargo).map((uf): [string, UfEstado] => [uf, vazio()])) };
       notify();
@@ -86,6 +87,7 @@ export function createBrasilFeed({ load = loadResultado, url = tseUrl, onChange,
     },
     stop() {
       cancel();
+      falhas = 0;
       cargo = null;
     },
   };

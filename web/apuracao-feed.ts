@@ -2,7 +2,7 @@
 // visibility are injected, so the timing rules can be tested.
 import { parseApuracao } from "./apuracao-tse.js";
 import type { Apuracao } from "./apuracao-tse.js";
-import { intervaloDe } from "./apuracao-ritmo.js";
+import { intervaloDe, POLL_LENTO_MS } from "./apuracao-ritmo.js";
 
 // The TSE caches each file for 20 to 45 s (Cache-Control max-age), so polling faster only repeats answers.
 export const POLL_MS = 60_000;
@@ -16,8 +16,9 @@ export class HttpError extends Error {
 }
 
 const TIMEOUT_MS = 20_000;
-// A TSE that fails for hours is not asked every minute: each consecutive failure doubles the wait, up to this cap.
-export const BACKOFF_MAX_MS = 5 * 60_000;
+// A TSE that fails for hours is not asked every few seconds: from the second failure in a row the wait doubles, up to this cap.
+export const BACKOFF_MAX_MS = POLL_LENTO_MS;
+export const esperaComRecuo = (base: number, falhas: number): number => (falhas <= 1 ? base : Math.min(base * 2 ** (falhas - 1), BACKOFF_MAX_MS));
 
 // Date and time of a file as one sortable number; NaN when the file does not say.
 export type Versionado = { versao?: { data?: string; hora?: string } | null } | null | undefined;
@@ -83,7 +84,7 @@ export function createFeed({ load = loadResultado, onChange, every, timers = { s
   let snap: FeedSnapshot = { url: null, status: "carregando", dados: null, buscadoEm: null, erro: null };
   let falhas = 0; // consecutive failures of the TSE (a 404 is not one)
   const espera = () => (typeof every === "number" ? every : (every ?? ((s: FeedSnapshot) => intervaloDe(s.dados, now(), POLL_MS)))(snap));
-  const proxima = () => (falhas === 0 ? espera() : Math.min(espera() * 2 ** falhas, BACKOFF_MAX_MS));
+  const proxima = () => esperaComRecuo(espera(), falhas);
 
   // A renderer bug must never stop the polling: the next tick may bring numbers it can draw.
   const notify = () => {
