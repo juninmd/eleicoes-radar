@@ -42,14 +42,14 @@ describe("supplier sidecar client", () => {
     expect(cands[2]!.fornecedores).toBeUndefined(); // another UF: untouched
   });
 
-  test("a UF without a sidecar (older build) is not an error: every candidate reads as having none", async () => {
+  test("a missing sidecar (404: a deploy that shipped the new data without it) is a failure, never an empty list", async () => {
     const { get } = rede({});
     const f = createFornecedores(get);
-    await expect(f.carregar("AC")).resolves.toEqual({});
-    expect(f.estado("AC")).toBe("pronto");
+    await expect(f.carregar("AC")).rejects.toThrow();
+    expect(f.estado("AC")).toBe("erro"); // the dossier offers "Tentar de novo" instead of claiming there are none
     const cands = [cand("1", "AC")];
     f.aplicar(cands, "AC");
-    expect(cands[0]!.fornecedores).toBeNull();
+    expect(cands[0]!.fornecedores).toBeUndefined();
   });
 
   test("a network failure is an error state, not retried by itself; tentar() asks again", async () => {

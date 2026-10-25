@@ -19,7 +19,6 @@ export function createFornecedores(get: (url: string) => Promise<Response> = (ur
     if (falhas.has(uf)) return Promise.reject(new Error(`fornecedores de ${uf} indisponíveis`));
     const p = get(`data/uf/${uf}-forn.json`)
       .then(async (r) => {
-        if (r.status === 404) return {}; // build antigo: a UF não tem sidecar, então nenhum fornecedor fora do JSON da UF
         if (!r.ok) throw new Error(`${r.status} fornecedores de ${uf}`);
         return (await r.json()) as Mapa;
       })
