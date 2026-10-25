@@ -195,7 +195,7 @@ const renderCola = () => { $("#cola-lista").innerHTML = colaHtml(state.cola, BAL
 function abrirUf(uf: string) {
   state.uf = uf;
   state.limit = PAGE;
-  state.open = null;
+  setOpen(null);
   store.set("uf", uf);
   $<HTMLSelectElement>("#uf").value = uf;
   loadUf();
@@ -266,7 +266,7 @@ function render() {
 
 function bind() {
   $<HTMLSelectElement>("#uf").value = state.uf;
-  $("#uf").addEventListener("change", (e) => { state.uf = (e.target as HTMLSelectElement).value; state.limit = PAGE; state.open = null; store.set("uf", state.uf); loadUf(); });
+  $("#uf").addEventListener("change", (e) => { state.uf = (e.target as HTMLSelectElement).value; state.limit = PAGE; setOpen(null); store.set("uf", state.uf); loadUf(); });
   // Espera a digitação parar: evita recriar a lista inteira a cada tecla.
   let buscaT = 0;
   $("#busca").addEventListener("input", (e) => {
@@ -321,7 +321,7 @@ function bind() {
     if ("redeGeral" in t.dataset) { state.redeFoco = null; state.redeSel = null; renderModo(); return; }
     if (t.dataset.rede) { state.redeSel = state.redeSel === t.dataset.rede ? null : t.dataset.rede; renderModo(); return; }
     if (t.id === "exp-mais") { state.limit += PAGE; renderModo(); return; }
-    if (t.dataset.ballot) { state.ballot = Number(t.dataset.ballot); state.limit = PAGE; state.open = null; render(); loadFotos(); }
+    if (t.dataset.ballot) { state.ballot = Number(t.dataset.ballot); state.limit = PAGE; setOpen(null); render(); loadFotos(); }
     else if (t.dataset.open) setOpen(state.open === t.dataset.open ? null : t.dataset.open);
     else if ("close" in t.dataset) setOpen(null);
     else if (t.dataset.cola) {
@@ -338,6 +338,7 @@ function bind() {
     if (e.key === "Escape") {
       if (state.open) { setOpen(null); return; }
       if (active?.id === "busca") {
+        clearTimeout(buscaT);
         (active as HTMLInputElement).value = "";
         state.busca = "";
         state.limit = PAGE;
@@ -381,8 +382,12 @@ abrirLink();
 
 const sobre = () => { const on = location.hash === "#sobre"; document.body.classList.toggle("sobre", on); if (on) scrollTo(0, 0); }; // the explanations are their own screen, available even before the data loads
 function parseCandLink(hash: string): { id: string; uf?: string } | null {
-  const m = hash.match(/^#cand=([^&]+)(?:&uf=([A-Za-z]{2}))?/);
-  return m ? { id: decodeURIComponent(m[1]), uf: m[2]?.toUpperCase() } : null;
+  try {
+    const m = hash.match(/^#cand=([^&]+)(?:&uf=([A-Za-z]{2}))?/);
+    return m ? { id: decodeURIComponent(m[1]), uf: m[2]?.toUpperCase() } : null;
+  } catch {
+    return null;
+  }
 }
 
 addEventListener("hashchange", () => {
@@ -393,7 +398,11 @@ addEventListener("hashchange", () => {
     const c = state.cands.find((x) => x.id === cl.id);
     if (c) {
       const bIdx = ballotOf(c);
-      if (bIdx >= 0 && bIdx !== state.ballot) state.ballot = bIdx;
+      if (bIdx >= 0 && bIdx !== state.ballot) {
+        state.ballot = bIdx;
+        renderTabs();
+        loadFotos();
+      }
       setOpen(c.id);
     }
   }
@@ -421,7 +430,11 @@ async function main() {
     const c = state.cands.find((x) => x.id === candLink.id);
     if (c) {
       const bIdx = ballotOf(c);
-      if (bIdx >= 0) state.ballot = bIdx;
+      if (bIdx >= 0) {
+        state.ballot = bIdx;
+        renderTabs();
+        loadFotos();
+      }
       setOpen(c.id);
     }
   }
