@@ -45,12 +45,12 @@ function indicatorRows(c: Candidatura) {
 
 function mandateBlock(m: Candidatura["mandato"]) {
   if (!m) {
-    return `<section><h3>Mandato na Câmara</h3><p class="muted">Sem mandato de deputado federal em 2023–2026. Os indicadores de trabalho legislativo não se aplicam, e a nota usa só os dados de campanha.</p></section>`;
+    return `<section id="d-mandato"><h3>Mandato na Câmara</h3><p class="muted">Sem mandato de deputado federal em 2023–2026. Os indicadores de trabalho legislativo não se aplicam, e a nota usa só os dados de campanha.</p></section>`;
   }
   const v = m.votos, p = m.projetos, cota = m.cota, e = m.emendas;
   const link = `https://www.camara.leg.br/deputados/${m.id}`;
   return `
-    <section>
+    <section id="d-mandato">
       <h3>Mandato na Câmara <a class="ext" href="${link}" target="_blank" rel="noopener noreferrer">perfil oficial ↗</a></h3>
       <p class="muted">Como <b>${h(m.nome)}</b> (${h(m.partido)}-${h(m.uf)}), legislatura 2023–2026.</p>
       <div class="facts">
@@ -69,7 +69,7 @@ function mandateBlock(m: Candidatura["mandato"]) {
 
 function agendaBlock(m: Candidatura["mandato"], agenda: AgendaConfig | null) {
   if (!agenda) return "";
-  if (!m) return `<section><h3>Votos na sua agenda</h3><p class="muted">Sem mandato na Câmara: não há votos para comparar. Na nota, esses indicadores contam como medianos (50).</p></section>`;
+  if (!m) return `<section id="d-agenda"><h3>Votos na sua agenda</h3><p class="muted">Sem mandato na Câmara: não há votos para comparar. Na nota, esses indicadores contam como medianos (50).</p></section>`;
   const votos = m.agenda?.votos ?? {};
   const rows = Object.values(agenda.temas).flatMap((t) => t.votos.map((v) => {
     const voto = votos[v.id];
@@ -77,7 +77,7 @@ function agendaBlock(m: Candidatura["mandato"], agenda: AgendaConfig | null) {
     return `<tr><td><b>${h(t.nome)}</b><br>${h(v.proposicao)} · ${h(v.resumo)}<br><small class="muted">Voto da agenda: ${h(v.posicao)}. ${h(v.porque)}</small></td>
       <td class="voto">${h(voto ?? "–")}</td><td><span class="pill ${status[0]}">${h(status[1])}</span></td></tr>`;
   })).join("");
-  return `<section><h3>Votos na sua agenda <small>(lista editável em src/radar/agenda.json)</small></h3>
+  return `<section id="d-agenda"><h3>Votos na sua agenda <small>(lista editável em src/radar/agenda.json)</small></h3>
     <div class="scroll"><table class="agenda"><caption class="sr">Como o candidato votou em cada votação da agenda</caption><thead><tr><th scope="col">Votação</th><th scope="col">Votou</th><th scope="col"></th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }
 
@@ -104,9 +104,9 @@ function trajetoriaBlock(c: Candidatura) {
     f?.federacao && `Federação: ${h(titleName(f.federacao))}`,
     f?.coligacao && `Coligação: ${h(titleName(f.coligacao))}`,
   ].filter(Boolean).join(" · ");
-  if (!bio) return `<section><h3>Ficha e trajetória</h3>${ficha ? `<p>${ficha}</p>` : ""}<p class="muted">Sem cargos públicos registrados nas fontes consultadas (Câmara, Senado, Wikidata).</p></section>`;
+  if (!bio) return `<section id="d-traj"><h3>Ficha e trajetória</h3>${ficha ? `<p>${ficha}</p>` : ""}<p class="muted">Sem cargos públicos registrados nas fontes consultadas (Câmara, Senado, Wikidata).</p></section>`;
   const itens = bio.trajetoria.map((t) => `<li><span class="anos">${h(ano(t.inicio) || "?")}–${h(ano(t.fim) || (t.fim === null && t.inicio ? "" : "?"))}</span><span>${h(t.cargo)}</span><span class="fonte">${h(t.fonte)}</span></li>`).join("");
-  return `<section><h3>Ficha e trajetória${bio.wikidata ? ` <a class="ext" href="https://www.wikidata.org/wiki/${h(bio.wikidata)}" target="_blank" rel="noopener noreferrer">Wikidata ↗</a>` : ""}</h3>
+  return `<section id="d-traj"><h3>Ficha e trajetória${bio.wikidata ? ` <a class="ext" href="https://www.wikidata.org/wiki/${h(bio.wikidata)}" target="_blank" rel="noopener noreferrer">Wikidata ↗</a>` : ""}</h3>
     ${ficha ? `<p>${ficha}</p>` : ""}
     ${itens ? `<ul class="traj">${itens}</ul>` : `<p class="muted">Nenhum cargo público registrado nas fontes consultadas.</p>`}
     ${bio.trajetoria.some((t) => t.fonte === "Wikidata") ? `<p class="muted small">Itens marcados Wikidata vêm de base colaborativa; confira no link.</p>` : ""}
@@ -118,7 +118,7 @@ function patrimonioBlock(p: Candidatura["patrimonio"]) {
   const antes = p.total2022;
   const delta = antes !== null && antes > 0 ? (p.total - antes) / antes : null;
   const cmp = antes === null ? "" : `<p class="muted">Em 2022 declarou ${money(antes)}${delta !== null ? `: variação nominal de ${delta >= 0 ? "+" : "−"}${pct(Math.abs(delta))}, sem descontar inflação` : ""}.</p>`;
-  return `<section><h3>Patrimônio declarado <small>ao TSE</small></h3>
+  return `<section id="d-bens"><h3>Patrimônio declarado <small>ao TSE</small></h3>
     <div class="facts"><div><span class="big">${moneyShort(p.total)}</span><span>em ${int(p.n)} ${p.n === 1 ? "bem" : "bens"} declarados</span></div></div>
     ${p.tipos.length ? `<p class="muted">Maiores grupos: ${p.tipos.map((t) => `${h(t.tipo)} ${moneyShort(t.valor)}`).join(" · ")}</p>` : ""}${cmp}
     <p class="muted small">Valores autodeclarados, em reais nominais; não passam por auditoria.</p></section>`;
@@ -126,7 +126,7 @@ function patrimonioBlock(p: Candidatura["patrimonio"]) {
 
 function registroBlock(motivos: Candidatura["motivos"]) {
   if (!motivos) return "";
-  return `<section><h3>Situação do registro <small>Justiça Eleitoral</small></h3>
+  return `<section id="d-reg"><h3>Situação do registro <small>Justiça Eleitoral</small></h3>
     <p class="flag"><b>Para conferir:</b> a candidatura tem fundamento de indeferimento ou impugnação registrado no TSE: ${motivos.map(h).join("; ")}.</p>
     <p class="muted small">Não é condenação nem decisão final: pode haver recurso ou regularização. Confirme o andamento no DivulgaCandContas.</p></section>`;
 }
@@ -134,7 +134,7 @@ function registroBlock(motivos: Candidatura["motivos"]) {
 export function propostaBlock(p: Candidatura["proposta"], id: string) {
   if (!p) return "";
   const tam = p.kb >= 1024 ? `${(p.kb / 1024).toFixed(1).replace(".", ",")} MB` : `${int(p.kb)} KB`;
-  return `<section><h3>Proposta de governo <small>registrada no TSE</small></h3>
+  return `<section id="d-prop"><h3>Proposta de governo <small>registrada no TSE</small></h3>
     <p><a class="ext" href="data/propostas/${h(id)}.pdf" download="proposta-${h(id)}.pdf">Baixar o plano (PDF, ${tam}) ↓</a></p>
     <p class="muted small">Arquivo original enviado pela candidatura ao TSE, sem alteração. O Radar não resume nem avalia o conteúdo.</p></section>`;
 }
@@ -143,7 +143,7 @@ function atuacaoBlock(bio: Candidatura["bio"]) {
   const a = bio?.atuacao;
   if (!a) return "";
   const com = a.comissoes.map((c) => `<li><span>${h(c.nome)} <small class="muted">(${h(c.sigla)})</small></span><span class="fonte">${h(c.titulo)}</span></li>`).join("");
-  return `<section><h3>Atuação parlamentar <small>legislatura 2023–2026</small></h3>
+  return `<section id="d-atuacao"><h3>Atuação parlamentar <small>legislatura 2023–2026</small></h3>
     <p class="muted">${a.discursos !== null ? `${int(a.discursos)} discursos em plenário · ` : ""}${a.frentes ? `${int(a.frentes)} frentes parlamentares` : ""}</p>
     ${com ? `<h4>Comissões</h4><ul class="traj">${com}</ul>` : ""}
     ${a.frentesDestaque?.length ? `<p class="muted small">Frentes (amostra): ${a.frentesDestaque.map(h).join(" · ")}</p>` : ""}</section>`;
@@ -151,7 +151,25 @@ function atuacaoBlock(bio: Candidatura["bio"]) {
 
 function resumoBlock(bio: Candidatura["bio"]) {
   const r = bio?.resumo;
-  return r ? `<section><h3>Resumo <a class="ext" href="${h(r.url)}" target="_blank" rel="noopener noreferrer">Wikipédia ↗</a></h3><p>${h(r.texto)}</p><p class="muted small">Texto de enciclopédia colaborativa; confira no link.</p></section>` : "";
+  return r ? `<section id="d-resumo"><h3>Resumo <a class="ext" href="${h(r.url)}" target="_blank" rel="noopener noreferrer">Wikipédia ↗</a></h3><p>${h(r.texto)}</p><p class="muted small">Texto de enciclopédia colaborativa; confira no link.</p></section>` : "";
+}
+
+export function dossierNav(c: Candidatura, exp: ExpPrev | null, agenda: AgendaConfig | null) {
+  const chips: { id: string; label: string }[] = [];
+  if (exp && c.prev) chips.push({ id: "d-prev", label: "Expectativa" });
+  if (c.proposta) chips.push({ id: "d-prop", label: "Proposta" });
+  if (c.patrimonio) chips.push({ id: "d-bens", label: "Bens" });
+  if (c.mandato && agenda) chips.push({ id: "d-agenda", label: "Votações" });
+  chips.push({ id: "d-inds", label: "Indicadores" });
+  chips.push({ id: "d-contas", label: "Campanha" });
+  if (c.fornecedores && c.fornecedores.length > 0) chips.push({ id: "d-forn", label: "Fornecedores" });
+  if (c.mandato) chips.push({ id: "d-mandato", label: "Mandato" });
+  if ((c.canais && c.canais.length > 0) || (c.bio?.seguidores && c.bio.seguidores.length > 0)) {
+    chips.push({ id: "d-canais", label: "Redes" });
+  }
+  return `<nav class="djump" aria-label="Navegar pelas seções do dossiê">
+    ${chips.map((ch) => `<a href="#${ch.id}">${h(ch.label)}</a>`).join("")}
+  </nav>`;
 }
 
 export function renderDossier(c: Candidatura, s: ReturnType<typeof score>, inCola: boolean, agenda: AgendaConfig | null, foto: string, exp: ExpPrev | null, forn: FornEstado = "pronto") {
@@ -176,6 +194,7 @@ export function renderDossier(c: Candidatura, s: ReturnType<typeof score>, inCol
         <button type="button" class="btn-confirma" data-cola="${h(c.id)}">${inCola ? "Tirar da cola" : "Pôr na cola"}</button>
       </div>
     </div>
+    ${dossierNav(c, exp, agenda)}
     ${prevBlock(c, exp)}
     ${resumoBlock(c.bio)}
     ${propostaBlock(c.proposta, c.id)}
@@ -184,8 +203,8 @@ export function renderDossier(c: Candidatura, s: ReturnType<typeof score>, inCol
     ${atuacaoBlock(c.bio)}
     ${patrimonioBlock(c.patrimonio)}
     ${agendaBlock(c.mandato, agenda)}
-    <section><h3>Indicadores <small>(0 a 100)</small></h3><ul class="inds">${indicatorRows(c)}</ul></section>
-    <section>
+    <section id="d-inds"><h3>Indicadores <small>(0 a 100)</small></h3><ul class="inds">${indicatorRows(c)}</ul></section>
+    <section id="d-contas">
       <h3>Dinheiro da campanha</h3>
       ${c.temContas === false ? `<p class="muted">Ainda sem prestação de contas no retrato do TSE.</p>` : ""}<p class="muted">${money(f.total)} arrecadados · ${int(f.doadoresPF)} doadores pessoa física · maior fonte única: ${pct(f.maiorDoador)} · ${money(f.gastos)} em gastos contratados</p>
       ${moneyBar(f)}
