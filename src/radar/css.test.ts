@@ -16,7 +16,7 @@ const build = () => {
 
 test("web/app.css is what `bun run css` builds from tailwind.css and the sheets (run it after editing one)", () => {
   expect(build()).toBe(read("web/app.css"));
-});
+}, 60_000); // a Tailwind build: over 5 s when the machine is busy
 
 test("the bundle has no @apply, @theme or @import left: they are all resolved at build time", () => {
   const css = read("web/app.css");
