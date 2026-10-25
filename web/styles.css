@@ -328,6 +328,7 @@ body.sobre .metodo > :nth-child(3) { animation-delay: 0.08s; } body.sobre .metod
 #achados:empty, #lista.carregando { background: linear-gradient(100deg, var(--surface) 30%, var(--panel-2) 50%, var(--surface) 70%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
 /* A class, not :empty: the loading text inside the list would otherwise drop the reserved height (CLS). */
 #lista.carregando { min-height: 160px; border-radius: var(--r-lg); }
+#lista.carregando .empty { background: none; } /* the shimmer is the loading state; the message sits on it */
 @supports (animation-timeline: view()) {
   .box, .metodo > div { animation: rise linear both; animation-timeline: view(); animation-range: entry 0% entry 35%; }
 }
