@@ -1,6 +1,7 @@
 // Panorama tabs (Partidos, Dinheiro, Alianças, Perfil): picks the data for the race on the
 // open ballot and hands it to one view per tab. Aggregates come from web/data/panorama.json.
 import { h } from "./format.js";
+import { PAN_MODES } from "./pan-modos.js";
 import { aliancasView } from "./pan-aliancas.js";
 import { dinheiroView } from "./pan-dinheiro.js";
 import { agendaView, partidosView } from "./pan-partidos.js";
@@ -20,7 +21,7 @@ export interface PanCtx {
   cands?: (AlCand & RedesCand & { uf: string })[];
 }
 
-export const PAN_MODES: Record<string, string> = { partidos: "Partidos", dinheiro: "Dinheiro", aliancas: "Alianças", perfil: "Perfil", redes: "Redes" };
+export { PAN_MODES };
 
 const seg = (attr: string, value: string, items: [string, string][]) => items.map(([k, nome]) => `<button type="button" data-${attr}="${k}" aria-pressed="${k === value}">${h(nome)}</button>`).join("");
 
