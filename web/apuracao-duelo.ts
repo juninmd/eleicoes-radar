@@ -44,7 +44,9 @@ function turno2(d: Apuracao, cargo: Cargo, uf: string): string {
     <details data-k="regra-2t"><summary>Como a conta funciona</summary><p>${regra}</p></details></div>`;
 }
 
-export function renderDuelo({ d, cargo, uf, cor }: { d: Apuracao | null | undefined; cargo: Cargo; uf: string; cor: CorDoPartido }): string {
+// `rotulos`: the share of each one printed inside its stretch of the bar; `pesquisa`: poll average by candidate id, drawn as a dashed tick
+// where the first name's share would sit if the count matched the polls (same base as the bar: valid votes).
+export function renderDuelo({ d, cargo, uf, cor, rotulos = false, pesquisa = {} }: { d: Apuracao | null | undefined; cargo: Cargo; uf: string; cor: CorDoPartido; rotulos?: boolean; pesquisa?: Record<string, number> }): string {
   if (!d || !UMA_VAGA.has(cargo) || d.fase === "aguardando") return "";
   const [a, b, ...demais] = [...d.candidatos].sort((x, y) => y.votos - x.votos);
   if (!a || !b || !(a.votos > 0)) return "";
@@ -52,12 +54,14 @@ export function renderDuelo({ d, cargo, uf, cor }: { d: Apuracao | null | undefi
   const falta = d.eleitorado.apto - d.eleitorado.apurado;
   const [corA, corB] = coresDoPar(a, b, cor);
   const linha = (c: Candidato, cc: string) => `<li><i class="key" style="background:${cc}"></i><span class="lg-nm">${nome(c)} <b>${pct(c.pct, 2)}</b></span> <span class="lg-fl">${c.pct > 0.5 ? "acima de 50% dos votos válidos até agora" : `faltam ${pp(0.5 - c.pct)} p.p. para 50%`}</span></li>`;
+  const pa = pesquisa[a.id];
+  const tickPesquisa = typeof pa === "number" && pa > 0 && pa < 1 ? `<span class="apu-duelo-pesq" style="left:${(pa * 100).toFixed(2)}%" title="${h(`Média das pesquisas: ${titleName(a.nome)} ${pct(pa, 1)}`)}" aria-hidden="true"></span>` : "";
   const aria = `Votos válidos até agora: ${titleName(a.nome)} ${pct(a.pct, 1)}, ${titleName(b.nome)} ${pct(b.pct, 1)}, demais ${pct(resto, 1)}. A linha do meio marca 50%.`;
   return `${turno2(d, cargo, uf)}
     <div class="apu-duelo">
       <div class="apu-duelo-trilho"><div class="apu-duelo-bar" role="img" aria-label="${h(aria)}">
-        <span class="seg" style="width:${(a.pct * 100).toFixed(2)}%;background:${corA}"></span><span class="seg" style="width:${(b.pct * 100).toFixed(2)}%;background:${corB}"></span><span class="seg resto"></span>
-      </div><span class="apu-duelo-tick" aria-hidden="true"></span></div>
+        <span class="seg" style="width:${(a.pct * 100).toFixed(2)}%;background:${corA}">${rotulos ? `<b>${pct(a.pct, 1)}</b>` : ""}</span><span class="seg" style="width:${(b.pct * 100).toFixed(2)}%;background:${corB}">${rotulos ? `<b>${pct(b.pct, 1)}</b>` : ""}</span><span class="seg resto"></span>
+      </div><span class="apu-duelo-tick" aria-hidden="true"></span>${tickPesquisa}</div>
       <ul class="apu-legenda apu-duelo-leg">${linha(a, corA)}${linha(b, corB)}${demais.length ? `<li><i class="key resto"></i><span class="lg-nm">${demais.length === 1 ? "1 outra candidatura" : `Demais ${int(demais.length)} candidaturas`} <b>${pct(resto, 1)}</b></span></li>` : ""}</ul>
       <p class="exp-read">Diferença entre os dois: <b>${pp(a.pct - b.pct)} p.p.</b> (${extenso(a.votos - b.votos)} de votos). A linha marca 50% dos votos válidos. Eleitores das seções que ainda faltam: <b>${extenso(falta)}</b>, contando quem não comparece.</p>
     </div>`;

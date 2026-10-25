@@ -119,3 +119,39 @@ export function ondeFalta(nac: BrasilSnapshot | null | undefined, esperado: Read
     placar: [...por].map(([id, n]) => ({ id, n })).sort((x, y) => y.n - x.n || x.id.localeCompare(y.id)),
   };
 }
+
+// The wave of votes: the states group into regions, and each region's votes still to come are priced at the share the region has
+// already shown (the Projeção's rule, one level up). `efeito` is how far that moves the first name's share of the two's votes: positive
+// pulls toward him. Not a forecast of who is elected; the sum of the effects is the Radar's base scenario for the final share.
+export const REGIOES: Record<string, string> = {
+  AC: "Norte", AM: "Norte", AP: "Norte", PA: "Norte", RO: "Norte", RR: "Norte", TO: "Norte",
+  AL: "Nordeste", BA: "Nordeste", CE: "Nordeste", MA: "Nordeste", PB: "Nordeste", PE: "Nordeste", PI: "Nordeste", RN: "Nordeste", SE: "Nordeste",
+  DF: "Centro-Oeste", GO: "Centro-Oeste", MS: "Centro-Oeste", MT: "Centro-Oeste",
+  ES: "Sudeste", MG: "Sudeste", RJ: "Sudeste", SP: "Sudeste",
+  PR: "Sul", RS: "Sul", SC: "Sul", ZZ: "Exterior",
+};
+export interface LinhaOnda { regiao: string; faltam: number; avanco: number; qa: number; efeito: number; ufs: number }
+export interface Onda { linhas: LinhaOnda[]; agora: number; final: number; faltam: number; semVotos: number }
+export function onda(nac: BrasilSnapshot | null | undefined, par: Par | null | undefined): Onda | null {
+  if (!nac || !par) return null;
+  const reg = new Map<string, { a: number; b: number; falta: number; apto: number; apurado: number; ufs: number }>();
+  let semVotos = 0;
+  for (const [uf, u] of Object.entries(nac.ufs)) {
+    const regiao = REGIOES[uf];
+    const d = u.dados;
+    const a = d?.candidatos.find((c) => c.id === par.a.id)?.votos ?? 0, b = d?.candidatos.find((c) => c.id === par.b.id)?.votos ?? 0;
+    if (!regiao || !d || d.fase === "aguardando" || !(a + b > 0)) { if (regiao) semVotos++; continue; }
+    const r = reg.get(regiao) ?? { a: 0, b: 0, falta: 0, apto: 0, apurado: 0, ufs: 0 };
+    r.a += a; r.b += b; r.falta += restanteDe(parteDe(uf, d)); r.apto += d.eleitorado.apto; r.apurado += Math.min(d.eleitorado.apto, d.eleitorado.apurado); r.ufs++;
+    reg.set(regiao, r);
+  }
+  const A = [...reg.values()].reduce((s, r) => s + r.a, 0), B = [...reg.values()].reduce((s, r) => s + r.b, 0);
+  const F = [...reg.values()].reduce((s, r) => s + r.falta, 0);
+  if (!(A + B > 0) || !(F > 0)) return null;
+  const agora = A / (A + B);
+  const linhas = [...reg].map(([regiao, r]): LinhaOnda => {
+    const qa = r.a / (r.a + r.b);
+    return { regiao, faltam: r.falta, avanco: r.apto > 0 ? r.apurado / r.apto : 0, qa, efeito: (r.falta * (qa - agora)) / (A + B + F), ufs: r.ufs };
+  }).filter((l) => l.faltam > 0).sort((x, y) => Math.abs(y.efeito) - Math.abs(x.efeito) || x.regiao.localeCompare(y.regiao));
+  return { linhas, agora, final: agora + linhas.reduce((s, l) => s + l.efeito, 0), faltam: F, semVotos };
+}

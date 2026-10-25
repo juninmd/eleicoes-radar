@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { caminho, dominio2t, numeros, ondeFalta, parDe, pesquisas2t } from "./apuracao-aovivo-2t.js";
+import { caminho, dominio2t, numeros, onda, ondeFalta, parDe, pesquisas2t } from "./apuracao-aovivo-2t.js";
 import type { PesquisaBruta } from "./apuracao-aovivo-2t.js";
 import type { LadoPrev, Previsao } from "./apuracao-previsao.js";
 import type { Apuracao, Fase } from "./apuracao-tse.js";
@@ -191,5 +191,39 @@ describe("ondeFalta", () => {
   test("no feed, no table", () => {
     expect(ondeFalta(null)).toBeNull();
     expect(ondeFalta(snap({}))).toBeNull();
+  });
+});
+
+describe("onda", () => {
+  const nac = snap({
+    SP: arq({ a: 60, b: 40, apto: 1000, apurado: 500, validos: 100 }), // 100 to come
+    MG: arq({ a: 15, b: 25, apto: 600, apurado: 100, validos: 40 }), // 160 to come
+    BA: arq({ a: 70, b: 30, apto: 1000, apurado: 500, validos: 100 }), // 100 to come
+    RR: arq({ a: 0, b: 0, fase: "aguardando", apto: 300, apurado: 0, tot: 0 }),
+  });
+
+  test("prices each region's votes to come at the share it already showed; the effects add up to the final share", () => {
+    const o = onda(nac, par)!;
+    expect(o.agora).toBeCloseTo(145 / 240, 10);
+    const sudeste = o.linhas.find((l) => l.regiao === "Sudeste")!, nordeste = o.linhas.find((l) => l.regiao === "Nordeste")!;
+    expect(sudeste.faltam).toBeCloseTo(300, 10);
+    expect(sudeste.qa).toBeCloseTo(75 / 140, 10);
+    expect(nordeste.efeito).toBeGreaterThan(0); // a region ahead of the national share pulls toward the first name
+    expect(sudeste.efeito).toBeLessThan(0);
+    expect(o.final).toBeCloseTo((145 + 300 * (75 / 140) + 100 * 0.7) / 640, 10);
+    expect(o.final).toBeCloseTo(o.agora + o.linhas.reduce((s, l) => s + l.efeito, 0), 10);
+  });
+
+  test("biggest pull first; a place with no votes is left out and counted", () => {
+    const o = onda(nac, par)!;
+    expect(o.linhas.map((l) => l.regiao)).toEqual(["Sudeste", "Nordeste"]);
+    expect(o.semVotos).toBe(1);
+  });
+
+  test("nothing to say without a pair, without votes, or when nothing is left to count", () => {
+    expect(onda(nac, null)).toBeNull();
+    expect(onda(null, par)).toBeNull();
+    expect(onda(snap({ RR: arq({ a: 0, b: 0, fase: "aguardando", apto: 300, apurado: 0, tot: 0 }) }), par)).toBeNull();
+    expect(onda(snap({ SP: arq({ a: 60, b: 40, apto: 500, apurado: 500, validos: 100 }) }), par)).toBeNull();
   });
 });

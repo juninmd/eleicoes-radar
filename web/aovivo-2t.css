@@ -181,3 +181,44 @@
   .live-feed { order: 2; position: sticky; top: 8px; }
   .live-feed-d ol { max-height: calc(100vh - 160px); }
 }
+
+/* onda de votos: cada regiao puxa o placar para um lado; a barra usa uma escala so */
+.live-onda { padding: 9px 11px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); min-width: 0; }
+.live-onda h3 { margin: 0 0 6px; font: 900 18px/1 var(--display); text-transform: uppercase; }
+.live-onda h3 small { display: block; margin-top: 3px; font: 500 10px var(--mono); color: var(--muted); text-transform: none; letter-spacing: 0; }
+.on-topo { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; margin: 0 0 4px; font: 500 11px var(--mono); color: var(--ink-2); }
+.on-topo b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.on-lista { margin: 0 0 4px; padding: 0; list-style: none; }
+.on-lista li { display: grid; grid-template-columns: minmax(92px, 1fr) minmax(0, 0.9fr) minmax(110px, 1.1fr); gap: 4px 10px; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
+.on-lista li:last-child { border-bottom: 0; }
+.on-reg b { font: 900 15px/1 var(--display); text-transform: uppercase; }
+.on-reg small, .on-tend { display: block; font: 500 10px var(--mono); color: var(--muted); }
+.on-ef { position: relative; height: 22px; }
+.on-ef::before { content: ""; position: absolute; inset: 0 auto 0 50%; border-left: 1px solid var(--ink-2); opacity: 0.5; }
+.on-ef i { position: absolute; top: 4px; bottom: 4px; border-radius: 3px; }
+.on-ef b { position: absolute; top: 50%; translate: 0 -50%; font: 700 11px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.live-onda .muted.small { margin: 0; font-size: 10.5px; line-height: 1.35; }
+@media (max-width: 520px) { .on-lista li { grid-template-columns: minmax(84px, 1fr) minmax(110px, 1.2fr); } .on-tend { grid-column: 1 / -1; order: 3; } }
+
+/* diferenca para a pesquisa, no cartao de cada candidato */
+.live-dif { display: block; font: 500 10px var(--mono); color: var(--muted); }
+.live-dif b { font-size: 11px; }
+.live-dif.acima b { color: #12875f; }
+.live-dif.abaixo b { color: #e5484d; }
+
+/* barra de disputa em destaque: mais alta, com o % de cada lado dentro e a media das pesquisas tracejada */
+.live-hero .apu-duelo-bar { height: 38px; }
+.live-hero .apu-duelo-bar .seg { display: flex; align-items: center; padding-inline: 12px; color: #fff; font: 900 18px/1 var(--display); font-variant-numeric: tabular-nums; overflow: hidden; white-space: nowrap; }
+.live-hero .apu-duelo-bar .seg:nth-child(2) { justify-content: flex-end; }
+.apu-duelo-pesq { position: absolute; top: -2px; bottom: -2px; width: 0; border-left: 2px dashed var(--ink-2); }
+
+/* telas largas: o espaco extra vai para os candidatos e para a barra, nao para margens */
+@media (min-width: 1500px) {
+  .live-col-hero .live-side .av { width: 96px; height: 120px; }
+  .live-col-hero .live-big { font-size: 44px; }
+  .live-col-hero .live-side-nome { font-size: 17px; }
+  .live-col-hero .live-side small, .live-col-hero .live-side-votos, .live-col-hero .live-side-esp, .live-col-hero .live-dif { font-size: 11px; }
+  .live-col-hero .live-vs-x { font-size: 30px; }
+  .live-col-hero .apu-duelo-bar { height: 46px; }
+  .live-col-hero .apu-duelo-bar .seg { font-size: 22px; }
+}

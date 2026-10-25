@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { caminho, numeros, ondeFalta, pesquisas2t } from "./apuracao-aovivo-2t.js";
-import { mi, renderCaminho, renderNumeros, renderOndeFalta, renderPesquisas2t } from "./apuracao-aovivo-2t-view.js";
-import { renderAoVivo, BRASIL } from "./apuracao-aovivo.js";
+import { caminho, numeros, onda, ondeFalta, pesquisas2t } from "./apuracao-aovivo-2t.js";
+import { mi, renderCaminho, renderNumeros, renderOnda, renderOndeFalta, renderPesquisas2t } from "./apuracao-aovivo-2t-view.js";
+import { difPesquisa, renderAoVivo, BRASIL } from "./apuracao-aovivo.js";
 import { atualizar, vazio } from "./apuracao-eleitos.js";
 import { registrar } from "./apuracao-graficos.js";
 import { createCores } from "./apuracao-nacional.js";
@@ -231,5 +231,32 @@ describe("Ao vivo: os painéis entram na tela do 2º turno", () => {
     expect(html).toContain("live-kpis");
     for (const classe of ["live-cm", "live-fa", "live-pq"]) expect(html).not.toContain(`class="${classe}`);
     expect(renderAoVivo({ ...base, turno: 1, dois: null })).not.toContain("live-kpis");
+  });
+});
+
+describe("onda de votos (visão)", () => {
+  const nac = snap({ SP: eleit(arq(60, 40, 0, 0), 1000, 500), BA: eleit(arq(30, 70, 0, 0), 1000, 500) });
+
+  test("one row per region with what is left, what it already showed and the pull on the first name; no word of who wins", () => {
+    const html = renderOnda(onda(nac, par), par, cor);
+    expect(html).toContain("Onda de votos");
+    expect(html.indexOf("Nordeste")).toBeGreaterThan(-1);
+    expect(html.indexOf("Sudeste")).toBeGreaterThan(-1);
+    expect(html).toContain("já mostrou");
+    expect(html).toContain("não um resultado");
+    expect(html).not.toMatch(VENCEDOR);
+  });
+
+  test("with nothing to price it says when it will appear, and escapes names", () => {
+    expect(renderOnda(null, par, cor)).toContain("Aparece quando");
+    expect(renderOnda(onda(nac, { a: { ...par.a, nome: "<b>X</b>" }, b: par.b }), { a: { ...par.a, nome: "<b>X</b>" }, b: par.b }, cor)).not.toContain("<b>X</b>");
+  });
+
+  test("the hero's poll gap is written in words as well as in sign", () => {
+    expect(difPesquisa(0.524, 0.51)).toContain("+1,4 p.p.");
+    expect(difPesquisa(0.524, 0.51)).toContain("acima da pesquisa");
+    expect(difPesquisa(0.476, 0.49)).toContain("−1,4 p.p.");
+    expect(difPesquisa(0.476, 0.49)).toContain("abaixo da pesquisa");
+    expect(difPesquisa(0.5, 0.5)).toContain("igual à pesquisa");
   });
 });

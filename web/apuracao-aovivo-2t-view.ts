@@ -4,7 +4,7 @@ import { h, int, pct, titleName } from "./format.js";
 import { delta } from "./apuracao-pesquisa.js";
 import { NOMES } from "./apuracao-mapa.js";
 import { dominio2t } from "./apuracao-aovivo-2t.js";
-import type { Caminho, Finalista, Numeros, OndeFalta, Par, Pesquisas2T, SituacaoFalta } from "./apuracao-aovivo-2t.js";
+import type { Caminho, Finalista, Numeros, OndeFalta, Onda, Par, Pesquisas2T, SituacaoFalta } from "./apuracao-aovivo-2t.js";
 
 type Cor = (partido: string) => string;
 const curto = (nome: string) => titleName(nome).split(" ").slice(0, 2).join(" ");
@@ -131,4 +131,26 @@ export function renderFinalistas(par: Par, avatar: (c: { id: string; nome: strin
   return `<section class="live-fin" aria-label="Candidatos do 2º turno"><h3>${h(rotulo)} <small>2º turno · candidatos</small></h3>
     <div class="fin-par">${lado(par.a, media, "a")}<span class="fin-x" aria-hidden="true">×</span>${lado(par.b, media === null ? null : 1 - media, "b")}</div>
     ${media === null ? "" : `<p class="muted small">% = média das pesquisas (votos válidos dos dois).</p>`}</section>`;
+}
+
+// ---- the wave of votes: each region's votes still to come, priced at what the region has already shown, and how far that moves the
+// first name's share of the two's votes. The bar is drawn to one scale for all rows; every figure is also printed.
+const sinal = (x: number) => (x < 0 ? "−" : "+");
+export function renderOnda(o: Onda | null, par: Par, cor: Cor): string {
+  const casca = (corpo: string) => `<section class="live-onda" aria-labelledby="on-t"><h3 id="on-t">Onda de votos <small>o que falta, região a região</small></h3>${corpo}</section>`;
+  if (!o || !o.linhas.length) return casca(`<p class="muted small">Aparece quando os primeiros estados tiverem votos e ainda faltar apurar.</p>`);
+  const [ca, cb] = [cor(par.a.partido), cor(par.b.partido)];
+  const max = Math.max(0.0005, ...o.linhas.map((l) => Math.abs(l.efeito)));
+  const nome = h(curto(par.a.nome));
+  const linhas = o.linhas.map((l) => {
+    const w = ((Math.abs(l.efeito) / max) * 50).toFixed(1);
+    const lado = l.efeito >= 0 ? `left:50%;background:${h(ca)}` : `right:50%;background:${h(cb)}`;
+    const tende = l.qa === 0.5 ? "empate" : `${h(curto((l.qa > 0.5 ? par.a : par.b).nome))} ${pct(Math.max(l.qa, 1 - l.qa), 1)}`;
+    return `<li><span class="on-reg"><b>${h(l.regiao)}</b><small>faltam ≈ ${mi(l.faltam)} · ${pct(l.avanco, 0)} apurado</small></span>
+      <span class="on-tend">já mostrou ${tende}</span>
+      <span class="on-ef" role="img" aria-label="${h(`${l.regiao}: ${sinal(l.efeito)}${pp(l.efeito)} p.p. para ${curto(par.a.nome)}`)}"><i style="${lado};width:${w}%"></i><b style="${l.efeito >= 0 ? `left:calc(50% + ${w}% + 4px)` : `right:calc(50% + ${w}% + 4px)`}">${sinal(l.efeito)}${pp(l.efeito)}</b></span></li>`;
+  }).join("");
+  return casca(`<p class="on-topo"><span>Hoje <b>${pct(o.agora, 2)}</b> de ${nome}</span><span>Se cada região repetir o que já mostrou <b>${pct(o.final, 2)}</b></span></p>
+    <ul class="on-lista">${linhas}</ul>
+    <p class="muted small">Barra para a direita puxa o placar para ${nome}; para a esquerda, para ${h(curto(par.b.nome))} (p.p. de votos válidos dos dois). É a conta do Radar sobre os arquivos do TSE, não um resultado.${o.semVotos ? ` ${int(o.semVotos)} ${o.semVotos === 1 ? "lugar ainda sem votos fica de fora" : "lugares ainda sem votos ficam de fora"}.` : ""}</p>`);
 }

@@ -28,9 +28,9 @@ import { createChance } from "./apuracao-chance.js";
 import { chanceProps, criarMunicipais, exteriorProps } from "./apuracao-mount-props.js";
 import { deChance, deProjecao, registrarPrev } from "./apuracao-previsao.js";
 import { renderPrevisao } from "./apuracao-previsao-view.js";
-import { caminho, numeros, ondeFalta, parDe, pesquisas2t } from "./apuracao-aovivo-2t.js";
-import { renderCaminho, renderFinalistas, renderNumeros, renderOndeFalta, renderPesquisas2t } from "./apuracao-aovivo-2t-view.js";
-import type { Caminho, Numeros, OndeFalta, Par, Pesquisas2T } from "./apuracao-aovivo-2t.js";
+import { caminho, numeros, onda, ondeFalta, parDe, pesquisas2t } from "./apuracao-aovivo-2t.js";
+import { renderCaminho, renderFinalistas, renderNumeros, renderOnda, renderOndeFalta, renderPesquisas2t } from "./apuracao-aovivo-2t-view.js";
+import type { Caminho, Numeros, Onda, OndeFalta, Par, Pesquisas2T } from "./apuracao-aovivo-2t.js";
 import type { Apuracao, Candidato, Cargo, Fase, Turno } from "./apuracao-tse.js";
 import type { BrasilSnapshot } from "./apuracao-uf.js";
 import type { Cores } from "./apuracao-nacional.js";
@@ -148,11 +148,17 @@ const curto = (nome: string) => titleName(nome).split(" ").slice(0, 2).join(" ")
 
 // The President's race as a head-to-head: the two leaders side by side with their photos (when the reader keeps photos on), the
 // 50% bar and the curve of the count. Everything is the TSE's own numbers; a "Eleito" mark is the TSE's text, shown as it is.
+// How far the count is from the poll average, in points: above or below, in words as well as in sign (colour alone says nothing to everyone).
+export function difPesquisa(atual: number, media: number): string {
+  const d = (atual - media) * 100;
+  if (!Number.isFinite(d) || Math.abs(d) < 0.05) return ` <span class="live-dif">igual à pesquisa</span>`;
+  return ` <span class="live-dif ${d > 0 ? "acima" : "abaixo"}"><b>${d > 0 ? "+" : "−"}${Math.abs(d).toFixed(1).replace(".", ",")} p.p.</b> ${d > 0 ? "acima" : "abaixo"} da pesquisa</span>`;
+}
 function lado(c: Candidato, cls: string, avatar: Avatar, cor: Cores, esp?: Esperado, fase?: Fase, derrotado = false): string {
   const marca = eleitoTse(c) ? `<span class="rot alta">${h(c.situacao)}</span>` : c.situacao ? `<span class="rot baixa">${h(c.situacao)}</span>` : "";
   return `<div class="live-side ${cls}${eleitoTse(c) ? " eleito" : ""}${derrotado ? " derrotado" : ""}" style="--lado:${cor(c.partido)}"><div class="live-foto">${avatar({ id: c.id, nome: c.nome }, "lg")}${derrotado ? `<span class="live-selo-ko" aria-hidden="true">K.O.</span>` : ""}${cls.includes("lead") ? `<span class="live-lead">${fase === "concluida" ? "mais votado" : "à frente agora"}</span>` : ""}</div>
     <b class="live-side-nome">${h(titleName(c.nome))}</b><small>${h(c.partido)} · ${h(c.num)}</small>
-    <span class="live-big">${pct(c.pct, 1)}</span><span class="live-side-votos">${int(c.votos)} votos</span>${esp ? `<span class="live-side-esp">expectativa (pesquisas): <b>${pct(esp.media, 1)}</b></span>` : ""}${marca}</div>`;
+    <span class="live-big">${pct(c.pct, 1)}</span><span class="live-side-votos">${int(c.votos)} votos</span>${esp ? `<span class="live-side-esp">expectativa (pesquisas): <b>${pct(esp.media, 1)}</b>${difPesquisa(c.pct, esp.media)}</span>` : ""}${marca}</div>`;
 }
 
 // The TSE's own mark: the text is the TSE's, the Radar only puts it where it is seen first.
@@ -200,7 +206,7 @@ export function renderHero({ hero, avatar, cor, esperado = {}, fx = EFEITOS_PADR
       <div class="live-vs" aria-hidden="true"><span class="live-vs-x">VS</span><b>${dif.toFixed(1).replace(".", ",")}</b><small>p.p. de diferença</small></div>
       ${lado(b, "b", avatar, cor, esperado[b.id], d.fase, fim?.derrotado === b)}</div>
     <p class="sr">Diferença de ${dif.toFixed(1).replace(".", ",")} pontos percentuais entre os dois primeiros.</p>
-    ${renderDuelo({ d, cargo: "Presidente", uf: hero.uf, cor })}
+    ${renderDuelo({ d, cargo: "Presidente", uf: hero.uf, cor, rotulos: true, pesquisa: Object.fromEntries(Object.entries(esperado).map(([id, e]) => [id, e.media])) })}
     <h4>Curva da apuração <small>os dois primeiros, desde que você abriu a aba</small></h4>
     ${evolucao(hist2, quem, cor, esperado, { tendencia: true, largo: true })}</section>`;
 }
@@ -260,7 +266,7 @@ function resultadoVisual(itens: ResultadoTse[]): string {
 
 // The panels of the night: the count in figures (any round), and, for the national runoff, the polls of the pair, the path to the lead
 // and where the votes to come are.
-export interface Dois { numeros: Numeros | null; par?: Par | null; pesquisas?: Pesquisas2T | null; caminho?: Caminho | null; falta?: OndeFalta | null }
+export interface Dois { numeros: Numeros | null; par?: Par | null; pesquisas?: Pesquisas2T | null; caminho?: Caminho | null; falta?: OndeFalta | null; onda?: Onda | null }
 
 export interface AoVivoProps { noticias?: Noticia[]; prev?: PrevProps | null; dois?: Dois | null; nacPrev?: BrasilSnapshot | null; hero: Hero; linhas: Linha[]; escopo: string; ufCartoes: string; nac: BrasilSnapshot | null; cargoTodos: Cargo; mapa?: UfMap | null; agora: Date; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado>; fx?: Efeitos; turno?: Turno }
 
@@ -325,6 +331,7 @@ export function renderAoVivo(p: AoVivoProps): string {
       <div class="live-col live-col-mapa">
         ${mapaTempoReal}
         ${dois?.par ? renderOndeFalta(dois.falta ?? null, dois.par, p.cor) : ""}
+        ${dois?.par ? renderOnda(dois.onda ?? null, dois.par, p.cor) : ""}
         ${consolidado ? `<details class="live-detalhe"><summary>Total consolidado <small>27 estados + exterior</small></summary>${consolidado}</details>` : ""}
       </div>
       ${colPrev ? `<div class="live-col live-col-prev${dupla ? " dupla" : ""}">${colPrev}</div>` : ""}
@@ -479,7 +486,7 @@ export function mountAoVivo(el: HTMLElement) {
     if (!ctx || escopo !== BRASIL || turnoDe("Presidente", turno) !== 2) return { numeros: n };
     const corrida = ctx.exp?.corridas?.find((x) => x.cargo === "Presidente" && x.uf === BRASIL);
     const par = parDe(d, corrida?.confrontos);
-    return { numeros: n, par, pesquisas: par ? pesquisas2t(corrida, par, d) : null, caminho: caminho(prev?.previsao), falta: ondeFalta(nacPrev, restantesModelo) };
+    return { numeros: n, par, pesquisas: par ? pesquisas2t(corrida, par, d) : null, caminho: caminho(prev?.previsao), falta: ondeFalta(nacPrev, restantesModelo), onda: par ? onda(nacPrev, par) : null };
   };
   const paint = () => {
     if (!ctx) return;
