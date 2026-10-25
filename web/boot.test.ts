@@ -32,3 +32,13 @@ test("boot.ts and app.ts agree on the first screen", async () => {
   expect(await read("app.ts")).toMatch(/modo: "aovivo"/);
   expect(await read("boot.ts")).not.toContain("localStorage"); // a saved tab would make the two disagree and the layout jump
 });
+
+// Before app.js runs, the static markup is all a screen reader or a slow phone sees: it must already describe the screen the link opens.
+test("the first tab in the menu is Ao vivo and is the one marked selected in the static HTML", async () => {
+  const html = await read("index.html");
+  const tabs = [...html.matchAll(/<button[^>]*role="tab"[^>]*>/g)].map((m) => m[0]);
+  expect(tabs[0]).toContain('data-modo="aovivo"');
+  expect(tabs.filter((t) => t.includes('aria-selected="true"'))).toHaveLength(1);
+  expect(tabs[0]).toContain('aria-selected="true"');
+  expect(tabs.slice(1).every((t) => t.includes('tabindex="-1"'))).toBe(true); // only the selected tab is in the Tab order
+});
