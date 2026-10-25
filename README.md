@@ -191,6 +191,7 @@ bun run radar:suppliers        # CNPJ dos fornecedores na Receita (sem chave; re
 bun run radar:build            # gera web/data/ (uf/<UF>.json, fotos/, expectativa.json, meta.json)
 bun run radar:panorama         # web/data/panorama.json (sempre depois do build)
 bun run radar:geo              # (uma vez) malha dos estados do IBGE -> web/mapa-uf.json (versionado)
+bun run radar:geo-mundo        # (uma vez) contornos do mapa-múndi (Natural Earth) -> web/mapa-mundo.json (versionado)
 bun run radar:mun-hist <ano>   # Presidente e Governador por município (2002-2026), um ano por vez -> data/hist/mun-<ano>.json
 bun run radar:mun-backtest     # ajuste e erros do 2º turno por município (2002-2022) -> data/municipal-modelo.json
 bun run radar:municipal        # 1º turno de 2026 por município das disputas com 2º turno -> web/data/municipal/ (vista "Cidades")

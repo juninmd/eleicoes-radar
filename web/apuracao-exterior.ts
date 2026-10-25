@@ -6,10 +6,25 @@ import { EXTERIOR } from "./apuracao-uf.js";
 import type { Apuracao, Turno } from "./apuracao-tse.js";
 import type { BrasilSnapshot } from "./apuracao-uf.js";
 import type { MunArquivo } from "./apuracao-municipios.js";
+import { posicaoCidade } from "./exterior-cidades.js";
 
 export interface ExteriorProps {
   nac: BrasilSnapshot | null; br?: Apuracao | null; mun?: MunArquivo | null; // mun: undefined while loading, null when it failed
   cor: (chave: string) => string; turno: Turno; simulado?: boolean; compacto?: boolean;
+}
+
+// The cities abroad of the municipal file that have a known position, for the world map: where, how many valid votes and who led among the two finalists.
+export interface PontoMundo { nome: string; lat: number; lon: number; votos: number; a: number; b: number; o: number }
+export function pontosMundo(arq: MunArquivo | null | undefined): { pontos: PontoMundo[]; semPosicao: number } {
+  const pontos: PontoMundo[] = [];
+  let semPosicao = 0;
+  for (const [, nome, uf, a, b, o] of arq?.cidades ?? []) {
+    if (uf !== EXTERIOR) continue;
+    const pos = posicaoCidade(nome);
+    if (pos && a + b + o > 0) pontos.push({ nome, lat: pos[0], lon: pos[1], votos: a + b + o, a, b, o });
+    else semPosicao++;
+  }
+  return { pontos: pontos.sort((x, y) => y.votos - x.votos), semPosicao };
 }
 
 const TOP = 6, CIDADES = 15;
