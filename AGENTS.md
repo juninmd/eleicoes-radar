@@ -244,3 +244,10 @@ Feito em 2026-10-25, dia do 2º turno. Bloco logo depois do duelo do Presidente,
 5. 2º turno: `radar:mun-hist` (ano novo) → `radar:mun-backtest` → `radar:municipal`; abrir a vista Cidades do Presidente e de um governador em 1280 e 390 px (contexto novo).
 6. Abrir as visões Corrida e Noite no mapa (e "Ver simulação") em 1280 e 390 px com a apuração aberta; e a Previsão do Radar no Ao vivo (1º e 2º turno, escopo Brasil).
 7. Screenshot de um dossiê de deputado, governador e um com "Situação do registro" (contexto novo do navegador).
+
+## Ao vivo: mapa em tempo real e total consolidado
+
+Feito em 2026-10-25. Nos escopos "Brasil (total)" (Presidente) e "Todos os estados" (Presidente ou Governador; Senador segue com o mapa estático) a aba Ao vivo mostra:
+
+- **Total consolidado** (`apuracao-consolidado.ts`, Presidente): soma dos 27 arquivos de estado **mais o `zz`** (exterior), por candidatura, com a coluna do exterior à parte e a conferência com o arquivo nacional `br` do destaque (que já tem o exterior dentro: "confere" ou "difere em N votos, arquivos de horários diferentes"). Exterior sem arquivo ou desatualizado é dito; nenhum nome de vencedor.
+- **Mapa em tempo real:** é a vista "Noite no mapa" da Apuração (`criarNoite`), com Mapa/Cartograma e a escolha Brasil/Exterior (mapa-múndi + cidades do 1º turno via `data/municipal`). A aba Ao vivo se redesenha por HTML, então o HTML só deixa `<div class="fx-host" data-fx-host>` e o controlador **muda o DOM da vista para o novo placeholder** a cada redesenho (`noite.adotar`), sem recriar (estado em foco, manchetes e o que já acendeu ficam). `sincronizarMapa` roda depois de todo `paint`, inclusive o que só troca o relógio. O botão "Abrir X" do estado em foco abre o Ao vivo daquele estado. O índice municipal é pedido uma vez por (re)início (`pedirMun`), nunca do `paint`: falha não pode virar laço.

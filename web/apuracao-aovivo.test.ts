@@ -63,6 +63,23 @@ describe("Ao vivo", () => {
     expect(html).toContain("Todos os estados");
   });
 
+  test("Brasil e todos os estados trazem o total consolidado e o lugar do mapa em tempo real; o Senador mantém o mapa estático", () => {
+    const d = parseApuracao(file({ cands: dois }))!;
+    const ufs = Object.fromEntries(["SP", "ZZ"].map((u) => [u, { status: "ok" as const, dados: d, erro: null, buscadoEm: new Date() }]));
+    const nac = { cargo: "Presidente" as const, ciclo: 1, buscadoEm: new Date(), ufs };
+    const brasil = renderAoVivo(props({ nacPrev: nac }));
+    expect(brasil).toContain("Total consolidado");
+    expect(brasil).toContain("data-fx-host");
+    expect(brasil).toContain("Mapa em tempo real");
+    expect(renderAoVivo(props({ escopo: TODOS, nac }))).toContain("Total consolidado");
+    const gov = renderAoVivo(props({ escopo: TODOS, nac: { ...nac, cargo: "Governador" as const }, cargoTodos: "Governador" as const }));
+    expect(gov).toContain("data-fx-host");
+    expect(gov).not.toContain("Total consolidado");
+    const sen = renderAoVivo(props({ escopo: TODOS, nac: { ...nac, cargo: "Senador" as const }, cargoTodos: "Senador" as const }));
+    expect(sen).not.toContain("data-fx-host");
+    expect(renderAoVivo(props({ escopo: "RJ" }))).not.toContain("data-fx-host");
+  });
+
   test("no exterior só há o Presidente: sem cartões de estado", () => {
     const html = renderAoVivo(props({ escopo: "ZZ", hero: heroDe("ZZ"), linhas: [] }));
     expect(html).not.toContain("live-card");

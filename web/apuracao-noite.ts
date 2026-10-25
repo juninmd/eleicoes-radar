@@ -159,7 +159,7 @@ const ESQUELETO = `<section class="nt-duelo" aria-label="Os dois mais votados no
     </aside>
   </div>`;
 
-export function criarNoite(): Painel<NoiteProps> & { raiz: HTMLElement | null } {
+export function criarNoite(): Painel<NoiteProps> & { raiz: HTMLElement | null; adotar(alvo: HTMLElement): void } {
   let raiz: HTMLElement | null = null;
   let host: HTMLElement | null = null;
   let ufs = new Map<string, Uf>();
@@ -381,6 +381,13 @@ export function criarNoite(): Painel<NoiteProps> & { raiz: HTMLElement | null } 
         }
       });
       depoisDoPrimeiroQuadro(() => raiz?.classList.add("pronto"));
+    },
+    // The host was thrown away by a redraw of the page around the view (the Ao vivo tab redraws as a string): move the view into the new one,
+    // keeping its state (focus state, the facts of the night, the map already built).
+    adotar(alvo) {
+      if (!raiz || host === alvo) return;
+      host = alvo;
+      alvo.replaceChildren(raiz);
     },
     atualizar(p) {
       if (!raiz) return;
