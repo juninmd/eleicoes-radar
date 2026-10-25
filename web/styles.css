@@ -378,3 +378,6 @@ body[data-visao="aovivo"] #cedulas { display: none; } /* the Ao vivo tab shows e
 .canais a:hover, .canais a:focus-visible { background: var(--sunk); }
 .seguidores { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
 .seguidores li { display: flex; justify-content: space-between; gap: 10px; }
+
+/* Ao vivo is for following the count: no title banner, cola or weights, only the state picker stays. */
+body[data-visao="aovivo"] .hero, body[data-visao="aovivo"] #cola-box, body[data-visao="aovivo"] #pesos-box, body[data-visao="aovivo"] .skip + .hero { display: none; }
