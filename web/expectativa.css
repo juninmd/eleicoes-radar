@@ -14,6 +14,7 @@
 .linkish { display: flex; gap: 8px; align-items: center; background: none; border: 0; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
 .linkish:hover span { text-decoration: underline; }
 .linkish small { color: var(--muted); font-size: 12px; }
+@media (max-width: 860px) { .linkish { min-height: 44px; } }
 .exp-bars { width: 100%; border-collapse: collapse; font-size: 14px; }
 .exp-bars th, .exp-bars td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
 .exp-bars thead th { font: 700 11px var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); text-align: left; }
