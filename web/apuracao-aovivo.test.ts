@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { BRASIL, TODOS, corridasDe, disputaDecidida, renderAoVivo, renderHero, resultadoDe } from "./apuracao-aovivo.js";
+import { BRASIL, TODOS, contagemInicial, corridasDe, disputaDecidida, renderAoVivo, renderHero, resultadoDe } from "./apuracao-aovivo.js";
 import { atualizar, vazio } from "./apuracao-eleitos.js";
 import { registrar } from "./apuracao-graficos.js";
 import { createCores } from "./apuracao-nacional.js";
@@ -42,6 +42,18 @@ describe("Ao vivo", () => {
     const html = renderHero({ hero: { uf: BRASIL, snap: snap(d), hist: [], eleitos: vazio() }, avatar, cor });
     expect(html).toContain("ainda não começou");
     expect(html).not.toContain("live-side");
+  });
+
+  test("no começo da contagem (< 10% das seções) o duelo avisa que o placar ainda não representa o país", () => {
+    const hero = (st: string) => ({ uf: BRASIL, snap: snap(parseApuracao(file({ cands: dois, s: { ts: "1000", st } }))!), hist: [], eleitos: vazio() });
+    const html = renderHero({ hero: hero("2"), avatar, cor });
+    expect(html).toContain("Começo da contagem");
+    expect(html).toContain("0,2%");
+    expect(html).toContain("live-side"); // the warning does not replace the numbers
+    expect(renderHero({ hero: hero("99"), avatar, cor })).toContain("Começo da contagem");
+    expect(renderHero({ hero: hero("100"), avatar, cor })).not.toContain("Começo da contagem");
+    expect(renderHero({ hero: hero("1000"), avatar, cor })).not.toContain("Começo da contagem"); // finished
+    expect(contagemInicial({ totalizadas: 0, total: 0 })).toBe(false);
   });
 
   test("o mapa é o filtro: Brasil (total) por padrão, estado escolhido e botão de voltar", () => {
@@ -226,3 +238,22 @@ describe("botão Som", () => {
   });
 });
 
+
+describe("cartão de disputa sem arquivo no 2º turno", () => {
+  const ba = { cargo: "Governador" as const, uf: "BA", snap: { url: "x", status: "ausente" as const, dados: null, buscadoEm: null, erro: null }, eleitos: vazio() };
+  const cartoes = (segundos: ReadonlySet<string> | null) => renderAoVivo(props({ escopo: "BA", ufCartoes: "BA", linhas: [ba], turno: 2, segundos }));
+
+  test("com a lista dos 2º turnos carregada, diz que a disputa foi decidida no 1º", () => {
+    const html = cartoes(new Set(["Governador|AC", "Presidente|BR"]));
+    expect(html).toContain("decidida no 1º turno");
+    expect(html).not.toContain("Se não houve 2º turno nela");
+  });
+  test("a disputa que está na lista segue esperando o arquivo", () => {
+    const html = cartoes(new Set(["Governador|BA"]));
+    expect(html).toContain("ainda não publicou");
+    expect(html).not.toContain("decidida no 1º turno");
+  });
+  test("sem a lista (não carregou) não afirma nada: mantém o texto de dúvida", () => {
+    expect(cartoes(null)).toContain("Se não houve 2º turno nela");
+  });
+});

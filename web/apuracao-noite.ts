@@ -126,12 +126,20 @@ export function bolhasMundo(pontos: PontoMundo[], vb: readonly [number, number, 
 
 // ---- the view
 export type Lugar = "brasil" | "exterior";
+// The beside-the-map card for "Exterior". Cities abroad only exist for the 1st round (the only result per city), whose field had other
+// candidates, so in the runoff the card says why there are no circles instead of staying an empty box.
+export function cartaoExterior(p: { exterior?: NoiteProps["exterior"]; semCidades?: boolean; cor: (k: string) => string }): string {
+  if (p.exterior) return renderExterior({ ...p.exterior, cor: p.cor, turno: 1, compacto: true });
+  return p.semCidades ? `<p class="muted small">No 2º turno o mapa não mostra as cidades do exterior: o único resultado por cidade é o do 1º turno, que teve outros candidatos. O voto de fora entra somado, no arquivo "Exterior" do TSE.</p>` : "";
+}
+
 export interface NoiteProps {
   nac: BrasilSnapshot | null;
   cargo: Cargo;
   mapa: UfMap | null | undefined; // undefined while loading, null when it failed
   mundo?: MundoMap | null | undefined; // same, for the world map of the "Exterior" choice (President only)
   exterior?: Omit<ExteriorProps, "cor" | "turno" | "compacto"> | null;
+  semCidades?: boolean; // runoff: no per-city result abroad to draw
   byId: Map<string, Candidatura>;
   avatar: (c: Candidatura, size: string) => string;
   cor: Cores;
@@ -311,8 +319,9 @@ export function criarNoite(): Painel<NoiteProps> & { raiz: HTMLElement | null; a
     msg.hidden = !!p.mundo;
     if (!msg.hidden) msg.textContent = p.mundo === null ? "Não foi possível carregar o mapa-múndi." : "Carregando o mapa-múndi…";
     leg.textContent = p.simulado ? "Na simulação o mapa-múndi fica sem as cidades: elas trazem as candidaturas reais."
+      : p.semCidades ? "Exterior enquadra o mundo. Os estados seguem coloridos pela apuração ao vivo."
       : `Cada círculo é uma cidade com seções eleitorais no exterior, com área proporcional aos votos válidos do 1º turno (resultado final) e a cor do finalista mais votado ali, tão mais forte quanto maior a diferença na cidade. Os estados seguem coloridos pela apuração ao vivo.${pts.semPosicao ? ` ${int(pts.semPosicao)} cidades sem posição conhecida ficam só na tabela.` : ""}`;
-    q<HTMLElement>(".nt-ext").innerHTML = p.exterior ? renderExterior({ ...p.exterior, cor: (k) => corDoPartido(p.cor, k), turno: 1, compacto: true }) : "";
+    q<HTMLElement>(".nt-ext").innerHTML = cartaoExterior({ exterior: p.exterior, semCidades: p.semCidades, cor: (k) => corDoPartido(p.cor, k) });
   }
 
   function duelo(p: NoiteProps, topo: Topo, linhas: LinhaUf[]) {

@@ -5,8 +5,16 @@ import type { Turno } from "./apuracao-tse.js";
 
 const CHAVE = "radar:turno";
 
-export function lerTurno(): Turno {
-  try { return localStorage.getItem(CHAVE) === "2" ? 2 : 1; } catch { return 1; }
+// 25/10/2026 00:00 in Brasília (UTC-3, no DST since 2019). From then on the runoff is the round being counted, so it is the default.
+const INICIO_2T = Date.UTC(2026, 9, 25, 3);
+
+// No saved choice = nobody clicked yet: follow the calendar, otherwise the tab opens on a finished 1st round on the night of the runoff.
+export function lerTurno(agora: Date = new Date()): Turno {
+  const padrao: Turno = agora.getTime() >= INICIO_2T ? 2 : 1;
+  try {
+    const v = localStorage.getItem(CHAVE);
+    return v === "1" ? 1 : v === "2" ? 2 : padrao;
+  } catch { return padrao; }
 }
 
 export function gravarTurno(t: Turno): void {

@@ -12,7 +12,7 @@ import { createFornecedores, ufsPendentes } from "./fornecedores-carga.js";
 import { matches, SORTS, semEvidencia } from "./lista.js";
 import { achados } from "./achados.js";
 import { LEVELS, presetsHtml, weightsHtml } from "./pesos.js";
-import { knownTab, mountTabs, syncTabs, tituloDaAba } from "./tabs.js";
+import { mountTabs, syncTabs, tituloDaAba } from "./tabs.js";
 import { keepFocus, visibleOpener } from "./focus.js";
 import type { AppState, AvatarSrc, Meta } from "./app-tipos.js";
 import type { Candidatura } from "./types.js";
@@ -49,7 +49,7 @@ const state: AppState = {
   cands: [],
   open: null,
   cola: normalizeCola(store.get("cola", {})),
-  modo: knownTab(store.get("modo", "radar"), ["radar", "expectativa", "rede", "aovivo", "apuracao", ...Object.keys(PAN_MODES)], "radar"),
+  modo: "aovivo", // the link always opens on Ao vivo; a #cand= or #apuracao link switches below (and boot.ts mirrors this before first paint)
   exp: null,
   pan: null,
   rede: null,
