@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { knownTab, mountTabs, nextIndex, syncTabs } from "./tabs.js";
+import { knownTab, mountTabs, nextIndex, syncTabs, tituloDaAba } from "./tabs.js";
 
 test("arrows wrap around the ends so focus never falls off the tablist", () => {
   expect(nextIndex("ArrowRight", 2, 3)).toBe(0);
@@ -78,4 +78,9 @@ test("a saved tab that no longer exists falls back, so a tab is always selected"
   const known = ["radar", "rede"];
   expect(knownTab("rede", known, "radar")).toBe("rede");
   for (const saved of ["old", "constructor", "", null, undefined, 3, { a: 1 }]) expect(knownTab(saved, known, "radar")).toBe("radar");
+});
+
+test("each tab names its view in the document title", () => {
+  expect(tituloDaAba("Ao vivo")).toBe("Ao vivo · Radar do Voto 2026");
+  expect(tituloDaAba("Radar técnico")).toBe("Radar técnico · Radar do Voto 2026");
 });

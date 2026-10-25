@@ -15,7 +15,7 @@ import { mountPanorama, PAN_MODES } from "./panorama.js";
 import { matches, SORTS, semEvidencia } from "./lista.js";
 import { achados } from "./achados.js";
 import { LEVELS, presetsHtml, weightsHtml } from "./pesos.js";
-import { knownTab, mountTabs, syncTabs } from "./tabs.js";
+import { knownTab, mountTabs, syncTabs, tituloDaAba } from "./tabs.js";
 import { keepFocus, visibleOpener } from "./focus.js";
 import type { AppState, AvatarSrc, Meta } from "./app-tipos.js";
 import type { Candidatura } from "./types.js";
@@ -233,6 +233,7 @@ function renderModo() {
   syncTabs($("#modos"));
   document.body.dataset.visao = state.modo; // CSS hides the controls that only the radar list uses; not data-modo, which selects the tabs
   $("#painel").setAttribute("aria-labelledby", `tab-${state.modo}`);
+  document.title = tituloDaAba($(`#tab-${state.modo}`).textContent!.trim());
   $("#radar-view").hidden = state.modo !== "radar";
   $("#exp-view").hidden = state.modo !== "expectativa";
   $("#rede-view").hidden = state.modo !== "rede";

@@ -10,6 +10,9 @@ export function nextIndex(key: string, current: number, count: number) {
   return null;
 }
 
+// Each view names itself in the title, so the tab shows in history and in screen reader window lists.
+export const tituloDaAba = (aba: string) => `${aba} · Radar do Voto 2026`;
+
 // A saved tab name that no longer exists (stale storage, renamed view) falls back, so one tab is always selected.
 export const knownTab = (saved: unknown, known: string[], fallback: string): string => (known.includes(saved as string) ? (saved as string) : fallback);
 
