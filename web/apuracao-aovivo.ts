@@ -18,6 +18,8 @@ import { atualizar, vazio } from "./apuracao-eleitos.js";
 import { idadeTxt, pausaDoTse } from "./apuracao-ritmo.js";
 import { repaint, relogio, idade, semRelogio } from "./apuracao-dom.js";
 import { avancoDe } from "./apuracao-nacional.js";
+import { observar, renderNoticias, vazio as vazioNoticias } from "./apuracao-aovivo-noticias.js";
+import type { Noticia } from "./apuracao-aovivo-noticias.js";
 import { consolidar, renderConsolidado } from "./apuracao-consolidado.js";
 import { criarNoite } from "./apuracao-noite.js";
 import { movimentoReduzido } from "./apuracao-fx.js";
@@ -259,7 +261,7 @@ function resultadoVisual(itens: ResultadoTse[]): string {
 // and where the votes to come are.
 export interface Dois { numeros: Numeros | null; par?: Par | null; pesquisas?: Pesquisas2T | null; caminho?: Caminho | null; falta?: OndeFalta | null }
 
-export interface AoVivoProps { prev?: PrevProps | null; dois?: Dois | null; nacPrev?: BrasilSnapshot | null; hero: Hero; linhas: Linha[]; escopo: string; ufCartoes: string; nac: BrasilSnapshot | null; cargoTodos: Cargo; mapa?: UfMap | null; agora: Date; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado>; fx?: Efeitos; turno?: Turno }
+export interface AoVivoProps { noticias?: Noticia[]; prev?: PrevProps | null; dois?: Dois | null; nacPrev?: BrasilSnapshot | null; hero: Hero; linhas: Linha[]; escopo: string; ufCartoes: string; nac: BrasilSnapshot | null; cargoTodos: Cargo; mapa?: UfMap | null; agora: Date; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado>; fx?: Efeitos; turno?: Turno }
 
 export function renderAoVivo(p: AoVivoProps): string {
   const { hero, linhas, escopo, nac, agora, dois } = p;
@@ -310,6 +312,8 @@ export function renderAoVivo(p: AoVivoProps): string {
       ${pausa ? `<span class="live-chip">arquivo de <span id="apu-idade">${idadeTxt(pausa.idadeMs)}</span></span>` : ""}
     </div>
     ${pausa?.parado ? `<p class="apu-aviso apu-pausa"><b>Sem arquivo novo do TSE há mais de 10 minutos.</b> A pausa é do TSE, que publica em rodadas.</p>` : ""}
+    <div class="live-corpo">
+    ${renderNoticias(p.noticias ?? [])}
     <div class="live-palco${colPrev ? "" : " sem-prev"}">
       <div class="live-col live-col-hero">
         ${renderHero({ hero, avatar: p.avatar, cor: p.cor, esperado: p.esperado, fx: p.fx, turno })}
@@ -329,6 +333,7 @@ export function renderAoVivo(p: AoVivoProps): string {
           ${linhaGeral(todas)}
         </section>
       </div>
+    </div>
     </div>
     ${escopo === TODOS ? `<h3>Todos os estados</h3>${todosOsEstados(nac, p.cargoTodos, p.mapa, p.cor, true)}` : ""}
     ${cartoes}
@@ -364,6 +369,7 @@ export function mountAoVivo(el: HTMLElement) {
   let nacPrev: BrasilSnapshot | null = null;
   let nacFeed: ReturnType<typeof createBrasilFeed> | null = null;
   let histPrev: PontoPrev[] = [];
+  let noticias = vazioNoticias();
   const projecao = createProjecao();
   const leitorChance = createChance();
   const getJson = <T,>(url: string): Promise<T> => fetch(url).then((r) => (r.ok ? (r.json() as Promise<T>) : Promise.reject(new Error(`HTTP ${r.status}`))));
@@ -486,7 +492,13 @@ export function mountAoVivo(el: HTMLElement) {
     const decidida = !!disputaDecidida(hero.snap?.dados);
     const fx: Efeitos = { ligado: efeitos, intro: intro && !!hero.snap?.dados, ko: decidida && !koTocou, som: somLigado };
     if (fx.intro && efeitos) som.intro();
-    const html = renderAoVivo({ hero, linhas, escopo, ufCartoes: ufCartoes(), nac, nacPrev, cargoTodos, mapa, agora: new Date(), avatar: ctx.avatar, cor, esperado, fx, turno, prev, dois });
+    noticias = observar(noticias, [
+      { cargo: "Presidente", uf: hero.uf, dados: hero.snap?.dados },
+      ...linhas.map((l) => ({ cargo: l.cargo, uf: l.uf, dados: l.snap?.dados })),
+      ...Object.entries(nacPrev?.ufs ?? {}).map(([uf, u]) => ({ cargo: "Presidente" as Cargo, uf, dados: u.dados })),
+      ...(nac?.cargo ? Object.entries(nac.ufs).map(([uf, u]) => ({ cargo: nac!.cargo as Cargo, uf, dados: u.dados })) : []),
+    ]);
+    const html = renderAoVivo({ noticias: noticias.itens, hero, linhas, escopo, ufCartoes: ufCartoes(), nac, nacPrev, cargoTodos, mapa, agora: new Date(), avatar: ctx.avatar, cor, esperado, fx, turno, prev, dois });
     if (hero.snap?.dados) intro = false;
     if (decidida && !koTocou) { koTocou = true; tocarKo(); }
     const key = semRelogio(html);
@@ -543,6 +555,7 @@ export function mountAoVivo(el: HTMLElement) {
       brasil.follow(cargoTodos);
     }
     histPrev = [];
+    noticias = vazioNoticias();
     projecao.reiniciar();
     // The 28 files of the President feed both the total (Brasil) and the map, which stays on every scope.
     nacFeed = createBrasilFeed({ url: (c, uf) => tseUrl(c, uf, TSE_BASE, turnoDe(c, turno)), onChange: (s) => { nacPrev = s; agendar(); } });
