@@ -92,7 +92,7 @@ function race(exp: Expectativa, cargo: string, uf: string, byId: Map<string, Can
       ${twoRounds && r.p1turno! < 1 ? runoffs(r, byId) : ""}
       ${pollTable("Pesquisas recentes (1º turno)", r.primeiroTurno, shown.slice(0, 5))}
       ${metodo(r, exp.metodo)}
-      <p class="muted small">Fonte: pesquisas registradas no TSE pelos institutos, compiladas na <a href="${h(fonte?.url ?? "https://pt.wikipedia.org")}" rel="noopener" target="_blank">Wikipédia</a> (CC BY-SA). Isto é uma média de pesquisas com simulação de erro, <b>não é uma pesquisa eleitoral</b>.</p>
+      <p class="muted small">Fonte: pesquisas registradas no TSE pelos institutos, compiladas na <a href="${h(fonte?.url ?? "https://pt.wikipedia.org")}" rel="noopener noreferrer" target="_blank">Wikipédia</a> (CC BY-SA). Isto é uma média de pesquisas com simulação de erro, <b>não é uma pesquisa eleitoral</b>.</p>
     </section>`;
 }
 

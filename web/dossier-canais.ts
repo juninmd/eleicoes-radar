@@ -28,7 +28,8 @@ export function canaisBlock(c: Pick<Candidatura, "canais" | "bio">) {
     const hd = handle(k.u);
     return `<li><a class="ext" href="${h(k.u)}" target="_blank" rel="noopener noreferrer">${h(REDE_NOME[k.r] ?? k.r)}${hd ? ` <small class="muted">${h(hd)}</small>` : ""}${k.c ? ` <small class="muted">(Câmara)</small>` : ""}<span aria-hidden="true"> ↗</span></a></li>`;
   });
-  if (site) links.unshift(`<li><a class="ext" href="${h(site)}" target="_blank" rel="noopener noreferrer">Site<span aria-hidden="true"> ↗</span></a></li>`);
+  const siteValido = site && /^https?:\/\//i.test(site) ? site : null;
+  if (siteValido) links.unshift(`<li><a class="ext" href="${h(siteValido)}" target="_blank" rel="noopener noreferrer">Site<span aria-hidden="true"> ↗</span></a></li>`);
   const followers = seg.length
     ? `<h4>Seguidores <small class="muted">Wikidata, contagem de cada data</small></h4>
        <ul class="seguidores">${seg.map((s) => `<li><span>${h(REDE_NOME[s.rede] ?? s.rede)}</span><span class="fonte">${compact.format(s.n)} em ${mesAno(s.em)}</span></li>`).join("")}</ul>

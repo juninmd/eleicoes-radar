@@ -165,7 +165,9 @@ body:not(.ready) .metodo { display: none; } /* it would sit in view until the li
 .dhead .num { background: var(--panel); color: var(--panel-ink); font: 700 26px/1 var(--mono); letter-spacing: 0.14em; padding: 10px 12px; border-radius: var(--r-md); }
 .dhead h2 { font: 900 30px/0.95 var(--display); text-transform: uppercase; margin: 0; }
 .dhead p { margin: 4px 0 0; color: var(--ink-2); font-size: 13px; }
-.close { font: 400 26px/1 var(--body); background: none; border: 0; color: var(--ink-2); cursor: pointer; padding: 4px 8px; }
+.close { font: 400 26px/1 var(--body); background: none; border: 0; color: var(--ink-2); cursor: pointer; min-width: 44px; min-height: 44px; display: inline-grid; place-items: center; padding: 0; border-radius: var(--r-md); }
+.close:hover { color: var(--ink); background: var(--sunk); }
+.dossie-actions { display: flex; gap: 8px; margin-left: auto; align-items: center; flex-wrap: wrap; }
 .scoreline { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; border-block: 1px solid var(--line); padding-block: 12px; }
 .scoreline > div { display: flex; flex-direction: column; }
 .nota { font: 900 44px/1 var(--display); }

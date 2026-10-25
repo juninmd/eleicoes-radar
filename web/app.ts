@@ -5,6 +5,7 @@ import { renderDossier } from "./dossier.js";
 import { isPicked, normalizeCola, seatsOf, togglePick } from "./cola.js";
 import type { Ballot } from "./cola.js";
 import { colaHtml, mountColaButtons } from "./cola-view.js";
+import { candHash, isCandHash, parseCandLink } from "./cand-link.js";
 import { abaSobDemanda, quandoPronta } from "./abas-sob-demanda.js";
 import { PAN_MODES } from "./pan-modos.js";
 import { matches, SORTS, semEvidencia } from "./lista.js";
@@ -186,6 +187,12 @@ function renderList() {
   const temFiltro = Boolean(state.busca || state.situacao !== "todas");
   const btnLimpar = document.getElementById("limpar-filtros");
   if (btnLimpar) btnLimpar.hidden = !temFiltro;
+  const statusEl = document.getElementById("busca-status");
+  if (statusEl) {
+    statusEl.textContent = temFiltro
+      ? (list.length === 0 ? "Nenhuma candidatura encontrada." : `${int(list.length)} candidatura${list.length > 1 ? "s" : ""} encontrada${list.length > 1 ? "s" : ""}.`)
+      : "";
+  }
   const shown = list.slice(0, state.limit);
   // Two registrations with one number usually means a substitution the registry
   // does not resolve (its status field is empty); flag it instead of guessing.
@@ -193,7 +200,7 @@ function renderList() {
   for (const { c } of list) seen.set(c.num, (seen.get(c.num) ?? 0) + 1);
   const ballot = BALLOTS[state.ballot];
   $("#lista").innerHTML = shown.length ? shown.map(({ c, s }, i) => `
-    <li><button type="button" class="cand${state.open === c.id ? " open" : ""}" data-open="${h(c.id)}">
+    <li><button type="button" class="cand${state.open === c.id ? " open" : ""}" data-open="${h(c.id)}" aria-expanded="${state.open === c.id}" aria-controls="dossie">
       <span class="pos">${i + 1}</span>
       <span class="num">${h(c.num.padStart(ballot.digits, " "))}</span>
       ${avatar(c, "sm")}
@@ -227,8 +234,15 @@ function setOpen(id: string | null) {
   state.open = id;
   renderList();
   renderDossierPanel();
+  if (id) history.replaceState(null, "", `${location.pathname}${location.search}${candHash(id, state.uf)}`);
+  else limparHashCand();
   if (id) { renderModo(); $("#dossie").focus({ preventScroll: true }); }
   else if (prev) (visibleOpener(document, "open", prev) ?? $('#modos [aria-selected="true"]'))?.focus(); // the opener may be in any tab, or filtered out
+}
+
+// Closing the dossier by any path must also drop the #cand= hash, or a reload reopens it.
+function limparHashCand() {
+  if (isCandHash(location.hash)) history.replaceState(null, "", `${location.pathname}${location.search}`);
 }
 
 const renderCola = () => { $("#cola-lista").innerHTML = colaHtml(state.cola, BALLOTS, avatar); };
@@ -237,10 +251,34 @@ const renderCola = () => { $("#cola-lista").innerHTML = colaHtml(state.cola, BAL
 function abrirUf(uf: string) {
   state.uf = uf;
   state.limit = PAGE;
-  state.open = null;
+  setOpen(null);
   store.set("uf", uf);
   $<HTMLSelectElement>("#uf").value = uf;
-  loadUf();
+  return loadUf();
+}
+
+// The label is a constant so a quick second click cannot save "Copiado!" as the text to restore.
+const COPIAR_LINK = "Copiar link";
+let copiaT = 0;
+function avisoCopia(t: HTMLElement, texto: string, aviso: string) {
+  clearTimeout(copiaT);
+  if (texto !== COPIAR_LINK) t.textContent = texto;
+  $("#copia-status").textContent = aviso;
+  copiaT = window.setTimeout(() => { t.textContent = COPIAR_LINK; $("#copia-status").textContent = ""; }, 2000);
+}
+
+// Opens a candidate of the loaded UF on its own ballot and in the radar tab, where the list is.
+function abrirCandidato(id: string) {
+  const c = state.cands.find((x) => x.id === id);
+  if (!c) return;
+  if (state.modo !== "radar") { state.modo = "radar"; store.set("modo", state.modo); }
+  const bIdx = ballotOf(c);
+  if (bIdx >= 0 && bIdx !== state.ballot) {
+    state.ballot = bIdx;
+    renderTabs();
+    loadFotos();
+  }
+  setOpen(c.id);
 }
 
 // The race on the open ballot tab, as the TSE and the expectation data name it.
@@ -325,7 +363,7 @@ function bind() {
   if (bound) return;
   bound = true;
   $<HTMLSelectElement>("#uf").value = state.uf;
-  $("#uf").addEventListener("change", (e) => { state.uf = (e.target as HTMLSelectElement).value; state.limit = PAGE; state.open = null; store.set("uf", state.uf); loadUf(); });
+  $("#uf").addEventListener("change", (e) => { state.uf = (e.target as HTMLSelectElement).value; state.limit = PAGE; setOpen(null); store.set("uf", state.uf); loadUf(); });
   // Espera a digitação parar: evita recriar a lista inteira a cada tecla.
   let buscaT = 0;
   $("#busca").addEventListener("input", (e) => {
@@ -383,15 +421,24 @@ function bind() {
   $("#limpar-filtros")?.addEventListener("click", resetFiltros);
 
   document.addEventListener("click", (e) => {
-    const t = (e.target as Element).closest<HTMLElement>("[data-ballot],[data-open],[data-close],[data-cola],[data-modo],#exp-mais,[data-rede],[data-rede-geral],[data-rede-foco],[data-limpar-filtros]");
+    const t = (e.target as Element).closest<HTMLElement>("[data-ballot],[data-open],[data-close],[data-cola],[data-modo],#exp-mais,[data-rede],[data-rede-geral],[data-rede-foco],[data-copy-cand],[data-limpar-filtros]");
     if (!t) return;
     if (t.dataset.limparFiltros !== undefined) { resetFiltros(); return; }
+    if (t.dataset.copyCand) {
+      const u = new URL(location.href);
+      u.hash = candHash(t.dataset.copyCand, state.uf);
+      const copiado = () => avisoCopia(t, "Copiado!", "Link copiado.");
+      const falhou = () => avisoCopia(t, COPIAR_LINK, "Não foi possível copiar. O link já está na barra de endereço: copie daí.");
+      if (navigator.clipboard?.writeText) navigator.clipboard.writeText(u.href).then(copiado, falhou);
+      else falhou();
+      return;
+    }
     if (t.dataset.modo) { state.modo = t.dataset.modo; state.limit = PAGE; store.set("modo", state.modo); renderModo(); return; }
     if (t.dataset.redeFoco !== undefined) { state.redeFoco = t.dataset.redeFoco; state.redeSel = null; state.modo = "rede"; renderModo(); return; }
     if ("redeGeral" in t.dataset) { state.redeFoco = null; state.redeSel = null; renderModo(); return; }
     if (t.dataset.rede) { state.redeSel = state.redeSel === t.dataset.rede ? null : t.dataset.rede; renderModo(); return; }
     if (t.id === "exp-mais") { state.limit += PAGE; renderModo(); return; }
-    if (t.dataset.ballot) { state.ballot = Number(t.dataset.ballot); state.limit = PAGE; state.open = null; render(); loadFotos(); }
+    if (t.dataset.ballot) { state.ballot = Number(t.dataset.ballot); state.limit = PAGE; setOpen(null); render(); loadFotos(); }
     else if (t.dataset.open) setOpen(state.open === t.dataset.open ? null : t.dataset.open);
     else if ("close" in t.dataset) setOpen(null);
     else if (t.dataset.cola) {
@@ -403,7 +450,34 @@ function bind() {
     }
   });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && state.open) setOpen(null);
+    const active = document.activeElement as HTMLElement | null;
+    const typing = active && (["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName) || active.isContentEditable);
+    if (e.key === "Escape") {
+      if (state.open) { setOpen(null); return; }
+      if (active?.id === "busca") {
+        clearTimeout(buscaT);
+        (active as HTMLInputElement).value = "";
+        state.busca = "";
+        state.limit = PAGE;
+        renderList();
+        active.blur();
+        return;
+      }
+    }
+    if (typing) return;
+    // The ballot and the search belong to the radar tab; elsewhere the keys must not act on hidden controls.
+    const radar = state.modo === "radar";
+    if (e.key === "/" && radar && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      const b = $<HTMLInputElement>("#busca");
+      b?.focus();
+      b?.select();
+    } else if (e.key >= "1" && e.key <= "5" && radar && !e.ctrlKey && !e.metaKey && !e.altKey && !state.open) {
+      const idx = Number(e.key) - 1;
+      if (idx !== state.ballot && idx < BALLOTS.length) {
+        state.ballot = idx; state.limit = PAGE; state.open = null; limparHashCand(); render(); loadFotos();
+      }
+    }
     // SVG nodes are role=button but, unlike <button>, do not turn Enter/Space into a click.
     else if ((e.key === "Enter" || e.key === " ") && (e.target as Element).matches?.("[data-rede]")) { e.preventDefault(); (e.target as Element).dispatchEvent(new MouseEvent("click", { bubbles: true })); }
   });
@@ -490,7 +564,19 @@ const sobre = () => {
   if (on) { scrollTo(0, 0); $("#metodo-t").focus({ preventScroll: true }); }
   else if (estava) $("#principal").focus({ preventScroll: true });
 };
-addEventListener("hashchange", sobre);
+addEventListener("hashchange", async () => {
+  sobre();
+  // Before main() finishes the UF list and the data are not ready: main() handles the hash itself.
+  if (!document.body.classList.contains("ready")) return;
+  const ufAntes = state.uf;
+  await abrirLink();
+  const cl = parseCandLink(location.hash); // read before abrirUf, which drops the #cand= hash
+  const uf = cl?.uf ?? state.uf;
+  if (uf !== ufAntes && [...$<HTMLSelectElement>("#uf").options].some((o) => o.value === uf)) await abrirUf(uf);
+  renderTabs();
+  renderModo();
+  if (cl) abrirCandidato(cl.id);
+});
 sobre();
 
 async function main() {
@@ -509,8 +595,11 @@ async function main() {
   countUp($("#st-cand"), meta.total, int);
   countUp($("#st-mand"), meta.comMandato, int);
   countUp($("#st-uf"), meta.ufs.filter((u) => u.uf !== "BR").length, int);
+  const candLink = parseCandLink(location.hash);
+  if (candLink?.uf && meta.ufs.some((u) => u.uf === candLink.uf)) state.uf = candLink.uf;
   bind();
   await loadUf();
+  if (candLink) abrirCandidato(candLink.id);
   document.body.classList.add("ready"); // the method text below stays hidden until the list has its final height
   if (location.hash === "#sobre") $("#metodo-t").focus({ preventScroll: true }); // sobre() ran before the method text was shown
 }
