@@ -1,5 +1,6 @@
 import { h, moneyShort, titleName } from "./format.js";
 import type { Candidatura } from "./types.js";
+import type { FornEstado } from "./fornecedores-carga.js";
 
 type Fornecedor = NonNullable<Candidatura["fornecedores"]>[number];
 
@@ -23,7 +24,16 @@ function outros(f: Fornecedor) {
   return `Atendeu também <b>${f.outros}</b> ${f.outros === 1 ? "outro político" : "outros políticos"}${nomes ? `: ${nomes}${f.outros > f.outrosTop.length ? " e mais" : ""}` : ""}.`;
 }
 
-export function fornecedoresBlock(list: Candidatura["fornecedores"] | undefined, id: string) {
+// While the sidecar is in flight (or failed) the list is unknown: say so, never "sem fornecedores".
+export function estadoFornecedores(c: Candidatura, estado: FornEstado) {
+  if (estado === "erro") return `<p class="flag">Não foi possível carregar os fornecedores. <button type="button" class="btn-confirma" data-forn-retry="${h(c.uf)}">Tentar de novo</button></p>`;
+  return `<p class="muted" role="status">Carregando fornecedores…</p>`;
+}
+
+export function fornecedoresBlock(c: Candidatura, estado: FornEstado = "pronto") {
+  const list = c.fornecedores;
+  const id = c.id;
+  if (list === undefined) return `<section><h3>Principais fornecedores <small>pessoas jurídicas pagas com dinheiro público</small></h3>${estadoFornecedores(c, estado)}</section>`;
   if (!list) return "";
   const rows = list.map((f) => `<li class="forn">
       <div><strong>${h(titleName(f.nome))}</strong>${f.nova ? ` <span class="pill no" title="Aberta menos de um ano antes do primeiro pagamento">empresa nova</span>` : ""} <span class="muted">CNPJ ${h(f.cnpj)}</span><span class="fonte">${moneyShort(f.valor)} · ${f.via.map((v) => VIA[v] ?? v).join(" + ")}</span></div>

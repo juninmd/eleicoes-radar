@@ -5,6 +5,8 @@ import { displayName, h, int, moneyShort, titleName } from "./format.js";
 import { egoOf, layout, ringLayout } from "./rede-layout.js";
 import type { Link, Placed } from "./rede-layout.js";
 import type { Candidatura } from "./types.js";
+import { estadoFornecedores } from "./fornecedores.js";
+import type { FornEstado } from "./fornecedores-carga.js";
 import type { Rede, RedeFornecedor } from "../src/radar/suppliers/graph";
 
 type Kind = "party" | "sup" | "cand" | "pol";
@@ -82,8 +84,10 @@ function detail(n: (RNode & Placed) | null | undefined, rede: Rede | null) {
   return `<h4>${h(n.label)}</h4><p class="muted">${h(n.sub ?? "Candidato em foco")}${n.party ? ` · ${h(n.party)}` : ""}</p>`;
 }
 
-export function renderRede({ rede, cand, sel }: { rede: Rede | null; cand?: Candidatura | null; sel?: string | null }) {
+export function renderRede({ rede, cand, sel, forn = "pronto" }: { rede: Rede | null; cand?: Candidatura | null; sel?: string | null; forn?: FornEstado }) {
   if (!rede) return `<p class="empty">Os dados da rede ainda não foram gerados (<code>bun run radar:suppliers</code> e <code>radar:build</code>).</p>`;
+  // Without the sidecar the candidate's graph would draw empty and be memoized as such.
+  if (cand && cand.fornecedores === undefined) return `<h2>Rede de ${h(displayName(cand))}</h2>${estadoFornecedores(cand, forn)}<p><button type="button" class="btn-confirma" data-rede-geral>Voltar à visão geral</button></p>`;
   const key = cand ? `f:${cand.id}` : "geral";
   if (!memo.has(key)) {
     const g = cand ? focus(cand) : overview(rede);
