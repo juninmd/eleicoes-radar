@@ -64,7 +64,8 @@ select, input[type="search"] { font: inherit; color: var(--ink); background: var
 #presets { display: flex; flex-wrap: wrap; gap: 6px; }
 #presets button, #mais, .ghost { border-radius: 999px !important; font: 600 13px var(--body); background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-md); padding: 6px 10px; cursor: pointer; }
 #presets button:hover, #mais:hover, .ghost:hover { border-color: var(--ink-2); }
-#presets button[aria-pressed="true"] { background: var(--panel); color: var(--panel-ink); border-color: var(--panel); }
+#presets button[aria-pressed="true"] { background: var(--panel-2); color: var(--panel-ink); border-color: var(--confirma); box-shadow: 0 0 0 1px var(--confirma); }
+#presets button:focus-visible, .ghost:focus-visible, #mais:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .skip { position: absolute; left: 8px; top: -48px; z-index: 20; background: var(--panel); color: var(--panel-ink); padding: 10px 14px; border-radius: var(--r-md); font-weight: 700; }
 .skip:focus { top: 8px; }
 /* Controls only the radar list uses. The weights stay while a dossier is open, because its score uses them. */
