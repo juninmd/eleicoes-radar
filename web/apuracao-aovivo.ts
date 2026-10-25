@@ -329,7 +329,7 @@ export function renderAoVivo(p: AoVivoProps): string {
     ${pausa?.parado ? `<p class="apu-aviso apu-pausa"><b>Sem arquivo novo do TSE há mais de 10 minutos.</b> A pausa é do TSE, que publica em rodadas.</p>` : ""}
     <div class="live-corpo">
     ${renderNoticias(p.noticias ?? [])}
-    <div class="live-palco${colPrev ? "" : " sem-prev"}">
+    <div class="live-palco${colPrev ? "" : " sem-prev"}${escopo === EXTERIOR ? " exterior" : ""}">
       <div class="live-col live-col-hero">
         ${renderHero({ hero, avatar: p.avatar, cor: p.cor, esperado: p.esperado, fx: p.fx, turno })}
         ${turno === 2 && dois?.par && !dois.numeros ? renderFinalistas(dois.par, p.avatar, p.cor, dois.pesquisas?.media ?? null) : ""}
