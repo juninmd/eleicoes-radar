@@ -50,7 +50,7 @@ function mandateBlock(m: Candidatura["mandato"]) {
   const link = `https://www.camara.leg.br/deputados/${m.id}`;
   return `
     <section>
-      <h3>Mandato na Câmara <a class="ext" href="${link}" target="_blank" rel="noopener">perfil oficial ↗</a></h3>
+      <h3>Mandato na Câmara <a class="ext" href="${link}" target="_blank" rel="noopener noreferrer">perfil oficial ↗</a></h3>
       <p class="muted">Como <b>${h(m.nome)}</b> (${h(m.partido)}-${h(m.uf)}), legislatura 2023–2026.</p>
       <div class="facts">
         ${v ? `<div><span class="big">${pct(v.votou / v.possiveis)}</span><span>presença em ${int(v.possiveis)} votações nominais</span></div>` : ""}
@@ -62,7 +62,7 @@ function mandateBlock(m: Candidatura["mandato"]) {
       </div>
       ${cota && cota.maiorFornecedorShare >= 0.4 ? `<p class="flag"><b>Para conferir:</b> ${pct(cota.maiorFornecedorShare)} da cota foi para um só fornecedor (${h(cota.maiorFornecedor)}). Concentração alta não é irregularidade por si só; os recibos estão no perfil oficial.</p>` : ""}
       ${e?.areas?.length ? `<p class="muted">Emendas por área: ${e.areas.map((a) => `${h(a.nome)} ${moneyShort(a.valor)}`).join(" · ")}</p>` : ""}
-      ${p?.destaques?.length ? `<h4>Projetos próprios que avançaram</h4><ul class="bills">${p.destaques.map((b) => `<li><a href="https://www.camara.leg.br/propostas-legislativas/${b.id}" target="_blank" rel="noopener">${h(b.sigla)}</a> ${h(b.ementa)} <em>${h(b.situacao)}</em></li>`).join("")}</ul>` : ""}
+      ${p?.destaques?.length ? `<h4>Projetos próprios que avançaram</h4><ul class="bills">${p.destaques.map((b) => `<li><a href="https://www.camara.leg.br/propostas-legislativas/${b.id}" target="_blank" rel="noopener noreferrer">${h(b.sigla)}</a> ${h(b.ementa)} <em>${h(b.situacao)}</em></li>`).join("")}</ul>` : ""}
     </section>`;
 }
 
@@ -105,7 +105,7 @@ function trajetoriaBlock(c: Candidatura) {
   ].filter(Boolean).join(" · ");
   if (!bio) return `<section><h3>Ficha e trajetória</h3>${ficha ? `<p>${ficha}</p>` : ""}<p class="muted">Sem cargos públicos registrados nas fontes consultadas (Câmara, Senado, Wikidata).</p></section>`;
   const itens = bio.trajetoria.map((t) => `<li><span class="anos">${h(ano(t.inicio) || "?")}–${h(ano(t.fim) || (t.fim === null && t.inicio ? "" : "?"))}</span><span>${h(t.cargo)}</span><span class="fonte">${h(t.fonte)}</span></li>`).join("");
-  return `<section><h3>Ficha e trajetória${bio.wikidata ? ` <a class="ext" href="https://www.wikidata.org/wiki/${h(bio.wikidata)}" target="_blank" rel="noopener">Wikidata ↗</a>` : ""}</h3>
+  return `<section><h3>Ficha e trajetória${bio.wikidata ? ` <a class="ext" href="https://www.wikidata.org/wiki/${h(bio.wikidata)}" target="_blank" rel="noopener noreferrer">Wikidata ↗</a>` : ""}</h3>
     ${ficha ? `<p>${ficha}</p>` : ""}
     ${itens ? `<ul class="traj">${itens}</ul>` : `<p class="muted">Nenhum cargo público registrado nas fontes consultadas.</p>`}
     ${bio.trajetoria.some((t) => t.fonte === "Wikidata") ? `<p class="muted small">Itens marcados Wikidata vêm de base colaborativa; confira no link.</p>` : ""}
@@ -170,7 +170,10 @@ export function renderDossier(c: Candidatura, s: ReturnType<typeof score>, inCol
     <div class="scoreline">
       <div><span class="nota">${s.nota ?? "–"}</span><span class="muted">nota técnica com seus pesos</span></div>
       <div><span class="nota small">${pct(s.cobertura)}</span><span class="muted">do peso com evidência</span></div>
-      <button type="button" class="btn-confirma" data-cola="${h(c.id)}">${inCola ? "Tirar da cola" : "Pôr na cola"}</button>
+      <div class="dossie-actions">
+        <button type="button" class="ghost btn-copy-cand" data-copy-cand="${h(c.id)}" aria-label="Copiar link direto para este candidato">Copiar link</button>
+        <button type="button" class="btn-confirma" data-cola="${h(c.id)}">${inCola ? "Tirar da cola" : "Pôr na cola"}</button>
+      </div>
     </div>
     ${prevBlock(c, exp)}
     ${resumoBlock(c.bio)}

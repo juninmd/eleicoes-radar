@@ -134,6 +134,12 @@ function renderList() {
   const list = visible();
   $("#achados").innerHTML = achados(list.map((x) => x.c));
   $("#sem-evidencia").hidden = !semEvidencia(list);
+  const statusEl = document.getElementById("busca-status");
+  if (statusEl) {
+    statusEl.textContent = state.busca || state.situacao !== "todas"
+      ? (list.length === 0 ? "Nenhuma candidatura encontrada." : `${int(list.length)} candidatura${list.length > 1 ? "s" : ""} encontrada${list.length > 1 ? "s" : ""}.`)
+      : "";
+  }
   const shown = list.slice(0, state.limit);
   // Two registrations with one number usually means a substitution the registry
   // does not resolve (its status field is empty); flag it instead of guessing.
@@ -141,7 +147,7 @@ function renderList() {
   for (const { c } of list) seen.set(c.num, (seen.get(c.num) ?? 0) + 1);
   const ballot = BALLOTS[state.ballot];
   $("#lista").innerHTML = shown.length ? shown.map(({ c, s }, i) => `
-    <li><button type="button" class="cand${state.open === c.id ? " open" : ""}" data-open="${h(c.id)}">
+    <li><button type="button" class="cand${state.open === c.id ? " open" : ""}" data-open="${h(c.id)}" aria-expanded="${state.open === c.id}" aria-controls="dossie">
       <span class="pos">${i + 1}</span>
       <span class="num">${h(c.num.padStart(ballot.digits, " "))}</span>
       ${avatar(c, "sm")}
@@ -175,6 +181,10 @@ function setOpen(id: string | null) {
   state.open = id;
   renderList();
   renderDossierPanel();
+  if (typeof history !== "undefined" && history.replaceState) {
+    const hash = id ? `#cand=${encodeURIComponent(id)}&uf=${state.uf}` : "";
+    history.replaceState(null, "", hash ? `${location.pathname}${location.search}${hash}` : `${location.pathname}${location.search}`);
+  }
   if (id) { renderModo(); $("#dossie").focus({ preventScroll: true }); }
   else if (prev) (visibleOpener(document, "open", prev) ?? $('#modos [aria-selected="true"]'))?.focus(); // the opener may be in any tab, or filtered out
 }
@@ -289,8 +299,23 @@ function bind() {
   $("#presets").addEventListener("click", (e) => { if (PRESETS[(e.target as HTMLElement).dataset.preset as string]) usePreset((e.target as HTMLElement).dataset.preset as string); });
   $("#usar-campanha").addEventListener("click", () => { usePreset("campanha"); $("#lista").scrollIntoView({ block: "start" }); $("#lista").focus({ preventScroll: true }); });
   document.addEventListener("click", (e) => {
-    const t = (e.target as Element).closest<HTMLElement>("[data-ballot],[data-open],[data-close],[data-cola],[data-modo],#exp-mais,[data-rede],[data-rede-geral],[data-rede-foco]");
+    const t = (e.target as Element).closest<HTMLElement>("[data-ballot],[data-open],[data-close],[data-cola],[data-modo],#exp-mais,[data-rede],[data-rede-geral],[data-rede-foco],[data-copy-cand]");
     if (!t) return;
+    if (t.dataset.copyCand) {
+      const u = new URL(location.href);
+      u.hash = `#cand=${encodeURIComponent(t.dataset.copyCand)}&uf=${state.uf}`;
+      const done = () => {
+        const prev = t.textContent;
+        t.textContent = "Copiado!";
+        setTimeout(() => { t.textContent = prev; }, 2000);
+      };
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(u.href).then(done).catch(done);
+      } else {
+        done();
+      }
+      return;
+    }
     if (t.dataset.modo) { state.modo = t.dataset.modo; state.limit = PAGE; store.set("modo", state.modo); renderModo(); return; }
     if (t.dataset.redeFoco !== undefined) { state.redeFoco = t.dataset.redeFoco; state.redeSel = null; state.modo = "rede"; renderModo(); return; }
     if ("redeGeral" in t.dataset) { state.redeFoco = null; state.redeSel = null; renderModo(); return; }
@@ -308,7 +333,31 @@ function bind() {
     }
   });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && state.open) setOpen(null);
+    const active = document.activeElement as HTMLElement | null;
+    const typing = active && (["INPUT", "TEXTAREA", "SELECT"].includes(active.tagName) || active.isContentEditable);
+    if (e.key === "Escape") {
+      if (state.open) { setOpen(null); return; }
+      if (active?.id === "busca") {
+        (active as HTMLInputElement).value = "";
+        state.busca = "";
+        state.limit = PAGE;
+        renderList();
+        active.blur();
+        return;
+      }
+    }
+    if (typing) return;
+    if (e.key === "/" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      const b = $<HTMLInputElement>("#busca");
+      b?.focus();
+      b?.select();
+    } else if (e.key >= "1" && e.key <= "5" && !e.ctrlKey && !e.metaKey && !e.altKey && !state.open) {
+      const idx = Number(e.key) - 1;
+      if (idx !== state.ballot && idx < BALLOTS.length) {
+        state.ballot = idx; state.limit = PAGE; state.open = null; render(); loadFotos();
+      }
+    }
     // SVG nodes are role=button but, unlike <button>, do not turn Enter/Space into a click.
     else if ((e.key === "Enter" || e.key === " ") && (e.target as Element).matches?.("[data-rede]")) { e.preventDefault(); (e.target as Element).dispatchEvent(new MouseEvent("click", { bubbles: true })); }
   });
@@ -331,7 +380,24 @@ function abrirLink() {
 abrirLink();
 
 const sobre = () => { const on = location.hash === "#sobre"; document.body.classList.toggle("sobre", on); if (on) scrollTo(0, 0); }; // the explanations are their own screen, available even before the data loads
-addEventListener("hashchange", sobre);
+function parseCandLink(hash: string): { id: string; uf?: string } | null {
+  const m = hash.match(/^#cand=([^&]+)(?:&uf=([A-Za-z]{2}))?/);
+  return m ? { id: decodeURIComponent(m[1]), uf: m[2]?.toUpperCase() } : null;
+}
+
+addEventListener("hashchange", () => {
+  sobre();
+  abrirLink();
+  const cl = parseCandLink(location.hash);
+  if (cl && state.cands.length) {
+    const c = state.cands.find((x) => x.id === cl.id);
+    if (c) {
+      const bIdx = ballotOf(c);
+      if (bIdx >= 0 && bIdx !== state.ballot) state.ballot = bIdx;
+      setOpen(c.id);
+    }
+  }
+});
 sobre();
 
 async function main() {
@@ -347,8 +413,18 @@ async function main() {
   countUp($("#st-cand"), meta.total, int);
   countUp($("#st-mand"), meta.comMandato, int);
   countUp($("#st-uf"), meta.ufs.filter((u) => u.uf !== "BR").length, int);
+  const candLink = parseCandLink(location.hash);
+  if (candLink?.uf && meta.ufs.some((u) => u.uf === candLink.uf)) state.uf = candLink.uf;
   bind();
   await loadUf();
+  if (candLink) {
+    const c = state.cands.find((x) => x.id === candLink.id);
+    if (c) {
+      const bIdx = ballotOf(c);
+      if (bIdx >= 0) state.ballot = bIdx;
+      setOpen(c.id);
+    }
+  }
   document.body.classList.add("ready"); // the method text below stays hidden until the list has its final height
 }
 

@@ -294,7 +294,7 @@ export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, turno = 1
     <p class="muted exp-meta">${simulado ? `Simulação${quando ? `: noite simulada às <span id="apu-quando">${h(quando.toLocaleTimeString("pt-BR"))}</span>` : ""}. Avança com os controles acima.` : `${quando ? `Consultado às <span id="apu-quando">${h(quando.toLocaleTimeString("pt-BR"))}</span> · ` : ""}atualiza sozinho (a cada 30 s a 2 min, conforme o ritmo da apuração) enquanto você estiver nesta aba.`}</p>
     ${corpo}
     ${comoLer(proporcional(cargo))}
-    <p class="muted small">${simulado ? "Simulação sobre a estrutura dos arquivos finais do 1º turno do TSE (resultados.tse.jus.br): nomes, partidos, horários e o caminho da noite são inventados; o 2º turno vem do modelo da visão Cidades." : `Fonte: Tribunal Superior Eleitoral, <a href="https://resultados.tse.jus.br/" rel="noopener" target="_blank">resultados.tse.jus.br</a>${aberta === "mapa" ? ". Malha dos estados: IBGE" : ""}. O Radar só exibe o que o TSE publica.`}</p>
+    <p class="muted small">${simulado ? "Simulação sobre a estrutura dos arquivos finais do 1º turno do TSE (resultados.tse.jus.br): nomes, partidos, horários e o caminho da noite são inventados; o 2º turno vem do modelo da visão Cidades." : `Fonte: Tribunal Superior Eleitoral, <a href="https://resultados.tse.jus.br/" rel="noopener noreferrer" target="_blank">resultados.tse.jus.br</a>${aberta === "mapa" ? ". Malha dos estados: IBGE" : ""}. O Radar só exibe o que o TSE publica.`}</p>
   </section>`;
 }
 

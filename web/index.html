@@ -81,9 +81,9 @@
     <div id="apu-view" hidden></div>
     <div id="pan-view" hidden></div>
     <div id="radar-view">
-    <div id="achados" aria-live="polite"></div>
+    <div id="achados"></div>
     <div class="toolbar">
-      <label class="field" for="busca">Buscar por nome, número ou partido<input type="search" id="busca" placeholder="ex.: 1234, PSOL, Maria"></label>
+      <label class="field" for="busca">Buscar por nome, número ou partido<input type="search" id="busca" placeholder="ex.: 1234, PSOL, Maria" aria-controls="lista" aria-describedby="busca-status"></label>
       <label class="field" for="ordem">Ordenar por<select id="ordem">
         <option value="nota">Nota técnica</option>
         <option value="evidencia">Mais evidência</option>
@@ -91,6 +91,7 @@
         <option value="numero">Número</option>
       </select></label>
     </div>
+    <div id="busca-status" class="sr" role="status" aria-live="polite" aria-atomic="true"></div>
     <p class="legend">Nota 0–100 pelos seus pesos · ●●● = dado completo · <a class="to-weights" href="#pesos-box">Ajustar pesos ↓</a></p>
     <div id="sem-evidencia" class="hint" role="status" hidden>
       <p><b>Nenhuma candidatura desta cédula tem dado para os indicadores que você escolheu.</b> Agenda e mandato vêm de votos e gastos na Câmara, que quem disputa este cargo em geral não tem. Sem nota, a ordem “Nota técnica” e “Mais evidência” cai para a arrecadação.</p>
@@ -103,7 +104,7 @@
     </div>
   </main>
 
-  <aside id="dossie" hidden tabindex="-1" aria-label="Dossiê do candidato"></aside>
+  <aside id="dossie" hidden tabindex="-1" role="region" aria-label="Dossiê do candidato"></aside>
 </div>
 
 <section class="wrap metodo" id="sobre" aria-labelledby="metodo-t">

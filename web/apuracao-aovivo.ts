@@ -254,7 +254,7 @@ export function renderAoVivo(p: AoVivoProps): string {
     ${escopo === TODOS ? cartoes : ""}
     <h3>Quem foi eleito <small>nas disputas acima, desde que você abriu a aba</small></h3>
     ${linhaGeral(todas)}
-    <p class="muted small">Cada bloco mostra os números do TSE e o texto de situação que ele publica; a Previsão do Radar é estimativa e diz "deve terminar à frente", nunca quem foi eleito: isso é o texto do TSE. "Matematicamente eleito" é uma conta do Radar sobre os números do TSE (Presidente nacional, Governador e Senado). Fotos seguem a opção "Mostrar fotos". Nada fica guardado ao fechar a aba. Fonte: <a href="https://resultados.tse.jus.br/" rel="noopener" target="_blank">resultados.tse.jus.br</a>.</p>
+    <p class="muted small">Cada bloco mostra os números do TSE e o texto de situação que ele publica; a Previsão do Radar é estimativa e diz "deve terminar à frente", nunca quem foi eleito: isso é o texto do TSE. "Matematicamente eleito" é uma conta do Radar sobre os números do TSE (Presidente nacional, Governador e Senado). Fotos seguem a opção "Mostrar fotos". Nada fica guardado ao fechar a aba. Fonte: <a href="https://resultados.tse.jus.br/" rel="noopener noreferrer" target="_blank">resultados.tse.jus.br</a>.</p>
   </section>`;
 }
 

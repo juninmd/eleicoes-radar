@@ -4,7 +4,7 @@ import type { Ballot, Cola, ColaPick } from "./cola.js";
 import { h, titleName } from "./format.js";
 
 export const colaText = (cola: Cola, ballots: Ballot[]) =>
-  ["Minha cola · Eleições 2026 · 4 de outubro", ...colaRows(cola, ballots).map(({ label, pick: p }) =>
+  ["Minha cola · Eleições 2026 · 25 de outubro", ...colaRows(cola, ballots).map(({ label, pick: p }) =>
     `${label}: ${p ? `${p.num} ${titleName(p.nome)} (${p.partido})` : "—"}`)].join("\n");
 
 export function colaHtml(cola: Cola, ballots: Ballot[], avatar: (p: ColaPick, size: string) => string) {
