@@ -107,6 +107,14 @@ describe("caminho para a frente (visão)", () => {
     expect(html).not.toContain("cm-prec");
   });
 
+  test("when the required margin is under 0.1 p.p. it says pouco mais da metade and menos de 0,1 p.p.", () => {
+    const html = renderCaminho(caminho(prev(lado(B, 0.654, 0.5), lado(A, 0.346, 0.5), { apurados: 10_000, faltam: 119_400_000 })), cor);
+    expect(html).toContain("precisa de <b>pouco mais da metade</b> dos <b>119,4 mi</b> que ainda faltam, isto é, ganhar o que falta por <b>menos de 0,1 p.p.</b>");
+    expect(html).not.toContain("0,0 p.p.");
+    expect(html).toContain("precisa de <b>>50%</b>");
+    expect(html).toContain('aria-label="Parcela dos votos que faltam: Ana Alfa tem 34,6% do apurado, precisa de pouco mais de 50%');
+  });
+
   test("nothing to say, nothing drawn", () => {
     expect(renderCaminho(null, cor)).toBe("");
   });
