@@ -599,7 +599,29 @@
 .nt-corpo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 330px); gap: 16px; align-items: start; }
 .nt-palco { min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 .nt-barra { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
-.nt-mapa { position: relative; width: 100%; max-width: 720px; margin-inline: auto; aspect-ratio: var(--proporcao, 545 / 559); background: radial-gradient(70% 60% at 50% 45%, color-mix(in srgb, var(--confirma) 10%, transparent), transparent 70%), var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
+/* One map: the stage (.nt-cena) is the world in its own units (1080 x 426) and moves inside this viewport; Brasil/Exterior and the reader's zoom only change that move. */
+.nt-mapa { position: relative; width: 100%; aspect-ratio: 16 / 9; max-height: min(80vh, 800px); overflow: hidden; touch-action: pan-x pan-y; background: radial-gradient(70% 60% at 50% 45%, color-mix(in srgb, var(--confirma) 10%, transparent), transparent 70%), var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.nt-mapa.cartograma { aspect-ratio: 4 / 3; } /* the tiles want height: 7 rows */
+.nt-mapa.ampliado { touch-action: none; cursor: grab; }
+.nt-mapa.arrastando { cursor: grabbing; }
+.nt-cena { position: absolute; left: 0; top: 0; width: 1080px; height: 426px; transform-origin: 0 0; }
+.nt-cena.anima { transition: transform 0.7s var(--suave); }
+.nt-mundo { position: absolute; inset: 0; }
+.nt-mundo svg { display: block; width: 100%; height: 100%; }
+.nt-mundo .terra { fill: var(--vazio); stroke: var(--surface); stroke-width: 0.5; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.nt-mundo .bolhas { opacity: 0; pointer-events: none; transition: opacity 0.5s; }
+.nt-mundo circle { fill-opacity: 0.78; stroke: var(--surface); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.nt-mapa.exterior .nt-mundo .bolhas { opacity: 1; pointer-events: auto; }
+.nt-mapa.exterior .nt-uf { opacity: 0.2; pointer-events: none; }
+.nt-mapa.exterior .nt-uf .lb { opacity: 0; }
+.nt-mapa.cartograma .nt-mundo { opacity: 0; }
+.nt-mundo { transition: opacity 0.5s; }
+.nt-uf { transition: opacity 0.5s; }
+.nt-zoom { position: absolute; top: 8px; right: 8px; z-index: 2; display: flex; flex-direction: column; gap: 4px; }
+.nt-zoom button { width: 40px; min-height: 40px; height: 40px; padding: 0; display: grid; place-items: center; font: 600 20px/1 var(--body); background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-md); cursor: pointer; }
+.nt-zoom button:hover { background: var(--sunk); }
+.nt-zoom button:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
+.nt-dica { margin: -4px 0 0; }
 .nt-uf { position: absolute; left: var(--ml); top: var(--mt); width: var(--mw); height: var(--mh); min-height: 0; padding: 0; border: 0; border-radius: 0; background: none; cursor: pointer; color: #fff; view-transition-name: var(--vtn); view-transition-class: nt-uf; animation: nt-acende 0.7s var(--suave) both; animation-delay: calc(var(--sibling-index, 1) * 38ms); animation-delay: calc(sibling-index() * 38ms); }
 .nt-mapa.cartograma .nt-uf { left: var(--cl); top: var(--ct); width: var(--cw); height: var(--ch); }
 @keyframes nt-acende { from { opacity: 0; scale: 0.7; } }
@@ -612,7 +634,7 @@
 .nt-uf:hover path { stroke: var(--ink-2); }
 .nt-uf[aria-pressed="true"] path { stroke: var(--ink); stroke-width: 2.6; stroke-dasharray: none; }
 .nt-uf:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
-.nt-uf .lb { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; font: 700 11px var(--mono); text-shadow: 0 1px 3px rgb(0 0 0 / 0.75); opacity: 0; transition: opacity 0.4s; pointer-events: none; }
+.nt-uf .lb { position: absolute; inset: 0; transform: scale(var(--inv, 1)); display: grid; place-items: center; align-content: center; font: 700 11px var(--mono); text-shadow: 0 1px 3px rgb(0 0 0 / 0.75); opacity: 0; transition: opacity 0.4s; pointer-events: none; }
 .nt-uf.grande .lb, .nt-mapa.cartograma .nt-uf .lb { opacity: 1; }
 .nt-uf .lb small { display: none; font: 500 9px var(--mono); }
 .nt-mapa.cartograma .nt-uf .lb small { display: block; }
@@ -641,7 +663,8 @@
 @starting-style { .nt-lt { translate: 0 24px; opacity: 0; scale: 0.96; } }
 .nt-lt.sai { opacity: 0; translate: 16px 0; }
 .nt-lt time { font: 500 11px var(--mono); color: var(--muted); padding-top: 2px; }
-@container (max-width: 860px) { .nt-corpo { grid-template-columns: minmax(0, 1fr); } .nt-lado { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); } }
+@container (max-width: 640px) { .nt-mapa, .nt-mapa.cartograma { aspect-ratio: 1 / 0.9; max-height: none; } }
+@container (max-width: 1100px) { .nt-corpo { grid-template-columns: minmax(0, 1fr); } .nt-lado { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); } }
 @container (max-width: 620px) {
   .nt-duelo { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: 12px; }
   .nt-cabo { grid-column: 1 / -1; grid-row: 2; }
@@ -786,11 +809,7 @@
 .live-mapa .apu-mapa { width: 100%; height: auto; }
 
 /* Noite no mapa, escolha "Exterior": mapa-múndi com um círculo por cidade */
-.nt-mundo { width: 100%; max-width: 900px; margin-inline: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
-.nt-mundo[hidden], .nt-mapa[hidden], .nt-forma[hidden], .nt-lugar[hidden], .nt-ext[hidden], .nt-foco[hidden] { display: none; }
-.nt-mundo svg { display: block; width: 100%; height: auto; }
-.nt-mundo .terra { fill: var(--vazio); stroke: var(--surface); stroke-width: 0.6; stroke-linejoin: round; }
-.nt-mundo circle { fill-opacity: 0.78; stroke: var(--surface); stroke-width: 1; }
+.nt-forma[hidden], .nt-lugar[hidden], .nt-ext[hidden], .nt-foco[hidden] { display: none; }
 .nt-mundo circle:hover { fill-opacity: 1; stroke: var(--ink); }
 
 /* Mobile: ring beside the name, the explanation on the full row below (it used to be squeezed into the narrow column). */

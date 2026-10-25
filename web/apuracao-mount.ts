@@ -250,7 +250,7 @@ export function mountApuracao(el: HTMLElement) {
       .then(() => { buscandoMundo = false; paint(); });
   };
   const seguirMapa = () => {
-    if (vista === "noite" && ctx?.cargo === "Presidente") carregarMundo();
+    if (vista === "noite") carregarMundo(); // the one map has the world behind Brazil, for governors too
     if (vista === "mapa" || vista === "noite" || (cheia() && ctx?.cargo === "Presidente")) carregarMapa();
     if (simAtivo()) return;
     if (nacional()) brasil.follow(ctx!.cargo); else { brasil.stop(); nac = null; }
