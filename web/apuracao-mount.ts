@@ -23,6 +23,10 @@ import { criarTopo } from "./apuracao-sim-mount.js";
 import { createChance } from "./apuracao-chance.js";
 import { chanceProps, criarMunicipais, exteriorProps } from "./apuracao-mount-props.js";
 import { criarTelaCheia } from "./apuracao-tela-cheia.js";
+import { criarAvisos, novosAvisos } from "./apuracao-aviso.js";
+import { codificar } from "./apuracao-link.js";
+import { disputasDoGiro, GIRO_MS, proxima } from "./apuracao-giro.js";
+import type { Visao } from "./apuracao-link.js";
 import type { RenderProps, Vista } from "./apuracao.js";
 import type { FeedSnapshot } from "./apuracao-feed.js";
 import type { BrasilSnapshot } from "./apuracao-uf.js";
@@ -38,10 +42,14 @@ const PAGE = 40;
 const UMA_VAGA: ReadonlySet<string> = new Set(["Presidente", "Governador"]);
 
 // What the page hands over for the race on screen; the rest of the props are the tab's own state.
-export type Contexto = Pick<RenderProps, "cargo" | "uf" | "byId" | "avatar" | "exp"> & { abrirUf?: (uf: string) => void };
+export type Contexto = Pick<RenderProps, "cargo" | "uf" | "byId" | "avatar" | "exp"> & { abrirUf?: (uf: string) => void; ufEleitor?: string };
 
 export function mountApuracao(el: HTMLElement) {
   let ctx: Contexto | null = null;
+  let base: Contexto | null = null; // what the page handed over; `ctx` differs from it only while "Rodar disputas" is on another race
+  let giro = 0; // timer of "Rodar disputas" (0: off)
+  let pendente: Visao | null = null; // a link to apply on the next show()
+  const avisos = criarAvisos();
   let snap: FeedSnapshot | null = null;
   let nac: BrasilSnapshot | null = null;
   let hist: Ponto[] = [];
@@ -62,13 +70,29 @@ export function mountApuracao(el: HTMLElement) {
   const projecao = createProjecao(); // the drift it measures is only seen while this tab is open
   const leitorChance = createChance();
   // Fullscreen panel (apuracao-painel.js): what the tab follows changes with it (the president's panel shows the map and the exterior).
-  const tela = criarTelaCheia(el, () => { painted = null; seguir(); paint(); });
+  const tela = criarTelaCheia(el, (c) => { if (!c) pararGiro(); painted = null; seguir(); paint(); });
   const cheia = () => tela.ativa();
   const corCamara = createCores(PALETA, RESTO); // its own memory: lists are named differently from parties and would eat the map's colours
   // The controls above the views are never redrawn; the views go in `corpo`.
   const topo = document.createElement("div");
+  const extras = document.createElement("div");
+  extras.className = "apu-topo-linha apu-extras";
+  extras.innerHTML = `<button type="button" class="ghost" data-avisos></button><button type="button" class="ghost" data-giro hidden></button><button type="button" class="ghost" data-link>Copiar link</button>`;
   const corpo = document.createElement("div");
-  el.replaceChildren(topo, corpo);
+  el.replaceChildren(topo, extras, corpo);
+  const ROTULO_AVISO = { indisponivel: "Avisos: indisponíveis neste navegador", bloqueado: "Avisos: bloqueados no navegador", ligado: "Avisos: ligados", desligado: "Avisos: desligados" } as const;
+  const sincExtras = () => {
+    const a = extras.querySelector<HTMLButtonElement>("[data-avisos]")!;
+    const e = avisos.estado();
+    a.textContent = ROTULO_AVISO[e];
+    a.disabled = e === "indisponivel" || e === "bloqueado";
+    a.setAttribute("aria-pressed", String(e === "ligado"));
+    a.title = "Notificação do navegador quando o TSE marca alguém eleito ou o Radar prova um eleito ou o 2º turno, com a aba em segundo plano";
+    const g = extras.querySelector<HTMLButtonElement>("[data-giro]")!;
+    g.hidden = !cheia();
+    g.textContent = giro ? "Rodar disputas: ligado" : "Rodar disputas: desligado";
+    g.setAttribute("aria-pressed", String(!!giro));
+  };
   // A live region must exist before its text changes, so it lives outside the redrawn area.
   const anuncio = document.createElement("div");
   anuncio.className = "sr";
@@ -140,22 +164,33 @@ export function mountApuracao(el: HTMLElement) {
       if (i) i.textContent = idade(html) ?? i.textContent;
       fx.sync();
       ui.sync();
+      sincExtras();
       return;
     }
     painted = key;
     repaint(corpo, html);
     fx.sync();
     ui.sync();
+    sincExtras();
   };
   // The national feed reports once per state: draw at most once per frame.
   const agendar = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; paint(); }); };
 
   // What a new file of the open race adds to the session: a point of the charts, the lines of the updates, the elected so far.
   const registrarSnap = (s: FeedSnapshot) => {
-    if (s.dados && s.status === "ok") { hist = registrar(hist, s.dados); if (ctx) { novidades = atualizar(novidades, s.dados, ctx); eleitos = atualizarEleitos(eleitos, s.dados, ctx); } }
+    if (s.dados && s.status === "ok") {
+      hist = registrar(hist, s.dados);
+      if (ctx) {
+        const antes = novidades.itens;
+        novidades = atualizar(novidades, s.dados, ctx);
+        eleitos = atualizarEleitos(eleitos, s.dados, ctx);
+        if (!simAtivo()) avisos.avisar(`${ctx.cargo}${ctx.uf === "BR" ? "" : ` · ${ctx.uf}`}`, novosAvisos(antes, novidades.itens));
+      }
+    }
   };
   const zerarSessao = () => { limit = PAGE; hist = []; novidades = vazio(); eleitos = vazioEleitos(); projecao.reiniciar(); };
-  const feed = createFeed({ onChange: (s) => { if (simAtivo()) return; snap = s; registrarSnap(s); paint(); } });
+  // With the notifications on, the open race keeps being asked while the tab is in the background: that is when they matter.
+  const feed = createFeed({ visible: () => !document.hidden || avisos.ativo(), onChange: (s) => { if (simAtivo()) return; snap = s; registrarSnap(s); paint(); } });
   const brasil = createBrasilFeed({ url: (c, uf) => tseUrl(c, uf, TSE_BASE, turnoDe(c, turno)), onChange: (s) => { if (simAtivo()) return; nac = s; agendar(); } });
 
   // Step k of the simulated night. A jump (salto) rebuilds what the session has seen up to k, as if the tab had been open all night.
@@ -235,6 +270,43 @@ export function mountApuracao(el: HTMLElement) {
   };
 
 
+  // "Rodar disputas": the fullscreen panel moves through the races of the reader's ballot. Leaving fullscreen puts the page's race back.
+  const irPara = (c: { cargo: Contexto["cargo"]; uf: string }) => {
+    ctx = { ...base!, cargo: c.cargo, uf: c.uf };
+    zerarSessao(); selUf = null; fx.reiniciar(); brasil.stop(); nac = null; painted = null;
+    if (!vistasDe(ctx.cargo, turnoDe(ctx.cargo, turno)).includes(vista)) vista = "placar";
+    seguir();
+    paint();
+  };
+  const pararGiro = () => {
+    if (!giro) return;
+    clearInterval(giro);
+    giro = 0;
+    if (base && ctx && (ctx.cargo !== base.cargo || ctx.uf !== base.uf)) irPara(base);
+  };
+  const ligarGiro = () => {
+    if (!base || !ctx) return;
+    const lista = disputasDoGiro(base.ufEleitor ?? (base.uf === "BR" ? "SP" : base.uf));
+    giro = window.setInterval(() => { if (ctx) irPara(proxima(lista, ctx)); }, GIRO_MS);
+  };
+  const copiarLink = async (b: HTMLElement) => {
+    if (!ctx) return;
+    const url = `${location.origin}${location.pathname}${codificar({ cargo: ctx.cargo, uf: ctx.uf, vista, turno: turnoDe(ctx.cargo, turno), passo: simAtivo() ? ui.passo() : undefined })}`;
+    let ok = true;
+    try { await navigator.clipboard.writeText(url); } catch { ok = false; }
+    if (!ok) { history.replaceState(null, "", url); } // no clipboard: the address bar now holds the link
+    b.textContent = ok ? "Link copiado" : "Link na barra de endereço";
+    anuncio.textContent = b.textContent;
+    setTimeout(() => { b.textContent = "Copiar link"; }, 2500);
+  };
+  extras.addEventListener("click", async (e) => {
+    const t = (e.target as Element).closest<HTMLElement>("[data-avisos], [data-giro], [data-link]");
+    if (!t) return;
+    if ("avisos" in t.dataset) { await avisos.alternar(); sincExtras(); }
+    else if ("giro" in t.dataset) { if (giro) pararGiro(); else ligarGiro(); sincExtras(); }
+    else if ("link" in t.dataset) void copiarLink(t);
+  });
+
   el.addEventListener("click", (e) => {
     const t = (e.target as Element).closest<HTMLElement>("[data-vista], [data-turno], [data-modo-mapa], [data-uf], [data-abrir-uf], [data-mun-modo], [data-mun-uf], [data-fx-pref], [data-demo-toggle], [data-demo], #apu-mais, #mun-mais");
     if (!t) return;
@@ -286,7 +358,11 @@ export function mountApuracao(el: HTMLElement) {
   document.addEventListener("visibilitychange", () => { if (!document.hidden && !simAtivo()) { feed.refresh(); if (nacional()) brasil.refresh(); } });
 
   return {
+    // A link opened on page load: view and round now, the simulated moment once the race is on screen.
+    restaurar(v: Visao) { pendente = v; if (v.vista) vista = v.vista as Vista; if (v.turno) { turno = v.turno; gravarTurno(turno); } },
     show(next: Contexto) {
+      clearInterval(giro); giro = 0; // a new race from the page: the rotation starts over
+      base = next;
       const lido = lerTurno(); // the Ao vivo tab may have changed it
       const mudou = lido !== turno;
       turno = lido;
@@ -299,7 +375,8 @@ export function mountApuracao(el: HTMLElement) {
       if (!vistasDe(next.cargo, ef).includes(vista)) vista = "placar";
       seguir();
       paint();
+      if (pendente) { const p = pendente; pendente = null; if (p.passo !== undefined) ui.abrirSim(p.passo); }
     },
-    hide() { tela.sair(false); ui.pausar(); fx.parar(); feed.stop(); brasil.stop(); sim.parar(); ctx = null; snap = null; nac = null; painted = null; anuncio.textContent = ""; },
+    hide() { clearInterval(giro); giro = 0; base = null; tela.sair(false); ui.pausar(); fx.parar(); feed.stop(); brasil.stop(); sim.parar(); ctx = null; snap = null; nac = null; painted = null; anuncio.textContent = ""; },
   };
 }

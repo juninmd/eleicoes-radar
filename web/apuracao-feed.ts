@@ -2,6 +2,7 @@
 // visibility are injected, so the timing rules can be tested.
 import { parseApuracao } from "./apuracao-tse.js";
 import type { Apuracao } from "./apuracao-tse.js";
+import { intervaloDe } from "./apuracao-ritmo.js";
 
 // The TSE caches each file for 20 to 45 s (Cache-Control max-age), so polling faster only repeats answers.
 export const POLL_MS = 60_000;
@@ -65,19 +66,20 @@ export interface Timers { set: (fn: () => void, ms: number) => unknown; clear: (
 export interface FeedOptions {
   load?: Loader;
   onChange: (snap: FeedSnapshot) => void;
-  every?: number;
+  every?: number | ((snap: FeedSnapshot) => number); // a number is fixed; the default follows the rhythm of the count (apuracao-ritmo.ts)
   timers?: Timers;
   visible?: () => boolean;
   now?: () => Date;
 }
 export interface Feed { follow(next: string): void; refresh(): void; stop(): void }
 
-export function createFeed({ load = loadResultado, onChange, every = POLL_MS, timers = { set: (fn, ms) => setTimeout(fn, ms), clear: (t) => clearTimeout(t as ReturnType<typeof setTimeout>) }, visible = () => !document.hidden, now = () => new Date() }: FeedOptions): Feed {
+export function createFeed({ load = loadResultado, onChange, every, timers = { set: (fn, ms) => setTimeout(fn, ms), clear: (t) => clearTimeout(t as ReturnType<typeof setTimeout>) }, visible = () => !document.hidden, now = () => new Date() }: FeedOptions): Feed {
   let url: string | null = null;
   let token = 0;
   let timer: unknown = null;
   let ctl: AbortController | null = null;
   let snap: FeedSnapshot = { url: null, status: "carregando", dados: null, buscadoEm: null, erro: null };
+  const espera = () => (typeof every === "number" ? every : (every ?? ((s: FeedSnapshot) => intervaloDe(s.dados, now(), POLL_MS)))(snap));
 
   // A renderer bug must never stop the polling: the next tick may bring numbers it can draw.
   const notify = () => {
@@ -88,7 +90,7 @@ export function createFeed({ load = loadResultado, onChange, every = POLL_MS, ti
 
   async function tick() {
     const mine = token;
-    if (!visible()) { timer = timers.set(tick, every); return; } // background tab: no request
+    if (!visible()) { timer = timers.set(tick, espera()); return; } // background tab: no request
     ctl = new AbortController();
     let patch: Partial<FeedSnapshot>;
     try {
@@ -99,7 +101,7 @@ export function createFeed({ load = loadResultado, onChange, every = POLL_MS, ti
     }
     if (mine !== token) return;
     emit(patch);
-    timer = timers.set(tick, every);
+    timer = timers.set(tick, espera());
   }
 
   return {

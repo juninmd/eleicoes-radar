@@ -100,5 +100,11 @@ export function criarTopo({ topo, mudarFonte, irPara, pronto, telaCheia, cheia }
     passo: () => st.k,
     sync,
     pausar, // the tab was left: the night waits where it was
+    // A link to a moment of the night: the simulation opens paused at step k.
+    abrirSim(k: number) {
+      st.fonte = "sim"; st.k = Math.min(PASSOS - 1, Math.max(0, k)); st.vel = 1; st.tocando = false; parar();
+      mudarFonte("sim");
+      sync();
+    },
   };
 }

@@ -8,6 +8,8 @@ import { colaHtml, mountColaButtons } from "./cola-view.js";
 import { renderExpectativa } from "./expectativa.js";
 import { renderRede } from "./rede.js";
 import { mountApuracao } from "./apuracao-mount.js";
+import { decodificar } from "./apuracao-link.js";
+import { PASSOS } from "./apuracao-sim.js";
 import { mountAoVivo } from "./apuracao-aovivo.js";
 import { mountPanorama, PAN_MODES } from "./panorama.js";
 import { matches, SORTS, semEvidencia } from "./lista.js";
@@ -222,7 +224,7 @@ function renderModo() {
   if (state.modo === "aovivo") { aoVivo.show({ uf: state.uf, abrir: abrirCorrida, avatar, prev: prevDe, exp: state.exp }); carregarFotosPresidente(); }
   else aoVivo.hide();
   $("#pan-view").hidden = !(state.modo in PAN_MODES);
-  if (state.modo === "apuracao") apuracao.show({ ...raceOf(), byId: new Map(state.cands.map((c) => [c.id, c] as const)), avatar, exp: state.exp, abrirUf });
+  if (state.modo === "apuracao") apuracao.show({ ...raceOf(), ufEleitor: state.uf, byId: new Map(state.cands.map((c) => [c.id, c] as const)), avatar, exp: state.exp, abrirUf });
   else apuracao.hide();
   if (state.modo in PAN_MODES) { panorama.show({ modo: state.modo, pan: state.pan, ...raceOf(), cands: state.cands }); return; }
   if (state.modo === "rede") {
@@ -298,6 +300,19 @@ function bind() {
   mountTabs($("#cedulas"));
   mountColaButtons({ get: () => state.cola, ballots: BALLOTS, clear: () => { state.cola = {}; store.set("cola", state.cola); render(); } });
 }
+
+// A link to the Apuração tab (apuracao-link.ts): the race, the view, the round and, in the simulation, the moment of the night.
+function abrirLink() {
+  const v = decodificar(location.hash, PASSOS);
+  if (!v) return;
+  const i = BALLOTS.findIndex((b) => b.cargo === v.cargo || b.alt === v.cargo);
+  if (i < 0) return;
+  state.ballot = i;
+  state.modo = "apuracao";
+  if (v.uf !== "BR") state.uf = v.uf; // loadUf() below falls back to SP when the state does not exist
+  apuracao.restaurar(v);
+}
+abrirLink();
 
 const sobre = () => { const on = location.hash === "#sobre"; document.body.classList.toggle("sobre", on); if (on) scrollTo(0, 0); }; // the explanations are their own screen, available even before the data loads
 addEventListener("hashchange", sobre);

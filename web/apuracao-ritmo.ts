@@ -24,3 +24,19 @@ export function pausaDoTse(arquivos: Versionado[], agora: Date, limiteMs = 10 * 
   const idadeMs = agora.getTime() - ultima.getTime();
   return { ultima, idadeMs, parado: idadeMs > limiteMs };
 }
+
+export const POLL_RAPIDO_MS = 30_000;
+export const POLL_LENTO_MS = 120_000;
+
+// How long to wait before asking the TSE again. The count has a rhythm: the last stretch (90% of the sections or more) is where leads
+// settle, so it is asked twice as often (the TSE's own cache is 20 to 45 s, so faster would only repeat answers); a finished count, or a
+// file that has not moved for 10 minutes, changes rarely, so it is asked half as often. Anything unknown keeps the base.
+export function intervaloDe(d: { fase?: string; secoes?: { totalizadas: number; total: number } } & Versionado | null | undefined, agora: Date, base: number): number {
+  if (!d) return base;
+  if (d.fase === "concluida") return POLL_LENTO_MS;
+  if (d.fase !== "parcial") return base;
+  const idade = agora.getTime() - epochDe(d);
+  if (idade > 10 * 60_000) return POLL_LENTO_MS;
+  const s = d.secoes;
+  return s && s.total > 0 && s.totalizadas / s.total >= 0.9 ? POLL_RAPIDO_MS : base;
+}
