@@ -25,6 +25,14 @@ do 1º turno de 2026 e do comportamento dos segundos turnos de 2002 a 2022 (`web
 cenário próprio); o erro medido no passado aparece na própria página. Método, números e o que foi testado e descartado:
 AGENTS.md, seção "Estimativa do 2º turno por município".
 
+Abaixo desses controles ficam três botões (`web/apuracao-aviso.ts`, `apuracao-link.ts`, `apuracao-giro.ts`):
+
+- **Avisos**: notificação do navegador (opt-in; pede permissão no clique) quando o TSE marca alguém "Eleito" ou o Radar prova um eleito ou o 2º turno. Só com a aba em segundo plano, nunca na simulação, e nunca por marco de seções. Ligados, a disputa aberta continua sendo consultada com a aba escondida.
+- **Copiar link**: `#apuracao?c=<cargo>&uf=<uf>&v=<visão>&t=2&s=<passo>`. Dados reais abrem ao vivo; `s` só existe na simulação e abre pausada naquele momento da noite.
+- **Rodar disputas** (só em tela cheia): Presidente, Governador e Senador do estado do eleitor, a cada 20 s.
+
+A consulta de cada arquivo é adaptativa (`apuracao-ritmo.ts#intervaloDe`): 30 s a partir de 90% das seções, 60 s no meio, 2 min com apuração concluída ou arquivo parado há mais de 10 min.
+
 Aba **Apuração**: o navegador lê direto os arquivos de resultados do TSE (`web/apuracao-tse.ts`,
 `apuracao-feed.ts`, `apuracao.ts`), sem passar pelo servidor do Radar, e consulta de novo a cada 60 s
 enquanto a aba está aberta e visível.
