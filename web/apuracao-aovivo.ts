@@ -331,6 +331,7 @@ export function mountAoVivo(el: HTMLElement) {
     noite.atualizar({
       nac: f.nac, cargo: f.cargo, mapa: mapa ?? (mapaFalhou ? null : undefined), mundo, exterior,
       byId: byId(f.nac), avatar: ctx.avatar, cor, efeitos: efeitos && !movimentoReduzido(), som,
+      salto: !(f.nac && f.nac.ciclo >= 1), // the 28 files arrive one by one: until each has answered once, that is loading, not news
       anunciar: (txt) => { anuncio.textContent = txt; },
     });
   };

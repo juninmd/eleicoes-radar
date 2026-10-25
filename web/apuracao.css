@@ -814,3 +814,12 @@
 .live-consol-t th:first-child { text-align: left; white-space: normal; }
 .live-consol-t th small { color: var(--muted); font-weight: 500; }
 @media (max-width: 520px) { .live-consol-t { font-size: 12px; } .live-consol-t th, .live-consol-t td { padding: 5px 4px; } }
+
+/* Ao vivo on phones: the controls are compact (36px, still above the 24px WCAG minimum) and the two groups of the live map share one row */
+@media (max-width: 520px) {
+  .live .apu-vistas button, .live .apu-modos button, .live .apu-turnos button, .live .ghost { min-height: 36px; padding: 5px 10px; font-size: 12px; }
+  .live .nt-barra { justify-content: flex-start; }
+  .live .nt-barra .apu-vistas { display: inline-flex; width: auto; }
+  .live .nt-barra .apu-vistas button { flex: 0 0 auto; }
+  .live .nt-barra .nt-contagem { flex: 1 0 100%; }
+}

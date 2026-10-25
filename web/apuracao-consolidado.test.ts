@@ -2,11 +2,12 @@ import { describe, expect, test } from "bun:test";
 import { consolidar, renderConsolidado } from "./apuracao-consolidado.js";
 import { parseApuracao } from "./apuracao-tse.js";
 import { cand, file } from "./apuracao-fixtures.js";
+import type { UfEstado } from "./apuracao-uf.js";
 
 const par = (a: string, b: string) => [cand("a1", "10", "ANA SOUZA", "1", a, "50,00"), cand("b2", "20", "BETO LIMA", "2", b, "50,00")];
 const arq = (a: string, b: string, s = {}) => parseApuracao(file({ cands: par(a, b), s }))!;
-const uf = (d: ReturnType<typeof arq>, status: "ok" | "erro" | "ausente" = "ok") => ({ status, dados: d, erro: null, buscadoEm: new Date() });
-const nacDe = (ufs: Record<string, ReturnType<typeof uf>>) => ({ cargo: "Presidente" as const, ciclo: 1, buscadoEm: new Date(), ufs });
+const uf = (d: ReturnType<typeof arq>, status: "ok" | "erro" | "ausente" = "ok"): UfEstado => ({ status, dados: d, erro: null, buscadoEm: new Date() });
+const nacDe = (ufs: Record<string, UfEstado>) => ({ cargo: "Presidente" as const, ciclo: 1, buscadoEm: new Date(), ufs });
 const cor = () => "#123456";
 
 describe("Total consolidado (estados + exterior)", () => {
