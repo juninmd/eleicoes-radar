@@ -76,21 +76,61 @@ async function loadJson<T = unknown>(path: string): Promise<T> {
 
 const ballotOf = (c: Candidatura) => BALLOTS.findIndex((b) => b.cargo === c.cargo || b.alt === c.cargo);
 
+let retrying = false;
+async function tentarCarregar(acao: "uf" | "main", btn?: HTMLButtonElement) {
+  if (retrying) return;
+  retrying = true;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Carregando…";
+  }
+  try {
+    if (acao === "uf") {
+      await loadUf();
+    } else {
+      await main();
+    }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    document.body.classList.add("ready");
+    document.body.dataset.visao = "radar";
+    $("#lista").innerHTML = `<li class="empty"><p>Não foi possível carregar os dados (${h(msg)}).</p><button type="button" class="btn-confirma" data-retry-main>Tentar novamente</button></li>`;
+  } finally {
+    retrying = false;
+  }
+}
+
 async function loadUf() {
+  const reqUf = state.uf;
   $("#lista").setAttribute("aria-busy", "true");
   try {
-    const [local, br] = await Promise.all([loadJson<Candidatura[]>(`data/uf/${state.uf}.json`), loadJson<Candidatura[]>("data/uf/BR.json")]);
+    const [local, br] = await Promise.all([loadJson<Candidatura[]>(`data/uf/${reqUf}.json`), loadJson<Candidatura[]>("data/uf/BR.json")]);
+    if (state.uf !== reqUf) return;
     state.cands = [...local, ...br];
   } catch {
+    if (state.uf !== reqUf) return;
     // Sem isto a lista ficaria em aria-busy para sempre e sem aviso.
-    $("#lista").innerHTML = `<li class="muted">Não foi possível carregar os dados desta UF. Recarregue a página para tentar de novo.</li>`;
+    $("#lista").innerHTML = `<li class="empty"><p>Não foi possível carregar os dados desta UF.</p><button type="button" class="btn-confirma" data-retry-uf>Tentar novamente</button></li>`;
     return;
   } finally {
-    $("#lista").removeAttribute("aria-busy");
+    if (state.uf === reqUf) {
+      $("#lista").removeAttribute("aria-busy");
+    }
   }
   render();
   loadFotos();
 }
+
+$("#lista").addEventListener("click", (e) => {
+  const btn = (e.target as Element | null)?.closest<HTMLButtonElement>("button[data-retry-uf], button[data-retry-main]");
+  if (!btn) return;
+  if ("retryUf" in btn.dataset) {
+    tentarCarregar("uf", btn);
+  } else if ("retryMain" in btn.dataset) {
+    tentarCarregar("main", btn);
+  }
+});
+
 
 // Photos load per open ballot, after the list; a missing file just means initials.
 async function loadFotos() {
@@ -272,7 +312,10 @@ function render() {
   renderCola();
 }
 
+let bound = false;
 function bind() {
+  if (bound) return;
+  bound = true;
   $<HTMLSelectElement>("#uf").value = state.uf;
   $("#uf").addEventListener("change", (e) => { state.uf = (e.target as HTMLSelectElement).value; state.limit = PAGE; state.open = null; store.set("uf", state.uf); loadUf(); });
   // Espera a digitação parar: evita recriar a lista inteira a cada tecla.
@@ -373,6 +416,41 @@ function bind() {
   // Hover or keyboard focus on a heavy tab starts its download, so the click does not wait for it.
   for (const ev of ["pointerover", "focusin"]) $("#modos").addEventListener(ev, (e) => abaDo((e.target as Element).closest<HTMLElement>("[data-modo]")?.dataset.modo ?? "")?.baixar());
 }
+function setupConexaoListener() {
+  const el = $("#status-conexao");
+  if (!el || typeof window === "undefined" || !("onLine" in navigator)) return;
+
+  let avisoT: ReturnType<typeof setTimeout> | undefined;
+  const avisar = (msg: string, dotClass: string, duracao = 0) => {
+    if (avisoT) clearTimeout(avisoT);
+    el.innerHTML = `<span class="${dotClass}" aria-hidden="true"></span> <span>${h(msg)}</span>`;
+    el.hidden = false;
+    if (duracao > 0) {
+      avisoT = setTimeout(() => { el.hidden = true; }, duracao);
+    }
+  };
+
+  window.addEventListener("offline", () => {
+    avisar("Você está offline. Exibindo dados locais em cache.", "dot-off");
+  });
+  window.addEventListener("online", () => {
+    avisar("Conexão restabelecida.", "dot-on", 3500);
+    const retryMain = $<HTMLButtonElement>("#lista button[data-retry-main]");
+    if (retryMain) {
+      tentarCarregar("main", retryMain);
+      return;
+    }
+    const retryUf = $<HTMLButtonElement>("#lista button[data-retry-uf]");
+    if (retryUf) {
+      tentarCarregar("uf", retryUf);
+    }
+  });
+  if (!navigator.onLine) {
+    avisar("Você está offline. Exibindo dados locais em cache.", "dot-off");
+  }
+}
+setupConexaoListener();
+
 
 // A link to the Apuração tab (apuracao-link.ts): the race, the view, the round and, in the simulation, the moment of the night.
 // The link modules load only for a #apuracao hash, so the radar boot stays light.
@@ -413,4 +491,4 @@ async function main() {
 }
 
 // The error goes in the radar list, so show the radar view even when another tab was saved (renderModo never ran).
-main().catch((e) => { document.body.classList.add("ready"); document.body.dataset.visao = "radar"; $("#lista").innerHTML = `<li class="empty">Não foi possível carregar os dados (${h(e.message)}). Rode <code>bun run radar:build</code> e recarregue.</li>`; });
+main().catch((e) => { document.body.classList.add("ready"); document.body.dataset.visao = "radar"; $("#lista").innerHTML = `<li class="empty"><p>Não foi possível carregar os dados (${h(e.message)}).</p><button type="button" class="btn-confirma" data-retry-main>Tentar novamente</button></li>`; });

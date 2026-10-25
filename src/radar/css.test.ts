@@ -8,7 +8,7 @@ const read = (path: string) => readFileSync(path, "utf8").replace(/\r\n/g, "\n")
 const build = () => {
   const dir = mkdtempSync(join(tmpdir(), "radar-css-"));
   const out = join(dir, "app.css");
-  const run = Bun.spawnSync([process.execPath, "x", "--bun", "tailwindcss", "-i", "tailwind.css", "-o", out, "--minify"], { stderr: "pipe", timeout: 60_000 });
+  const run = Bun.spawnSync([process.execPath, "x", "--bun", "tailwindcss", "-i", "tailwind.css", "-o", out, "--minify"], { stdin: "ignore", stderr: "pipe", timeout: 60_000 });
   const css = run.exitCode === 0 ? read(out) : `build failed: ${run.stderr.toString()}`;
   rmSync(dir, { recursive: true, force: true });
   return css;
