@@ -143,7 +143,7 @@ export function renderOnda(o: Onda | null, par: Par, cor: Cor): string {
   const max = Math.max(0.0005, ...o.linhas.map((l) => Math.abs(l.efeito)));
   const nome = h(curto(par.a.nome));
   const linhas = o.linhas.map((l) => {
-    const w = ((Math.abs(l.efeito) / max) * 50).toFixed(1);
+    const w = ((Math.abs(l.efeito) / max) * 38).toFixed(1);
     const lado = l.efeito >= 0 ? `left:50%;background:${h(ca)}` : `right:50%;background:${h(cb)}`;
     const tende = l.qa === 0.5 ? "empate" : `${h(curto((l.qa > 0.5 ? par.a : par.b).nome))} ${pct(Math.max(l.qa, 1 - l.qa), 1)}`;
     return `<li><span class="on-reg"><b>${h(l.regiao)}</b><small>faltam ≈ ${mi(l.faltam)} · ${pct(l.avanco, 0)} apurado</small></span>
