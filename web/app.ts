@@ -250,7 +250,13 @@ function render() {
 function bind() {
   $<HTMLSelectElement>("#uf").value = state.uf;
   $("#uf").addEventListener("change", (e) => { state.uf = (e.target as HTMLSelectElement).value; state.limit = PAGE; state.open = null; store.set("uf", state.uf); loadUf(); });
-  $("#busca").addEventListener("input", (e) => { state.busca = (e.target as HTMLInputElement).value; state.limit = PAGE; renderList(); });
+  // Espera a digitação parar: evita recriar a lista inteira a cada tecla.
+  let buscaT = 0;
+  $("#busca").addEventListener("input", (e) => {
+    const valor = (e.target as HTMLInputElement).value;
+    clearTimeout(buscaT);
+    buscaT = window.setTimeout(() => { state.busca = valor; state.limit = PAGE; renderList(); }, 150);
+  });
   $("#ordem").addEventListener("change", (e) => { state.ordem = (e.target as HTMLSelectElement).value; renderList(); });
   $<HTMLInputElement>("#mostrarFotos").checked = state.mostrarFotos;
   $("#mostrarFotos").addEventListener("change", (e) => { state.mostrarFotos = (e.target as HTMLInputElement).checked; store.set("fotos", state.mostrarFotos); renderList(); renderDossierPanel(); if (state.modo === "aovivo") aoVivo.show({ uf: state.uf, abrir: abrirCorrida, avatar, prev: prevDe, exp: state.exp }); });
