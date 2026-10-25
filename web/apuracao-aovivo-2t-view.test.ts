@@ -270,3 +270,29 @@ describe("onda de votos (visão)", () => {
     expect(difPesquisa(0.5, 0.5)).toContain("igual à pesquisa");
   });
 });
+
+describe("pontuação do caminho para a frente", () => {
+  test("a frase termina em um ponto só: o 'p.p.' do rótulo já fecha a abreviação", () => {
+    const normal = renderCaminho(caminho(prev(lado(B, 0.54, 0.51), lado(A, 0.46, 0.49))), cor);
+    const quase = renderCaminho(caminho(prev(lado(B, 0.654, 0.5), lado(A, 0.346, 0.5), { apurados: 10_000, faltam: 119_400_000 })), cor);
+    for (const html of [normal, quase]) expect(html).not.toMatch(/p\.p\.<\/b>\./);
+    expect(normal).toContain("por <b>8,0 p.p.</b>");
+  });
+});
+
+describe("onda de votos: efeito que arredonda para zero", () => {
+  const linha = (efeito: number) => ({ regiao: "Exterior", faltam: 155_529, avanco: 0.6, qa: 0.597, efeito, ufs: 1 });
+  const html = (efeito: number) => renderOnda({ linhas: [linha(efeito)], agora: 0.445, final: 0.445, faltam: 155_529, semVotos: 0 }, par, cor);
+
+  test("um efeito de −0,00004 não vira '−0,0' nem '+0,0': sem sinal quando o número impresso é zero", () => {
+    for (const e of [-0.00004, 0.00004, 0, -0]) {
+      const h = html(e);
+      expect(h).not.toMatch(/[−+]0,0/);
+      expect(h).toContain(">0,0<");
+    }
+  });
+  test("efeitos que aparecem no número mantêm o sinal", () => {
+    expect(html(-0.0072)).toContain("−0,7");
+    expect(html(0.012)).toContain("+1,2");
+  });
+});
