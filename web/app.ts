@@ -5,13 +5,8 @@ import { renderDossier } from "./dossier.js";
 import { isPicked, normalizeCola, seatsOf, togglePick } from "./cola.js";
 import type { Ballot } from "./cola.js";
 import { colaHtml, mountColaButtons } from "./cola-view.js";
-import { renderExpectativa } from "./expectativa.js";
-import { renderRede } from "./rede.js";
-import { mountApuracao } from "./apuracao-mount.js";
-import { decodificar } from "./apuracao-link.js";
-import { PASSOS } from "./apuracao-sim.js";
-import { mountAoVivo } from "./apuracao-aovivo.js";
-import { mountPanorama, PAN_MODES } from "./panorama.js";
+import { abaSobDemanda, quandoPronta } from "./abas-sob-demanda.js";
+import { PAN_MODES } from "./pan-modos.js";
 import { matches, SORTS, semEvidencia } from "./lista.js";
 import { achados } from "./achados.js";
 import { LEVELS, presetsHtml, weightsHtml } from "./pesos.js";
@@ -20,6 +15,7 @@ import { keepFocus, visibleOpener } from "./focus.js";
 import type { AppState, AvatarSrc, Meta } from "./app-tipos.js";
 import type { Candidatura } from "./types.js";
 import type { Cargo } from "./apuracao-tse.js";
+import type { Visao } from "./apuracao-link.js";
 
 // Ballot order and digit count exactly as on the urna.
 const BALLOTS: Ballot[] = [
@@ -60,9 +56,15 @@ const state: AppState = {
 };
 const $ = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelector<T>(s)!;
 const cache = new Map<string, Promise<unknown>>();
-const apuracao = mountApuracao($("#apu-view"));
-const aoVivo = mountAoVivo($("#live-view"));
-const panorama = mountPanorama($("#pan-view"));
+// Heavy tabs: each module is downloaded on its first open (or prefetched on hover); the radar boot does not wait for them.
+const apuracao = abaSobDemanda(() => import("./apuracao-mount.js"), (m) => m.mountApuracao($("#apu-view")));
+const aoVivo = abaSobDemanda(() => import("./apuracao-aovivo.js"), (m) => m.mountAoVivo($("#live-view")));
+const panorama = abaSobDemanda(() => import("./panorama.js"), (m) => m.mountPanorama($("#pan-view")));
+const expectativa = abaSobDemanda(() => import("./expectativa.js"), (m) => m.renderExpectativa);
+const redeAba = abaSobDemanda(() => import("./rede.js"), (m) => m.renderRede);
+const abaDo = (modo: string) => (modo === "apuracao" ? apuracao : modo === "aovivo" ? aoVivo : modo === "expectativa" ? expectativa : modo === "rede" ? redeAba : modo in PAN_MODES ? panorama : null);
+// A deep link to the Apuração tab, applied once that tab is ready (see abrirLink).
+let linkPendente: Visao | null = null;
 
 async function loadJson<T = unknown>(path: string): Promise<T> {
   // Falha não fica no cache: a próxima chamada tenta de novo.
@@ -208,7 +210,7 @@ function carregarFotosPresidente() {
   if (fotosPresidente) return;
   fotosPresidente = true;
   loadJson<Record<string, string>>(`data/fotos/BR-${slug("Presidente")}.json`)
-    .then((f) => { Object.assign(state.fotos, f); if (state.modo === "aovivo") aoVivo.show({ uf: state.uf, abrir: abrirCorrida, avatar, prev: prevDe, exp: state.exp }); })
+    .then((f) => { Object.assign(state.fotos, f); mostrarAoVivo(); })
     .catch(() => {}); // no file: initials
 }
 
@@ -234,19 +236,32 @@ function renderModo() {
   $("#rede-view").hidden = state.modo !== "rede";
   $("#apu-view").hidden = state.modo !== "apuracao";
   $("#live-view").hidden = state.modo !== "aovivo";
-  if (state.modo === "aovivo") { aoVivo.show({ uf: state.uf, abrir: abrirCorrida, avatar, prev: prevDe, exp: state.exp }); carregarFotosPresidente(); }
-  else aoVivo.hide();
   $("#pan-view").hidden = !(state.modo in PAN_MODES);
-  if (state.modo === "apuracao") apuracao.show({ ...raceOf(), ufEleitor: state.uf, byId: new Map(state.cands.map((c) => [c.id, c] as const)), avatar, exp: state.exp, abrirUf });
-  else apuracao.hide();
-  if (state.modo in PAN_MODES) { panorama.show({ modo: state.modo, pan: state.pan, ...raceOf(), cands: state.cands }); return; }
+  if (state.modo === "aovivo") { mostrarAoVivo(); carregarFotosPresidente(); }
+  else aoVivo.get()?.hide();
+  if (state.modo === "apuracao") {
+    quandoPronta(apuracao, $("#apu-view"), () => state.modo === "apuracao", (ap) => {
+      if (linkPendente) { ap.restaurar(linkPendente); linkPendente = null; }
+      ap.show({ ...raceOf(), ufEleitor: state.uf, byId: new Map(state.cands.map((c) => [c.id, c] as const)), avatar, exp: state.exp, abrirUf });
+    }, renderModo);
+  } else apuracao.get()?.hide();
+  if (state.modo in PAN_MODES) { quandoPronta(panorama, $("#pan-view"), () => state.modo in PAN_MODES, (p) => p.show({ modo: state.modo, pan: state.pan, ...raceOf(), cands: state.cands }), renderModo); return; }
   if (state.modo === "rede") {
     const cand = state.redeFoco && state.cands.find((x) => x.id === state.redeFoco);
-    keepFocus($("#rede-view"), () => { $("#rede-view").innerHTML = renderRede({ rede: state.rede, cand: cand || null, sel: state.redeSel }); });
+    quandoPronta(redeAba, $("#rede-view"), () => state.modo === "rede", (renderRede) => {
+      keepFocus($("#rede-view"), () => { $("#rede-view").innerHTML = renderRede({ rede: state.rede, cand: cand || null, sel: state.redeSel }); });
+    }, renderModo);
     return;
   }
   if (state.modo !== "expectativa") return;
-  $("#exp-view").innerHTML = renderExpectativa({ exp: state.exp, ...raceOf(), cands: state.cands, avatar, limit: state.limit });
+  quandoPronta(expectativa, $("#exp-view"), () => state.modo === "expectativa", (renderExpectativa) => {
+    $("#exp-view").innerHTML = renderExpectativa({ exp: state.exp, ...raceOf(), cands: state.cands, avatar, limit: state.limit });
+  }, renderModo);
+}
+
+// Ao vivo redraws on its own (feed, photos); the callback is a no-op once the user has left the tab.
+function mostrarAoVivo() {
+  quandoPronta(aoVivo, $("#live-view"), () => state.modo === "aovivo", (ao) => ao.show({ uf: state.uf, abrir: abrirCorrida, avatar, prev: prevDe, exp: state.exp }), renderModo);
 }
 
 function render() {
@@ -269,7 +284,7 @@ function bind() {
   });
   $("#ordem").addEventListener("change", (e) => { state.ordem = (e.target as HTMLSelectElement).value; renderList(); });
   $<HTMLInputElement>("#mostrarFotos").checked = state.mostrarFotos;
-  $("#mostrarFotos").addEventListener("change", (e) => { state.mostrarFotos = (e.target as HTMLInputElement).checked; store.set("fotos", state.mostrarFotos); renderList(); renderDossierPanel(); if (state.modo === "aovivo") aoVivo.show({ uf: state.uf, abrir: abrirCorrida, avatar, prev: prevDe, exp: state.exp }); });
+  $("#mostrarFotos").addEventListener("change", (e) => { state.mostrarFotos = (e.target as HTMLInputElement).checked; store.set("fotos", state.mostrarFotos); renderList(); renderDossierPanel(); mostrarAoVivo(); });
   $("#situacao").addEventListener("change", (e) => { state.situacao = (e.target as HTMLSelectElement).value; state.limit = PAGE; render(); });
   $("#mais").addEventListener("click", () => { state.limit += PAGE; renderList(); });
   let pesosRaf = 0;
@@ -355,10 +370,15 @@ function bind() {
   }
 
   mountColaButtons({ get: () => state.cola, ballots: BALLOTS, clear: () => { state.cola = {}; store.set("cola", state.cola); render(); } });
+  // Hover or keyboard focus on a heavy tab starts its download, so the click does not wait for it.
+  for (const ev of ["pointerover", "focusin"]) $("#modos").addEventListener(ev, (e) => abaDo((e.target as Element).closest<HTMLElement>("[data-modo]")?.dataset.modo ?? "")?.baixar());
 }
 
 // A link to the Apuração tab (apuracao-link.ts): the race, the view, the round and, in the simulation, the moment of the night.
-function abrirLink() {
+// The link modules load only for a #apuracao hash, so the radar boot stays light.
+async function abrirLink() {
+  if (!location.hash.startsWith("#apuracao")) return;
+  const [{ decodificar }, { PASSOS }] = await Promise.all([import("./apuracao-link.js"), import("./apuracao-sim.js")]);
   const v = decodificar(location.hash, PASSOS);
   if (!v) return;
   const i = BALLOTS.findIndex((b) => b.cargo === v.cargo || b.alt === v.cargo);
@@ -366,9 +386,8 @@ function abrirLink() {
   state.ballot = i;
   state.modo = "apuracao";
   if (v.uf !== "BR") state.uf = v.uf; // loadUf() below falls back to SP when the state does not exist
-  apuracao.restaurar(v);
+  linkPendente = v;
 }
-abrirLink();
 
 const sobre = () => { const on = location.hash === "#sobre"; document.body.classList.toggle("sobre", on); if (on) scrollTo(0, 0); }; // the explanations are their own screen, available even before the data loads
 addEventListener("hashchange", sobre);
@@ -376,6 +395,7 @@ sobre();
 
 async function main() {
   renderWeights(); // needs no data: render it before the downloads so the rail does not grow under the reader
+  await abrirLink(); // before the first render: the deep link picks the tab
   const [meta, agenda, exp, rede, pan] = await Promise.all([loadJson<Meta>("data/meta.json"), loadJson<AppState["agenda"]>("data/agenda.json"), loadJson<AppState["exp"]>("data/expectativa.json").catch(() => null), loadJson<AppState["rede"]>("data/rede.json").catch(() => null), loadJson<AppState["pan"]>("data/panorama.json").catch(() => null)]);
   state.rede = rede;
   state.pan = pan;
