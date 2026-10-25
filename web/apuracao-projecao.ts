@@ -19,7 +19,8 @@ export interface Deriva { mu: number; sigmaUf: number; peso: number; n: number }
 export interface Dispersao { mu: number; sigmaComum: number; sigmaUf: number }
 export interface OpcoesSimulacao extends Partial<Dispersao> { a: string; b: string; n?: number; semente?: number }
 export type Faixa = [baixo: number, mediana: number, alto: number];
-export interface Simulacao { p1turno: Record<string, number>; segundoTurno: number; faixa: Record<string, Faixa>; n: number }
+// frente: the chance of each of the two ending with more valid votes than the other (the two add up to 1).
+export interface Simulacao { p1turno: Record<string, number>; segundoTurno: number; frente: Record<string, number>; faixa: Record<string, Faixa>; n: number }
 export interface Analise {
   base: Base; a: string; b2: string; medida: Deriva | null; params: Dispersao; sim: Simulacao;
   precisa: Record<string, number | null>; segundo: (number | null)[];
@@ -135,6 +136,7 @@ export function simular(partes: Parte[], { a, b, mu = 0, sigmaComum = 0.04, sigm
   const sb: number[] = [];
   let ganhaA = 0;
   let ganhaB = 0;
+  let frenteA = 0;
   for (let i = 0; i < n; i++) {
     const comum = mu + sigmaComum * normal();
     const escala = Math.exp(0.03 * normal());
@@ -150,11 +152,12 @@ export function simular(partes: Parte[], { a, b, mu = 0, sigmaComum = 0.04, sigm
     }
     sa.push(A / T);
     sb.push(B / T);
+    if (A > B) frenteA++;
     if (A / T > 0.5) ganhaA++;
     else if (B / T > 0.5) ganhaB++;
   }
   const faixa = (xs: number[]): Faixa => { xs.sort((x, y) => x - y); return [quantil(xs, 0.05), quantil(xs, 0.5), quantil(xs, 0.95)]; };
-  return { p1turno: { [a]: ganhaA / n, [b]: ganhaB / n }, segundoTurno: (n - ganhaA - ganhaB) / n, faixa: { [a]: faixa(sa), [b]: faixa(sb) }, n };
+  return { p1turno: { [a]: ganhaA / n, [b]: ganhaB / n }, segundoTurno: (n - ganhaA - ganhaB) / n, frente: { [a]: frenteA / n, [b]: (n - frenteA) / n }, faixa: { [a]: faixa(sa), [b]: faixa(sb) }, n };
 }
 
 // Keeps the drift memory up to date for the two candidates ahead in the base scenario.

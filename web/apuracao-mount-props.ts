@@ -13,7 +13,7 @@ import type { Disputa } from "./apuracao-municipios-view.js";
 import type { Quem } from "./apuracao-chance-view.js";
 
 export interface EstadoMun {
-  ctx: Contexto; turno: Turno; snap: FeedSnapshot | null; nac: BrasilSnapshot | null;
+  ctx: Pick<Contexto, "cargo" | "uf" | "exp">; turno: Turno; snap: FeedSnapshot | null; nac: BrasilSnapshot | null;
   indice: MunIndice | null | undefined; // undefined: not asked yet; null: it failed
   disputa: Disputa | null; arquivo: MunArquivo | null | undefined;
   simulado: boolean; idSim: (cargo: Cargo, uf: string, num: string) => string | null; // the fictional id of a real candidate number
@@ -58,8 +58,8 @@ export function criarMunicipais(getJson: <T>(url: string) => Promise<T>, aoCarre
   let indice: MunIndice | null | undefined; // undefined: not asked yet; null: it failed
   let buscando = false;
   const arqs = new Map<string, MunArquivo | null | undefined>(); // by file name; undefined while loading
-  const disputa = (ctx: Contexto): Disputa | null => (indice ? indice.disputas.find((d) => d.cargo === ctx.cargo && d.uf === (ctx.cargo === "Presidente" ? "BR" : ctx.uf)) ?? null : null);
-  const carregar = (ctx: Contexto): void => {
+  const disputa = (ctx: Pick<Contexto, "cargo" | "uf">): Disputa | null => (indice ? indice.disputas.find((d) => d.cargo === ctx.cargo && d.uf === (ctx.cargo === "Presidente" ? "BR" : ctx.uf)) ?? null : null);
+  const carregar = (ctx: Pick<Contexto, "cargo" | "uf">): void => {
     if (!indice && !buscando) {
       buscando = true;
       getJson<MunIndice>("data/municipal/index.json")
@@ -77,5 +77,5 @@ export function criarMunicipais(getJson: <T>(url: string) => Promise<T>, aoCarre
         .then(aoCarregar);
     }
   };
-  return { indice: () => indice, disputa, arquivo: (ctx: Contexto) => { const d = disputa(ctx); return d ? arqs.get(d.arquivo) : undefined; }, carregar };
+  return { indice: () => indice, disputa, arquivo: (ctx: Pick<Contexto, "cargo" | "uf">) => { const d = disputa(ctx); return d ? arqs.get(d.arquivo) : undefined; }, carregar };
 }

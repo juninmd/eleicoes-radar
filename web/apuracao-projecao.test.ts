@@ -135,6 +135,15 @@ describe("simular", () => {
     expect(r.p1turno.A).toBe(1);
     expect(r.faixa.A[0]).toBeCloseTo(r.faixa.A[2], 10);
   });
+  test("the chance of ending ahead of the other is a pair that adds to 1 and follows the margin", () => {
+    const meio = simular([parte], { ...opts, mu: 0, sigmaComum: 0.05, sigmaUf: 0.05 });
+    expect(meio.frente.A + meio.frente.B).toBeCloseTo(1, 10);
+    expect(meio.frente.A).toBeGreaterThan(0.5); // A is ahead by 3,2 p.p. already, and the rest has no tilt
+    const virada = simular([parte], { ...opts, mu: -0.4, sigmaComum: 0.01, sigmaUf: 0.01 });
+    expect(virada.frente.B).toBeGreaterThan(0.95);
+    const fechada = simular([{ ...parte, apurado: 1000, votos: { A: 410, B: 300 } }], { ...opts, mu: -0.1, sigmaComum: 0.1, sigmaUf: 0.1 });
+    expect(fechada.frente.A).toBe(1); // nothing left to count: the count decides
+  });
   test("a margin shift never pushes a share outside 0..1", () => {
     const r = simular([parte], { ...opts, mu: 5, sigmaComum: 1, sigmaUf: 1 });
     for (const id of ["A", "B"]) for (const q of r.faixa[id]) { expect(q).toBeGreaterThanOrEqual(0); expect(q).toBeLessThanOrEqual(1); }

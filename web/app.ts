@@ -193,7 +193,7 @@ function carregarFotosPresidente() {
   if (fotosPresidente) return;
   fotosPresidente = true;
   loadJson<Record<string, string>>(`data/fotos/BR-${slug("Presidente")}.json`)
-    .then((f) => { Object.assign(state.fotos, f); if (state.modo === "aovivo") aoVivo.show({ uf: state.uf, abrir: abrirCorrida, avatar, prev: prevDe }); })
+    .then((f) => { Object.assign(state.fotos, f); if (state.modo === "aovivo") aoVivo.show({ uf: state.uf, abrir: abrirCorrida, avatar, prev: prevDe, exp: state.exp }); })
     .catch(() => {}); // no file: initials
 }
 
@@ -219,7 +219,7 @@ function renderModo() {
   $("#rede-view").hidden = state.modo !== "rede";
   $("#apu-view").hidden = state.modo !== "apuracao";
   $("#live-view").hidden = state.modo !== "aovivo";
-  if (state.modo === "aovivo") { aoVivo.show({ uf: state.uf, abrir: abrirCorrida, avatar, prev: prevDe }); carregarFotosPresidente(); }
+  if (state.modo === "aovivo") { aoVivo.show({ uf: state.uf, abrir: abrirCorrida, avatar, prev: prevDe, exp: state.exp }); carregarFotosPresidente(); }
   else aoVivo.hide();
   $("#pan-view").hidden = !(state.modo in PAN_MODES);
   if (state.modo === "apuracao") apuracao.show({ ...raceOf(), byId: new Map(state.cands.map((c) => [c.id, c] as const)), avatar, exp: state.exp, abrirUf });
@@ -248,7 +248,7 @@ function bind() {
   $("#busca").addEventListener("input", (e) => { state.busca = (e.target as HTMLInputElement).value; state.limit = PAGE; renderList(); });
   $("#ordem").addEventListener("change", (e) => { state.ordem = (e.target as HTMLSelectElement).value; renderList(); });
   $<HTMLInputElement>("#mostrarFotos").checked = state.mostrarFotos;
-  $("#mostrarFotos").addEventListener("change", (e) => { state.mostrarFotos = (e.target as HTMLInputElement).checked; store.set("fotos", state.mostrarFotos); renderList(); renderDossierPanel(); if (state.modo === "aovivo") aoVivo.show({ uf: state.uf, abrir: abrirCorrida, avatar, prev: prevDe }); });
+  $("#mostrarFotos").addEventListener("change", (e) => { state.mostrarFotos = (e.target as HTMLInputElement).checked; store.set("fotos", state.mostrarFotos); renderList(); renderDossierPanel(); if (state.modo === "aovivo") aoVivo.show({ uf: state.uf, abrir: abrirCorrida, avatar, prev: prevDe, exp: state.exp }); });
   $("#situacao").addEventListener("change", (e) => { state.situacao = (e.target as HTMLSelectElement).value; state.limit = PAGE; render(); });
   $("#mais").addEventListener("click", () => { state.limit += PAGE; renderList(); });
   $("#pesos").addEventListener("input", (e) => {
