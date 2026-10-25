@@ -381,3 +381,13 @@ body[data-visao="aovivo"] #cedulas { display: none; } /* the Ao vivo tab shows e
 
 /* Ao vivo is for following the count: no title banner, cola or weights, only the state picker stays. */
 body[data-visao="aovivo"] .hero, body[data-visao="aovivo"] #cola-box, body[data-visao="aovivo"] #pesos-box, body[data-visao="aovivo"] .skip + .hero { display: none; }
+
+/* Mobile: "Seu estado" is one slim row (UF, photos toggle) instead of a tall panel. */
+@media (max-width: 860px) {
+  .rail #estado-box { flex-flow: row nowrap; align-items: center; gap: 10px; padding: 8px 12px; }
+  #estado-box h2 { display: none; }
+  #estado-box .field { flex: 1 1 0; flex-direction: row; align-items: center; gap: 8px; min-width: 0; font-size: 12px; white-space: nowrap; }
+  #estado-box .field select { flex: 1 1 auto; min-width: 72px; }
+  #estado-box .check { flex: 0 0 auto; order: 0; font-size: 13px; }
+  #estado-box .radar-only { flex: 1 1 100%; }
+}
