@@ -130,3 +130,40 @@ describe("quandoPronta", () => {
   });
 });
 
+// Pins the first-load win: no static import chain from the boot may reach a heavy tab module (each adds ~120 KB gzip to the first load).
+describe("boot sem abas pesadas", () => {
+  const PESADAS = ["apuracao-mount", "apuracao-aovivo", "apuracao-link", "apuracao-sim", "panorama", "expectativa", "rede"];
+  const transpilador = new Bun.Transpiler({ loader: "ts" });
+
+  // Static imports only: `import()` is the lazy path, and `import type` is erased.
+  function estaticos(arquivo: string): string[] {
+    return transpilador.scanImports(readFileSync(arquivo, "utf8"))
+      .filter((i) => i.kind === "import-statement" && i.path.startsWith("."))
+      .map((i) => {
+        const base = posix.join(posix.dirname(arquivo), i.path);
+        const ts = base.replace(/\.js$/, ".ts");
+        return existsSync(ts) ? ts : base;
+      });
+  }
+
+  function alcancaveis(raiz: string): Set<string> {
+    const vistos = new Set<string>();
+    const fila = [raiz];
+    while (fila.length > 0) {
+      const f = fila.pop()!;
+      if (vistos.has(f)) continue;
+      vistos.add(f);
+      fila.push(...estaticos(f));
+    }
+    return vistos;
+  }
+
+  test("o percurso alcança módulos do boot (sem isso o teste passaria vazio)", () => {
+    expect(alcancaveis("web/app.ts").has("web/abas-sob-demanda.ts")).toBe(true);
+  });
+
+  test("nenhum módulo estático do boot alcança uma aba pesada", () => {
+    const pesadas = [...alcancaveis("web/app.ts")].filter((f) => PESADAS.some((p) => basename(f) === `${p}.ts`));
+    expect(pesadas).toEqual([]);
+  });
+});
