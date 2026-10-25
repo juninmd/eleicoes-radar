@@ -218,11 +218,11 @@ describe("vistas (Placar, Mapa, Gráficos)", () => {
   const parsed = () => parseApuracao(file({ cands: dois }));
   const ver = (over: Partial<RenderProps> = {}) => renderApuracao({ snap: { status: "ok", dados: parsed(), buscadoEm: new Date("2026-10-04T20:15:30"), erro: null }, cargo: "Governador", uf: "SP", byId, avatar, limit: 40, cor: createCores(PALETA), mapa, ...over });
 
-  const NOVAS = new Set(["corrida", "noite", "chance", "exterior", "maisvotados"]);
+  const NOVAS = new Set(["corrida", "noite", "chance", "exterior", "maisvotados", "boletim"]);
   test("the map exists for the offices that have a state-by-state race, and the charts for all", () => {
-    expect(vistasDe("Presidente")).toEqual(["placar", "linha", "mapa", "projecao", "exterior", "corrida", "noite", "graficos"]); // the vote abroad is its own file
-    expect(vistasDe("Governador")).toEqual(["placar", "linha", "mapa", "projecao", "corrida", "noite", "graficos"]);
-    expect(vistasDe("Senador")).toEqual(["placar", "linha", "mapa", "corrida", "graficos"]); // two votes per voter: the one-seat arithmetic does not apply
+    expect(vistasDe("Presidente")).toEqual(["placar", "linha", "mapa", "projecao", "exterior", "boletim", "corrida", "noite", "graficos"]); // the vote abroad is its own file
+    expect(vistasDe("Governador")).toEqual(["placar", "linha", "mapa", "projecao", "boletim", "corrida", "noite", "graficos"]);
+    expect(vistasDe("Senador")).toEqual(["placar", "linha", "mapa", "boletim", "corrida", "graficos"]); // two votes per voter: the one-seat arithmetic does not apply
     expect(vistasDe("Deputado Federal")).toEqual(["placar", "linha", "cadeiras", "camara", "maisvotados", "corrida", "graficos"]); // the Chamber is the one national picture for deputies
     expect(vistasDe("Deputado Estadual")).toEqual(["placar", "linha", "cadeiras", "corrida", "graficos"]);
     expect(vistasDe("Deputado Distrital")).toEqual(["placar", "linha", "cadeiras", "corrida", "graficos"]);
@@ -244,7 +244,9 @@ describe("vistas (Placar, Mapa, Gráficos)", () => {
     }
     expect(vistasDe("Presidente", 2)).toContain("exterior");
     expect(vistasDe("Governador", 2)).not.toContain("exterior"); // only the president has voters abroad
-    expect(vistasDe("Presidente")).not.toContain("chance"); // the 1st round keeps the Projeção
+    expect(vistasDe("Presidente")).not.toContain("chance");
+    expect(vistasDe("Presidente")).toContain("boletim"); // the BU view exists for the majority offices
+    expect(vistasDe("Deputado Federal")).not.toContain("boletim"); // the BU per municipality is generated for the majority races // the 1st round keeps the Projeção
     expect(vistasDe("Senador")).not.toContain("noite"); // two seats per state: "who is ahead" is not one name
   });
 
@@ -316,3 +318,4 @@ describe("vistas (Placar, Mapa, Gráficos)", () => {
     expect(ver({ vista: "graficos" })).not.toContain("Apuração e faixa das pesquisas");
   });
 });
+

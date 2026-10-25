@@ -24,8 +24,10 @@ import { renderNacional } from "./apuracao-nacional-view.js";
 import { renderMunicipios } from "./apuracao-municipios-view.js";
 import { renderChance } from "./apuracao-chance-view.js";
 import { renderExterior } from "./apuracao-exterior.js";
+import { renderBu } from "./apuracao-bu.js";
 import { fxQuadro } from "./apuracao-fx-quadro.js";
 import type { MunProps } from "./apuracao-municipios-view.js";
+import type { BuData } from "./apuracao-bu.js";
 import type { ChanceProps } from "./apuracao-chance-view.js";
 import type { ExteriorProps } from "./apuracao-exterior.js";
 import type { Confronto } from "./apuracao-municipios.js";
@@ -46,7 +48,7 @@ import type { Candidatura } from "./types.js";
 
 // What the view reads of a feed snapshot: the feed's own `url` is not needed to draw it.
 export type SnapView = Pick<FeedSnapshot, "status" | "dados"> & Partial<Pick<FeedSnapshot, "buscadoEm" | "erro">>;
-export type Vista = "placar" | "linha" | "mapa" | "projecao" | "cadeiras" | "camara" | "maisvotados" | "graficos" | "municipios" | "corrida" | "noite" | "chance" | "exterior";
+export type Vista = "placar" | "linha" | "mapa" | "projecao" | "cadeiras" | "camara" | "maisvotados" | "graficos" | "municipios" | "corrida" | "noite" | "chance" | "exterior" | "boletim";
 type Avatar = (c: Candidatura, size: string) => string;
 // What the view reads of data/expectativa.json: the poll summary of each race.
 export interface Corrida extends CorridaMapa { pesquisas: number; ultima?: string | null; confrontos?: Confronto[]; segundoTurno?: PesquisaBruta[] }
@@ -77,6 +79,12 @@ export interface RenderProps {
   mun?: Omit<MunProps, "cargo" | "uf" | "cor"> | null; // the runoff estimate per municipality, assembled by the mount
   chance?: Omit<ChanceProps, "cargo" | "cor"> | null; // the live chance of the runoff, assembled by the mount
   exterior?: Omit<ExteriorProps, "cor" | "turno"> | null;
+  bu?: BuData | null; // the official BU of this UF/office, when the pipeline has generated it
+  buCarregando?: boolean;
+  buBusca?: string;
+  buLimit?: number;
+  buUf?: string; // state of the BU table (President: chosen state; other offices: the race's UF)
+  buUfOpcoes?: string[]; // President: the BU is per state, so the view offers the 27 UFs
   simulado?: boolean; // the numbers come from the simulated night (apuracao-sim.js), not from the TSE
 }
 
@@ -209,13 +217,13 @@ const aviso = (txt: string) => `<p class="empty">${txt}</p>`;
 
 const MAPA_CARGOS = new Set(["Presidente", "Governador", "Senador"]);
 const UMA_VAGA = new Set(["Presidente", "Governador"]); // one seat, one vote: the arithmetic of the Projeção view applies
-const ROTULOS: Record<Vista, string> = { placar: "Placar", linha: "Linha do tempo", mapa: "Mapa", projecao: "Projeção", cadeiras: "Cadeiras", camara: "Câmara", maisvotados: "Mais votados", graficos: "Gráficos", municipios: "Cidades", corrida: "Corrida", noite: "Noite no mapa", chance: "Chance ao vivo", exterior: "Exterior" };
+const ROTULOS: Record<Vista, string> = { placar: "Placar", linha: "Linha do tempo", mapa: "Mapa", projecao: "Projeção", cadeiras: "Cadeiras", camara: "Câmara", maisvotados: "Mais votados", graficos: "Gráficos", municipios: "Cidades", corrida: "Corrida", noite: "Noite no mapa", chance: "Chance ao vivo", exterior: "Exterior", boletim: "Boletim de Urna" };
 // The Projeção is built on first-round arithmetic (who reaches 50%, who goes to a runoff): it has no place in the runoff itself.
 export const vistasDe = (cargo: Cargo, turno: Turno = 1): Vista[] => {
   // "corrida", "noite", "chance" and "exterior" are added to the views each office already had; none was taken away.
   const ext: Vista[] = cargo === "Presidente" ? ["exterior"] : []; // the vote abroad is only in the presidential race
-  if (UMA_VAGA.has(cargo)) return turno === 2 ? ["placar", "linha", "mapa", "chance", "municipios", ...ext, "corrida", "noite", "graficos"] : ["placar", "linha", "mapa", "projecao", ...ext, "corrida", "noite", "graficos"];
-  if (MAPA_CARGOS.has(cargo)) return ["placar", "linha", "mapa", "corrida", "graficos"];
+  if (UMA_VAGA.has(cargo)) return turno === 2 ? ["placar", "linha", "mapa", "chance", "municipios", ...ext, "boletim", "corrida", "noite", "graficos"] : ["placar", "linha", "mapa", "projecao", ...ext, "boletim", "corrida", "noite", "graficos"];
+  if (MAPA_CARGOS.has(cargo)) return ["placar", "linha", "mapa", "boletim", "corrida", "graficos"];
   return cargo === "Deputado Federal" ? ["placar", "linha", "cadeiras", "camara", "maisvotados", "corrida", "graficos"] : ["placar", "linha", "cadeiras", "corrida", "graficos"];
 };
 
@@ -232,7 +240,7 @@ function graficos(d: Apuracao | null | undefined, rows: Linha[], hist: Ponto[], 
 
 // proj: what apuracao-projecao-estado.js hands over ({ analise, partes, nomes, esperadas }), or null while the files are loading.
 // novidades: the lines of apuracao-novidades.js kept by the mount since the tab was opened.
-export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, maisVotadosLimite = LIMITE_INICIAL, turno = 1, exp, vista = "placar", hist = [], novidades = [], eleitos, nac = null, proj = null, mun = null, chance = null, exterior = null, simulado = false, mapa, modoMapa = "lider", selUf = null, cor = createCores(PALETA) }: RenderProps): string {
+export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, maisVotadosLimite = LIMITE_INICIAL, turno = 1, exp, vista = "placar", hist = [], novidades = [], eleitos, nac = null, proj = null, mun = null, chance = null, exterior = null, bu = null, buCarregando = false, buBusca = "", buLimit = 40, buUf, buUfOpcoes = [], simulado = false, mapa, modoMapa = "lider", selUf = null, cor = createCores(PALETA) }: RenderProps): string {
   const d = snap?.dados;
   const t = turnoDe(cargo, turno);
   const vistas = vistasDe(cargo, t);
@@ -260,6 +268,10 @@ export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, maisVotad
   } else if (aberta === "municipios") {
     corpo = simulado ? aviso("A visão Cidades usa as candidaturas reais e fica fora da simulação. Volte para Dados reais para vê-la.")
       : mun ? renderMunicipios({ ...mun, cargo, uf, cor }) : aviso("Carregando a estimativa por município…");
+  } else if (aberta === "boletim") {
+    const estado = buUf ?? selUf ?? (uf === "BR" ? "SP" : uf);
+    corpo = simulado ? aviso("O Boletim de Urna é um arquivo oficial do TSE e fica fora da simulação. Volte para Dados reais para vê-lo.")
+      : renderBu({ bu, carregando: buCarregando, snap, cargo, uf: estado, raceUf: uf, turno: t, busca: buBusca, limit: buLimit, ufOpcoes: buUfOpcoes });
   } else if (aberta === "chance") {
     corpo = renderChance({ ...(chance ?? { estado: "carregando" }), cargo, cor, simulado });
   } else if (aberta === "exterior") {
@@ -300,7 +312,7 @@ export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, maisVotad
     <p class="muted exp-meta">${simulado ? `Simulação${quando ? `: noite simulada às <span id="apu-quando">${h(quando.toLocaleTimeString("pt-BR"))}</span>` : ""}. Avança com os controles acima.` : `${quando ? `Consultado às <span id="apu-quando">${h(quando.toLocaleTimeString("pt-BR"))}</span> · ` : ""}atualiza sozinho (a cada 30 s a 2 min, conforme o ritmo da apuração) enquanto você estiver nesta aba.`}</p>
     ${corpo}
     ${comoLer(proporcional(cargo))}
-    <p class="muted small">${simulado ? "Simulação sobre a estrutura dos arquivos finais do 1º turno do TSE (resultados.tse.jus.br): nomes, partidos, horários e o caminho da noite são inventados; o 2º turno vem do modelo da visão Cidades." : `Fonte: Tribunal Superior Eleitoral, <a href="https://resultados.tse.jus.br/" rel="noopener noreferrer" target="_blank">resultados.tse.jus.br</a>${aberta === "mapa" ? ". Malha dos estados: IBGE" : ""}. O Radar só exibe o que o TSE publica.`}</p>
+    <p class="muted small">${simulado ? "Simulação sobre a estrutura dos arquivos finais do 1º turno do TSE (resultados.tse.jus.br): nomes, partidos, horários e o caminho da noite são inventados; o 2º turno vem do modelo da visão Cidades." : `Fonte: Tribunal Superior Eleitoral, <a href="https://resultados.tse.jus.br/" rel="noopener noreferrer" target="_blank">resultados.tse.jus.br</a>${aberta === "mapa" ? ". Malha dos estados: IBGE" : ""}. O Radar só exibe o que o TSE publica.${aberta === "boletim" ? ` Boletim de Urna: <a href="https://dadosabertos.tse.jus.br/" rel="noopener noreferrer" target="_blank">dados abertos do TSE</a>.` : ""}`}</p>
   </section>`;
 }
 
