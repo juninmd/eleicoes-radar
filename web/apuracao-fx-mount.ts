@@ -15,7 +15,8 @@ import type { Ponto } from "./apuracao-graficos.js";
 import type { UfMap } from "../src/radar/geo/uf-map";
 import type { Vista } from "./apuracao.js";
 
-export interface FxEstado { ctx: Contexto | null; vista: Vista; snap: FeedSnapshot | null; nac: BrasilSnapshot | null; hist: Ponto[]; mapa: UfMap | null | undefined; cor: Cores }
+// simulado: the tab's own simulation feeds snap and nac (the views label it like their local one)
+export interface FxEstado { ctx: Contexto | null; vista: Vista; snap: FeedSnapshot | null; nac: BrasilSnapshot | null; hist: Ponto[]; mapa: UfMap | null | undefined; cor: Cores; simulado?: boolean }
 export interface FxDeps { el: HTMLElement; anunciar(txt: string): void; estado(): FxEstado }
 
 export const PASSO_MS: Record<number, number> = { 1: 1300, 3: 450, 8: 170 };
@@ -96,7 +97,7 @@ export function criarFx({ el, anunciar, estado }: FxDeps) {
         dados: demo.ativo ? quadroCorrida(demo.i) : e.snap?.dados ?? null,
         status: demo.ativo ? "ok" : e.snap?.status ?? "carregando",
         cargo: e.ctx.cargo, byId: demo.ativo ? new Map() : e.ctx.byId, avatar: e.ctx.avatar, cor: e.cor,
-        hist: demo.ativo ? histCorrida(demo.i) : e.hist, efeitos, salto, simulado: demo.ativo, anunciar, som,
+        hist: demo.ativo ? histCorrida(demo.i) : e.hist, efeitos, salto, simulado: demo.ativo || !!e.simulado, anunciar, som,
       });
     } else {
       corrida.parar();
@@ -105,7 +106,7 @@ export function criarFx({ el, anunciar, estado }: FxDeps) {
       noite.atualizar({
         nac: demo.ativo ? quadroNoite(demo.i) : e.nac,
         cargo: demo.ativo ? "Presidente" : e.ctx.cargo, mapa: e.mapa, byId: demo.ativo ? new Map() : e.ctx.byId, avatar: e.ctx.avatar, cor: e.cor,
-        efeitos, salto, simulado: demo.ativo, anunciar, som,
+        efeitos, salto, simulado: demo.ativo || !!e.simulado, anunciar, som,
       });
     }
   }
