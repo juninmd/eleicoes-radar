@@ -39,5 +39,5 @@ describe.skipIf(!existsSync("web/data/uf"))("generated UF files", () => {
       // Counts only: a failure must not print the value it found.
       expect({ arquivo: f, cpf: textos(dados).filter((t) => CPF.test(t)).length }).toEqual({ arquivo: f, cpf: 0 });
     }
-  });
+  }, 60_000); // parses every UF file (~425 MB): 9 s on a busy machine, over the 5 s default
 });

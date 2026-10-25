@@ -424,7 +424,7 @@ export function mountAoVivo(el: HTMLElement) {
     carregarMundo();
     const exterior = f.cargo === "Presidente" && turno === 1 ? exteriorProps({ ctx: ctxPres(), turno, snap: hero.snap, nac: f.nac, indice: munis.indice(), disputa: munis.disputa(ctxPres()), arquivo: munis.arquivo(ctxPres()), simulado: false, idSim: () => null }) : null;
     noite.atualizar({
-      nac: f.nac, cargo: f.cargo, mapa: mapa ?? (mapaFalhou ? null : undefined), mundo, exterior,
+      nac: f.nac, cargo: f.cargo, mapa: mapa ?? (mapaFalhou ? null : undefined), mundo, exterior, semCidades: turno === 2,
       byId: byId(f.nac), avatar: ctx.avatar, cor, efeitos: efeitos && !movimentoReduzido(), som,
       lugar: escopo === EXTERIOR ? "exterior" : "brasil",
       semAbrir: true,
