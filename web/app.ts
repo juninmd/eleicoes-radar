@@ -186,10 +186,18 @@ function pedirFornecedores(ufs: string[]) {
   for (const uf of ufs) if (forn.estado(uf) !== "pronto") forn.carregar(uf).catch(() => {}).then(() => atualizaFornecedores(uf));
 }
 
+// Redraws the open dossier only when its candidate is in that UF. After a retry the button is gone, so focus goes to the dossier.
+function redesenharDossie(uf: string, retomar: boolean) {
+  const aberto = state.cands.find((x) => x.id === state.open);
+  if (aberto?.uf !== uf) return;
+  keepFocus($("#dossie"), renderDossierPanel);
+  if (retomar && document.activeElement === document.body) $("#dossie").focus({ preventScroll: true });
+}
+
 // Merges a finished sidecar and redraws only what shows those fields: the open dossier and the network.
 function atualizaFornecedores(uf: string) {
   forn.aplicar(state.cands, uf);
-  keepFocus($("#dossie"), renderDossierPanel);
+  redesenharDossie(uf, false);
   if (state.modo === "rede") renderModo();
 }
 
@@ -357,7 +365,13 @@ function bind() {
       if (c && c.fornecedores === undefined) pedirFornecedores([c.uf]);
       renderModo(); return;
     }
-    if (t.dataset.fornRetry) { const uf = t.dataset.fornRetry; forn.tentar(uf).catch(() => {}).then(() => atualizaFornecedores(uf)); return; }
+    if (t.dataset.fornRetry) {
+      const uf = t.dataset.fornRetry;
+      const nova = forn.tentar(uf);
+      redesenharDossie(uf, true); // shows "Carregando" now, in this click, instead of the old error until the download ends
+      nova.catch(() => {}).then(() => atualizaFornecedores(uf));
+      return;
+    }
     if ("redeGeral" in t.dataset) { state.redeFoco = null; state.redeSel = null; renderModo(); return; }
     if (t.dataset.rede) { state.redeSel = state.redeSel === t.dataset.rede ? null : t.dataset.rede; renderModo(); return; }
     if (t.id === "exp-mais") { state.limit += PAGE; renderModo(); return; }
