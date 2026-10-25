@@ -606,18 +606,20 @@
 .nt-mapa.arrastando { cursor: grabbing; }
 .nt-cena { position: absolute; left: 0; top: 0; width: 1080px; height: 426px; transform-origin: 0 0; }
 .nt-cena.anima { transition: transform 0.7s var(--suave); }
+.nt-cena.anima .lb { visibility: hidden; } /* --inv jumps while the transform glides: the labels would swell and shrink */
 .nt-mundo { position: absolute; inset: 0; }
 .nt-mundo svg { display: block; width: 100%; height: 100%; }
-.nt-mundo .terra { fill: var(--vazio); stroke: var(--surface); stroke-width: 0.5; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+/* the stage is scaled by CSS, which non-scaling-stroke does not undo: strokes carry the inverse scale */
+.nt-mundo .terra { fill: var(--vazio); stroke: var(--surface); stroke-width: calc(0.5px * var(--inv, 1)); stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 .nt-mundo .bolhas { opacity: 0; pointer-events: none; transition: opacity 0.5s; }
-.nt-mundo circle { fill-opacity: 0.78; stroke: var(--surface); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.nt-mundo circle { fill-opacity: 0.78; stroke: var(--surface); stroke-width: calc(1px * var(--inv, 1)); vector-effect: non-scaling-stroke; }
 .nt-mapa.exterior .nt-mundo .bolhas { opacity: 1; pointer-events: auto; }
 .nt-mapa.exterior .nt-uf { opacity: 0.2; pointer-events: none; }
 .nt-mapa.exterior .nt-uf .lb { opacity: 0; }
 .nt-mapa.cartograma .nt-mundo { opacity: 0; }
 .nt-mundo { transition: opacity 0.5s; }
 .nt-uf { transition: opacity 0.5s; }
-.nt-zoom { position: absolute; top: 8px; right: 8px; z-index: 2; display: flex; flex-direction: column; gap: 4px; }
+.nt-zoom { position: absolute; bottom: 8px; left: 8px; z-index: 2; display: flex; flex-direction: column; gap: 4px; }
 .nt-zoom button { width: 40px; min-height: 40px; height: 40px; padding: 0; display: grid; place-items: center; font: 600 20px/1 var(--body); background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-md); cursor: pointer; }
 .nt-zoom button:hover { background: var(--sunk); }
 .nt-zoom button:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
@@ -626,14 +628,14 @@
 .nt-mapa.cartograma .nt-uf { left: var(--cl); top: var(--ct); width: var(--cw); height: var(--ch); }
 @keyframes nt-acende { from { opacity: 0; scale: 0.7; } }
 .nt-uf svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.nt-uf path { fill: color-mix(in srgb, var(--c, transparent) calc(var(--m, 0) * 100%), var(--vazio)); stroke: var(--surface); stroke-width: 1.2; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.nt-uf path { fill: color-mix(in srgb, var(--c, transparent) calc(var(--m, 0) * 100%), var(--vazio)); stroke: var(--surface); stroke-width: calc(1.2px * var(--inv, 1)); vector-effect: non-scaling-stroke; stroke-linejoin: round; }
 .nt.pronto .nt-uf path { transition: fill 0.7s ease, stroke 0.3s; }
 .nt-uf.zero path { animation: nt-espera 2.6s ease-in-out infinite; animation-delay: calc(var(--sibling-index, 1) * -140ms); }
 @keyframes nt-espera { 50% { fill: color-mix(in srgb, var(--vazio) 75%, var(--ink)); } }
-.nt-uf.velho path { stroke: var(--corrige); stroke-dasharray: 4 3; }
+.nt-uf.velho path { stroke: var(--corrige); stroke-dasharray: calc(4px * var(--inv, 1)) calc(3px * var(--inv, 1)); }
 .nt-uf:hover path { stroke: var(--ink-2); }
-.nt-uf[aria-pressed="true"] path { stroke: var(--ink); stroke-width: 2.6; stroke-dasharray: none; }
-.nt-uf:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
+.nt-uf[aria-pressed="true"] path { stroke: var(--ink); stroke-width: calc(2.6px * var(--inv, 1)); stroke-dasharray: none; }
+.nt-uf:focus-visible { outline: calc(3px * var(--inv, 1)) solid var(--focus); outline-offset: calc(1px * var(--inv, 1)); }
 .nt-uf .lb { position: absolute; inset: 0; transform: scale(var(--inv, 1)); display: grid; place-items: center; align-content: center; font: 700 11px var(--mono); text-shadow: 0 1px 3px rgb(0 0 0 / 0.75); opacity: 0; transition: opacity 0.4s; pointer-events: none; }
 .nt-uf.grande .lb, .nt-mapa.cartograma .nt-uf .lb { opacity: 1; }
 .nt-uf .lb small { display: none; font: 500 9px var(--mono); }

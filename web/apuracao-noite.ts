@@ -263,12 +263,13 @@ export function criarNoite(): Painel<NoiteProps> & { raiz: HTMLElement | null; a
     if (nova === forma) return;
     const aplica = () => {
       forma = nova;
+      if (zoom && caixaBr) { zoom.irPara(caixaBr, false); enquadrado = "brasil"; } // the tiles live in Brazil's box: show it whole
       q<HTMLElement>(".nt-mapa").classList.toggle("cartograma", nova === "carto");
       raiz!.querySelectorAll<HTMLElement>("[data-nt-forma]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.ntForma === nova)));
       depoisDoPrimeiroQuadro(ajustar);
     };
     const vt = (document as Document & { startViewTransition?: (fn: () => void) => unknown }).startViewTransition;
-    if (typeof vt !== "function" || !ultimo?.efeitos || movimentoReduzido()) aplica();
+    if (typeof vt !== "function" || !ultimo?.efeitos || movimentoReduzido() || q<HTMLElement>(".nt-mapa").classList.contains("ampliado")) aplica(); // the snapshots of a zoomed map would leave the viewport
     else vt.call(document, aplica);
   }
 
@@ -281,6 +282,7 @@ export function criarNoite(): Painel<NoiteProps> & { raiz: HTMLElement | null; a
     raiz!.classList.toggle("exterior", ext);
     q<HTMLElement>(".nt-mapa").classList.toggle("exterior", ext);
     for (const [s, v] of [[".nt-forma", !ext], [".nt-foco", !ext], [".nt-ext", ext]] as const) q<HTMLElement>(s).hidden = !v;
+    ufs.forEach(({ b }) => { b.inert = ext; }); // faded states are out of the Tab order and the reader's tree too
     const alvo = ext ? "mundo" : "brasil";
     if (zoom && enquadrado !== alvo && (ext || caixaBr)) { zoom.irPara(ext ? MUNDO_RETANGULO : caixaBr!, enquadrado !== ""); enquadrado = alvo; }
     const msg = q<HTMLElement>(".nt-msg"), leg = q<HTMLElement>(".nt-leg");

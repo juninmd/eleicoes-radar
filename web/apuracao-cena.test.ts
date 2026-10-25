@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { afimUfNoMundo, caixaBrasil, enquadrar, limitar, MUNDO_VB, naCena, trazerParaVista, zoomEm } from "./apuracao-cena.js";
+import { afimUfNoMundo, caixaBrasil, enquadrar, K_MAX, limitar, MUNDO_VB, naCena, trazerParaVista, zoomEm } from "./apuracao-cena.js";
 import type { UfMap } from "../src/radar/geo/uf-map";
 
 const uf = JSON.parse(readFileSync("web/mapa-uf.json", "utf8")) as UfMap;
@@ -72,7 +72,7 @@ describe("limitar: the view never leaves the world nor zooms past the limits", (
   });
 
   test("zoom in stops at the ceiling", () => {
-    expect(limitar({ k: 1000, x: 0, y: 0 }, VP).k).toBeLessThanOrEqual(80);
+    expect(limitar({ k: 1000, x: 0, y: 0 }, VP).k).toBe(K_MAX);
   });
 
   test("a zoomed view cannot show past the edge of the map", () => {
@@ -103,8 +103,8 @@ describe("zoomEm: the point under the cursor stays under the cursor", () => {
   });
 
   test("a factor that would pass the ceiling is held at the ceiling", () => {
-    const v = zoomEm({ k: 70, x: -30000, y: -10000 }, 5, { x: 0, y: 0 }, VP);
-    expect(v.k).toBeLessThanOrEqual(80);
+    const v = zoomEm({ k: K_MAX - 5, x: -30000, y: -10000 }, 5, { x: 0, y: 0 }, VP);
+    expect(v.k).toBe(K_MAX);
   });
 });
 

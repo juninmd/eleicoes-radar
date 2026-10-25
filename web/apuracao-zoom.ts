@@ -111,7 +111,7 @@ export function criarZoom({ vp, cena, reduzido }: OpcoesZoom): Zoom {
   };
   const aoFocar = (e: FocusEvent) => {
     const el = (e.target as Element).closest<HTMLElement>("[data-nt-uf]");
-    if (!el || !el.offsetWidth) return;
+    if (!el || !el.offsetWidth || !el.matches(":focus-visible")) return; // a mouse press must not slide the map from under the click
     const nova = trazerParaVista(v, { x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight }, tamanho());
     if (nova !== v) mudar(nova, true);
   };
