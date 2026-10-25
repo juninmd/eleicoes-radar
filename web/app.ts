@@ -65,7 +65,10 @@ const aoVivo = mountAoVivo($("#live-view"));
 const panorama = mountPanorama($("#pan-view"));
 
 async function loadJson<T = unknown>(path: string): Promise<T> {
-  if (!cache.has(path)) cache.set(path, fetch(path).then((r) => { if (!r.ok) throw new Error(`${r.status} ${path}`); return r.json(); }));
+  // Falha não fica no cache: a próxima chamada tenta de novo.
+  if (!cache.has(path)) {
+    cache.set(path, fetch(path).then((r) => { if (!r.ok) throw new Error(`${r.status} ${path}`); return r.json(); }).catch((e) => { cache.delete(path); throw e; }));
+  }
   return cache.get(path) as Promise<T>;
 }
 
