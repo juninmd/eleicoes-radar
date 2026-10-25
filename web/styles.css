@@ -142,7 +142,8 @@ body:not(.ready) .metodo { display: none; } /* it would sit in view until the li
 .ev { display: flex; gap: 3px; }
 .ev i { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--muted); }
 .ev i.on { background: var(--confirma); border-color: var(--confirma); }
-.empty { padding: 24px; color: var(--muted); background: var(--surface); border-radius: var(--r-md); }
+.empty { padding: 24px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.empty p { margin: 0; color: var(--ink-2); line-height: 1.5; }
 #mais { margin-top: 12px; }
 
 /* Dossier */
@@ -397,3 +398,9 @@ body[data-visao="aovivo"] .hero, body[data-visao="aovivo"] #cola-box, body[data-
   #estado-box .check { flex: 0 0 auto; order: 0; font-size: 13px; }
   #estado-box .radar-only { flex: 1 1 100%; }
 }
+
+/* Status de conexao */
+.status-conexao { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 1000; background: var(--panel-2); color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; font: 600 13px var(--body); box-shadow: 0 4px 16px rgba(0,0,0,0.28); display: flex; align-items: center; gap: 8px; pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease; }
+.status-conexao[hidden] { display: none; }
+.status-conexao .dot-off { width: 8px; height: 8px; border-radius: 50%; background: var(--corrige); }
+.status-conexao .dot-on { width: 8px; height: 8px; border-radius: 50%; background: var(--confirma); }
