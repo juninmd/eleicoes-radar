@@ -146,3 +146,25 @@
   .live-col-mapa .live-noite .nt-mapa { flex: none; width: 100%; height: auto; aspect-ratio: 16 / 11; max-height: min(52vh, 440px); min-height: 280px; }
 }
 .live-noite .nt-palco { align-self: stretch; } /* .nt-corpo alinha ao inicio: sem isto o palco encolhia ao tamanho do mapa */
+
+/* Barra lateral de acontecimentos: coluna fixa à direita em tela larga; abaixo disso, painel recolhível acima do palco. */
+.live-corpo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
+.live-feed { min-width: 0; }
+.live-feed-d { padding: 8px 11px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.live-feed-d summary { cursor: pointer; font: 900 16px/1.2 var(--display); text-transform: uppercase; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.live-feed-d summary small { font: 500 10px var(--mono); color: var(--muted); text-transform: none; }
+.live-feed-d summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.live-feed-d ol { list-style: none; margin: 8px 0; padding: 0; max-height: 40vh; overflow-y: auto; }
+.live-feed-d li { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 6px; padding: 6px 0 6px 8px; font-size: 12.5px; line-height: 1.35; border-top: 1px solid var(--line); border-left: 3px solid transparent; }
+.live-feed-d li:first-child { border-top: 0; }
+.live-feed-d li.virada { border-left-color: #f59e0b; }
+.live-feed-d li.eleito { border-left-color: var(--confirma); }
+.live-feed-d li.marco { border-left-color: var(--line); }
+.live-feed-d time { font: 600 11px var(--mono); color: var(--muted); padding-top: 1px; }
+.live-feed-d em { font: 700 10px var(--mono); font-style: normal; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.live-feed-d .muted.small { margin: 0; font-size: 10.5px; line-height: 1.35; }
+@media (min-width: 1500px) {
+  .live-corpo { grid-template-columns: minmax(0, 1fr) 300px; }
+  .live-feed { order: 2; position: sticky; top: 8px; }
+  .live-feed-d ol { max-height: calc(100vh - 160px); }
+}
