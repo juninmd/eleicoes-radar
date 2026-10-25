@@ -33,6 +33,8 @@
 .apu-vistas button + button, .apu-modos button + button { border-left: 1px solid var(--line); }
 .apu-vistas button[aria-pressed="true"], .apu-modos button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
 .apu-vistas button:focus-visible, .apu-modos button:focus-visible, .apu-chips .chip:focus-visible, .apu-mapa .uf:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
+#apu-quando { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ink); }
+#apu-idade { font-variant-numeric: tabular-nums; color: var(--muted); }
 
 /* National view: the map and the detail panel side by side, stacked on phones */
 .apu-nac { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(260px, 1fr); gap: 16px; align-items: start; }
