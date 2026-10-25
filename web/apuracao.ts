@@ -31,6 +31,7 @@ import type { BuData } from "./apuracao-bu.js";
 import type { ChanceProps } from "./apuracao-chance-view.js";
 import type { ExteriorProps } from "./apuracao-exterior.js";
 import type { Confronto } from "./apuracao-municipios.js";
+import type { PesquisaBruta } from "./apuracao-aovivo-2t.js";
 import { comparar, delta, resumoFaixa } from "./apuracao-pesquisa.js";
 import { fmtDate, pp } from "./prev.js";
 import type { Apuracao, Candidato, Cargo, Fase, Turno } from "./apuracao-tse.js";
@@ -50,7 +51,7 @@ export type SnapView = Pick<FeedSnapshot, "status" | "dados"> & Partial<Pick<Fee
 export type Vista = "placar" | "linha" | "mapa" | "projecao" | "cadeiras" | "camara" | "maisvotados" | "graficos" | "municipios" | "corrida" | "noite" | "chance" | "exterior" | "boletim";
 type Avatar = (c: Candidatura, size: string) => string;
 // What the view reads of data/expectativa.json: the poll summary of each race.
-export interface Corrida extends CorridaMapa { pesquisas: number; ultima?: string | null; confrontos?: Confronto[] }
+export interface Corrida extends CorridaMapa { pesquisas: number; ultima?: string | null; confrontos?: Confronto[]; segundoTurno?: PesquisaBruta[] }
 export interface Exp { corridas?: Corrida[] }
 // A candidate row of the scoreboard: the TSE line, our own candidacy (when we know them), the poll comparison and the two kinds of "elected" label.
 interface Linha { c: Candidato; own: Candidatura | undefined; cmp: Comparacao | null; ele: boolean; mat: boolean }

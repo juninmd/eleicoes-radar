@@ -4,7 +4,7 @@
 import { h, int, pct, titleName } from "./format.js";
 import { createFeed } from "./apuracao-feed.js";
 import { createBrasilFeed, EXTERIOR, ufsDo } from "./apuracao-uf.js";
-import { tseUrl, TSE_BASE, turnoDe } from "./apuracao-tse.js";
+import { tseUrl, TSE_BASE, TEM_SEGUNDO_TURNO, turnoDe } from "./apuracao-tse.js";
 import { gravarTurno, lerTurno, seletorTurno } from "./apuracao-turno.js";
 import { createCores, linhasUf } from "./apuracao-nacional.js";
 import { PALETA, RESTO, legenda, mapaSvg } from "./apuracao-mapa.js";
@@ -18,6 +18,8 @@ import { atualizar, vazio } from "./apuracao-eleitos.js";
 import { idadeTxt, pausaDoTse } from "./apuracao-ritmo.js";
 import { repaint, relogio, idade, semRelogio } from "./apuracao-dom.js";
 import { avancoDe } from "./apuracao-nacional.js";
+import { observar, renderNoticias, vazio as vazioNoticias } from "./apuracao-aovivo-noticias.js";
+import type { Noticia } from "./apuracao-aovivo-noticias.js";
 import { consolidar, renderConsolidado } from "./apuracao-consolidado.js";
 import { criarNoite } from "./apuracao-noite.js";
 import { movimentoReduzido } from "./apuracao-fx.js";
@@ -26,6 +28,9 @@ import { createChance } from "./apuracao-chance.js";
 import { chanceProps, criarMunicipais, exteriorProps } from "./apuracao-mount-props.js";
 import { deChance, deProjecao, registrarPrev } from "./apuracao-previsao.js";
 import { renderPrevisao } from "./apuracao-previsao-view.js";
+import { caminho, numeros, ondeFalta, parDe, pesquisas2t } from "./apuracao-aovivo-2t.js";
+import { renderCaminho, renderFinalistas, renderNumeros, renderOndeFalta, renderPesquisas2t } from "./apuracao-aovivo-2t-view.js";
+import type { Caminho, Numeros, OndeFalta, Par, Pesquisas2T } from "./apuracao-aovivo-2t.js";
 import type { Apuracao, Candidato, Cargo, Fase, Turno } from "./apuracao-tse.js";
 import type { BrasilSnapshot } from "./apuracao-uf.js";
 import type { Cores } from "./apuracao-nacional.js";
@@ -138,6 +143,7 @@ export function disputaDecidida(d: Apuracao | null | undefined): { eleito: Candi
 export type Avatar = (c: { id: string; nome: string }, size: string) => string;
 export interface Hero { uf: string; snap: FeedSnapshot | null; hist: Ponto[]; eleitos: EstadoEleitos }
 const CARGOS_TODOS = ["Presidente", "Governador", "Senador"] as const;
+const cargosDe = (turno: Turno) => CARGOS_TODOS.filter((c) => turno === 1 || TEM_SEGUNDO_TURNO.has(c));
 const curto = (nome: string) => titleName(nome).split(" ").slice(0, 2).join(" ");
 
 // The President's race as a head-to-head: the two leaders side by side with their photos (when the reader keeps photos on), the
@@ -196,12 +202,12 @@ export function renderHero({ hero, avatar, cor, esperado = {}, fx = EFEITOS_PADR
     <p class="sr">Diferença de ${dif.toFixed(1).replace(".", ",")} pontos percentuais entre os dois primeiros.</p>
     ${renderDuelo({ d, cargo: "Presidente", uf: hero.uf, cor })}
     <h4>Curva da apuração <small>os dois primeiros, desde que você abriu a aba</small></h4>
-    ${evolucao(hist2, quem, cor, esperado, { tendencia: true })}</section>`;
+    ${evolucao(hist2, quem, cor, esperado, { tendencia: true, largo: true })}</section>`;
 }
 
 // Every state at once for one office: leader, runner-up and how much of the count is in.
-function todosOsEstados(nac: BrasilSnapshot | null, cargo: Cargo, mapa?: UfMap | null, cor?: Cores, semMapa = false): string {
-  const abas = `<div class="apu-vistas" role="group" aria-label="Cargo">${CARGOS_TODOS.map((c) => `<button type="button" data-live-cargo="${c}" aria-pressed="${c === cargo}">${c}</button>`).join("")}</div>`;
+function todosOsEstados(nac: BrasilSnapshot | null, cargo: Cargo, mapa?: UfMap | null, cor?: Cores, semMapa = false, turno: Turno = 1): string {
+  const abas = `<div class="apu-vistas" role="group" aria-label="Cargo">${cargosDe(turno).map((c) => `<button type="button" data-live-cargo="${c}" aria-pressed="${c === cargo}">${c}</button>`).join("")}</div>`;
   if (!nac || nac.cargo !== cargo) return `${abas}<p class="muted small">Consultando os arquivos de todos os estados…</p>`;
   const linhas = linhasUf(nac.ufs, cargo);
   const mapaHtml = !semMapa && mapa && cor ? `<div class="live-mapa">${mapaSvg({ mapa, linhas, modo: "lider", cor, sel: null, corridas: null, cargo })}${legenda({ modo: "lider", linhas, cor, cargo })}</div>` : "";
@@ -252,10 +258,14 @@ function resultadoVisual(itens: ResultadoTse[]): string {
   </section>`;
 }
 
-export interface AoVivoProps { prev?: PrevProps | null; nacPrev?: BrasilSnapshot | null; hero: Hero; linhas: Linha[]; escopo: string; ufCartoes: string; nac: BrasilSnapshot | null; cargoTodos: Cargo; mapa?: UfMap | null; agora: Date; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado>; fx?: Efeitos; turno?: Turno }
+// The panels of the night: the count in figures (any round), and, for the national runoff, the polls of the pair, the path to the lead
+// and where the votes to come are.
+export interface Dois { numeros: Numeros | null; par?: Par | null; pesquisas?: Pesquisas2T | null; caminho?: Caminho | null; falta?: OndeFalta | null }
+
+export interface AoVivoProps { noticias?: Noticia[]; prev?: PrevProps | null; dois?: Dois | null; nacPrev?: BrasilSnapshot | null; hero: Hero; linhas: Linha[]; escopo: string; ufCartoes: string; nac: BrasilSnapshot | null; cargoTodos: Cargo; mapa?: UfMap | null; agora: Date; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado>; fx?: Efeitos; turno?: Turno }
 
 export function renderAoVivo(p: AoVivoProps): string {
-  const { hero, linhas, escopo, nac, agora } = p;
+  const { hero, linhas, escopo, nac, agora, dois } = p;
   const turno = p.turno ?? 1;
   const todas: Linha[] = [{ cargo: "Presidente", uf: hero.uf, snap: hero.snap, eleitos: hero.eleitos }, ...linhas];
   const ativos = todas.map((l) => l.snap?.dados).filter((d): d is Apuracao => !!d && d.fase !== "aguardando");
@@ -275,6 +285,12 @@ export function renderAoVivo(p: AoVivoProps): string {
   const fxLigado = (p.fx ?? EFEITOS_PADRAO).ligado;
   const somLigado = (p.fx ?? EFEITOS_PADRAO).som !== false;
   const hora = quando?.toLocaleTimeString("pt-BR") ?? "";
+  // Before the first vote the polls are the only figures there are: they take the column the count's panels will fill.
+  const pesquisas = dois?.par && dois.pesquisas ? renderPesquisas2t(dois.pesquisas, dois.par, p.cor) : "";
+  const antes = false; // the polls are collapsed and live in the third column, so no empty block waits for the count
+  // The third column exists only where there is a Previsão or polls to put in it (not in a state's scope): without it the other two share the width.
+  const colPrev = `${p.prev ? renderPrevisao({ ...p.prev, compacto: true }) : ""}${antes ? "" : pesquisas}`;
+  const dupla = !!p.prev && !antes && !!pesquisas; // two panels share the column: only then does it split in two on a laptop
   const pctSecoes = pct(Math.floor(media * 1000) / 1000, 1);
   return `<section class="exp-card apu live" aria-labelledby="live-t">
     <header class="live-cabeca">
@@ -297,24 +313,31 @@ export function renderAoVivo(p: AoVivoProps): string {
       ${pausa ? `<span class="live-chip">arquivo de <span id="apu-idade">${idadeTxt(pausa.idadeMs)}</span></span>` : ""}
     </div>
     ${pausa?.parado ? `<p class="apu-aviso apu-pausa"><b>Sem arquivo novo do TSE há mais de 10 minutos.</b> A pausa é do TSE, que publica em rodadas.</p>` : ""}
-    <div class="live-palco">
+    <div class="live-corpo">
+    ${renderNoticias(p.noticias ?? [])}
+    <div class="live-palco${colPrev ? "" : " sem-prev"}">
       <div class="live-col live-col-hero">
         ${renderHero({ hero, avatar: p.avatar, cor: p.cor, esperado: p.esperado, fx: p.fx, turno })}
-        ${resultadoVisual(resultadoDe(hero, linhas))}
+        ${turno === 2 && dois?.par && !dois.numeros ? renderFinalistas(dois.par, p.avatar, p.cor, dois.pesquisas?.media ?? null) : ""}
+        ${renderNumeros(dois?.numeros ?? null)}
+        ${renderCaminho(dois?.caminho ?? null, p.cor)}
       </div>
       <div class="live-col live-col-mapa">
         ${mapaTempoReal}
+        ${dois?.par ? renderOndeFalta(dois.falta ?? null, dois.par, p.cor) : ""}
         ${consolidado ? `<details class="live-detalhe"><summary>Total consolidado <small>27 estados + exterior</small></summary>${consolidado}</details>` : ""}
       </div>
-      <div class="live-col live-col-prev">
-        ${p.prev ? renderPrevisao({ ...p.prev, compacto: true }) : ""}
+      ${colPrev ? `<div class="live-col live-col-prev${dupla ? " dupla" : ""}">${colPrev}</div>` : ""}
+      <div class="live-rodape">
+        ${resultadoVisual(resultadoDe(hero, linhas))}
         <section class="live-noite-eleitos" aria-label="Quem foi eleito">
           <h3>Quem foi eleito <small>desde que você abriu</small></h3>
           ${linhaGeral(todas)}
         </section>
       </div>
     </div>
-    ${escopo === TODOS ? `<h3>Todos os estados</h3>${todosOsEstados(nac, p.cargoTodos, p.mapa, p.cor, true)}` : ""}
+    </div>
+    ${escopo === TODOS ? `<h3>Todos os estados</h3>${todosOsEstados(nac, p.cargoTodos, p.mapa, p.cor, true, turno)}` : ""}
     ${cartoes}
   </section>`;
 }
@@ -348,6 +371,7 @@ export function mountAoVivo(el: HTMLElement) {
   let nacPrev: BrasilSnapshot | null = null;
   let nacFeed: ReturnType<typeof createBrasilFeed> | null = null;
   let histPrev: PontoPrev[] = [];
+  let noticias = vazioNoticias();
   const projecao = createProjecao();
   const leitorChance = createChance();
   const getJson = <T,>(url: string): Promise<T> => fetch(url).then((r) => (r.ok ? (r.json() as Promise<T>) : Promise.reject(new Error(`HTTP ${r.status}`))));
@@ -388,7 +412,7 @@ export function mountAoVivo(el: HTMLElement) {
     if (!ctx || !alvo || !f) { noite.parar(); return; }
     if (noite.raiz) noite.adotar(alvo); else noite.montar(alvo);
     carregarMundo();
-    const exterior = f.cargo === "Presidente" ? exteriorProps({ ctx: ctxPres(), turno, snap: hero.snap, nac: f.nac, indice: munis.indice(), disputa: munis.disputa(ctxPres()), arquivo: munis.arquivo(ctxPres()), simulado: false, idSim: () => null }) : null;
+    const exterior = f.cargo === "Presidente" && turno === 1 ? exteriorProps({ ctx: ctxPres(), turno, snap: hero.snap, nac: f.nac, indice: munis.indice(), disputa: munis.disputa(ctxPres()), arquivo: munis.arquivo(ctxPres()), simulado: false, idSim: () => null }) : null;
     noite.atualizar({
       nac: f.nac, cargo: f.cargo, mapa: mapa ?? (mapaFalhou ? null : undefined), mundo, exterior,
       byId: byId(f.nac), avatar: ctx.avatar, cor, efeitos: efeitos && !movimentoReduzido(), som,
@@ -419,8 +443,11 @@ export function mountAoVivo(el: HTMLElement) {
     el.classList.add("ko-treme");
     setTimeout(() => { o.remove(); el.classList.remove("ko-treme"); }, 5600);
   };
+  // What the model expects still to come in each state of the runoff: the fallback of "Onde está o que falta" for a state with no votes yet.
+  let restantesModelo: Record<string, number> = {};
   // The Previsão of the President, national scope: a 1st round from the Projeção's reading of the 28 files, a runoff from the Chance ao vivo.
   const previsaoProps = (): PrevProps | null => {
+    restantesModelo = {};
     if (!ctx || escopo !== BRASIL) return null;
     const d = hero.snap?.dados;
     const base = { avatar: ctx.avatar, cor };
@@ -434,6 +461,7 @@ export function mountAoVivo(el: HTMLElement) {
       if (r.concluida) return { ...base, estado: "concluida" };
       const p = deChance(r.leitura, r.a!, r.b!);
       if (p && d) histPrev = registrarPrev(histPrev, p, d);
+      restantesModelo = Object.fromEntries((r.leitura?.partes ?? []).map((x) => [x.id, x.restante]));
       return { ...base, estado: "ok", previsao: p, hist: histPrev };
     }
     if (!(nacPrev && nacPrev.ciclo >= 1)) return { ...base, estado: "carregando", arquivos: { chegaram, esperados } };
@@ -443,15 +471,36 @@ export function mountAoVivo(el: HTMLElement) {
     return { ...base, estado: "ok", previsao: p, hist: histPrev };
   };
   const ufCartoes = () => (escopo === BRASIL || escopo === TODOS ? ctx!.uf : escopo);
+  // The panels of the night. The count in figures is for any scope; the poll values of the pair, the path to the lead and the map of what
+  // is still to come are the national runoff's (the same scope as the Previsão).
+  const doisProps = (prev: PrevProps | null): Dois | null => {
+    const d = hero.snap?.dados;
+    const n = numeros(d);
+    if (!ctx || escopo !== BRASIL || turnoDe("Presidente", turno) !== 2) return { numeros: n };
+    const corrida = ctx.exp?.corridas?.find((x) => x.cargo === "Presidente" && x.uf === BRASIL);
+    const par = parDe(d, corrida?.confrontos);
+    return { numeros: n, par, pesquisas: par ? pesquisas2t(corrida, par, d) : null, caminho: caminho(prev?.previsao), falta: ondeFalta(nacPrev, restantesModelo) };
+  };
   const paint = () => {
     if (!ctx) return;
+    const prev = previsaoProps();
+    const dois = doisProps(prev);
     // The polls are national: only the national file of the President has an expectation to draw.
     const esperado: Record<string, Esperado> = {};
     if (hero.uf === BRASIL && turno === 1) for (const c of hero.snap?.dados?.candidatos.slice(0, 2) ?? []) { const x = comparar(c, ctx.prev?.(c.id)); if (x) esperado[c.id] = { media: x.media, lo: x.lo, hi: x.hi }; }
+    // Runoff: the average of the pair, as the share of each among the votes of the two (what the count draws too).
+    const media2t = dois?.pesquisas?.media;
+    if (dois?.par && typeof media2t === "number") { esperado[dois.par.a.id] = { media: media2t }; esperado[dois.par.b.id] = { media: 1 - media2t }; }
     const decidida = !!disputaDecidida(hero.snap?.dados);
     const fx: Efeitos = { ligado: efeitos, intro: intro && !!hero.snap?.dados, ko: decidida && !koTocou, som: somLigado };
     if (fx.intro && efeitos) som.intro();
-    const html = renderAoVivo({ hero, linhas, escopo, ufCartoes: ufCartoes(), nac, nacPrev, cargoTodos, mapa, agora: new Date(), avatar: ctx.avatar, cor, esperado, fx, turno, prev: previsaoProps() });
+    noticias = observar(noticias, [
+      { cargo: "Presidente", uf: hero.uf, dados: hero.snap?.dados },
+      ...linhas.map((l) => ({ cargo: l.cargo, uf: l.uf, dados: l.snap?.dados })),
+      ...Object.entries(nacPrev?.ufs ?? {}).map(([uf, u]) => ({ cargo: "Presidente" as Cargo, uf, dados: u.dados })),
+      ...(nac?.cargo ? Object.entries(nac.ufs).map(([uf, u]) => ({ cargo: nac!.cargo as Cargo, uf, dados: u.dados })) : []),
+    ]);
+    const html = renderAoVivo({ noticias: noticias.itens, hero, linhas, escopo, ufCartoes: ufCartoes(), nac, nacPrev, cargoTodos, mapa, agora: new Date(), avatar: ctx.avatar, cor, esperado, fx, turno, prev, dois });
     if (hero.snap?.dados) intro = false;
     if (decidida && !koTocou) { koTocou = true; tocarKo(); }
     const key = semRelogio(html);
@@ -489,7 +538,7 @@ export function mountAoVivo(el: HTMLElement) {
     feeds.push(fHero);
     fHero.follow(tseUrl("Presidente", heroUf, TSE_BASE, turnoDe("Presidente", turno)));
     if (escopo !== BRASIL && escopo !== EXTERIOR) {
-      linhas = corridasDe(ufCartoes()).map((c) => ({ ...c, snap: null, eleitos: vazio() }));
+      linhas = corridasDe(ufCartoes()).filter((c) => turno === 1 || TEM_SEGUNDO_TURNO.has(c.cargo)).map((c) => ({ ...c, snap: null, eleitos: vazio() }));
       linhas.forEach((l, i) => {
         const f = createFeed({
           onChange: (s) => {
@@ -508,6 +557,7 @@ export function mountAoVivo(el: HTMLElement) {
       brasil.follow(cargoTodos);
     }
     histPrev = [];
+    noticias = vazioNoticias();
     projecao.reiniciar();
     // The 28 files of the President feed both the total (Brasil) and the map, which stays on every scope.
     nacFeed = createBrasilFeed({ url: (c, uf) => tseUrl(c, uf, TSE_BASE, turnoDe(c, turno)), onChange: (s) => { nacPrev = s; agendar(); } });
@@ -520,7 +570,7 @@ export function mountAoVivo(el: HTMLElement) {
     const t = (e.target as Element).closest<HTMLElement>("[data-abrir-corrida], [data-abrir-uf], [data-uf], [data-live-total], [data-live-escopo], [data-live-cargo], [data-live-fx], [data-live-som], [data-turno]");
     if (!t || !ctx) return;
     if ("liveTotal" in t.dataset) { escopo = BRASIL; ligar(); return; }
-    if (t.dataset.turno) { const novo: Turno = t.dataset.turno === "2" ? 2 : 1; if (novo !== turno) { turno = novo; gravarTurno(turno); ligar(); } return; }
+    if (t.dataset.turno) { const novo: Turno = t.dataset.turno === "2" ? 2 : 1; if (novo !== turno) { turno = novo; if (turno === 2 && !TEM_SEGUNDO_TURNO.has(cargoTodos)) cargoTodos = "Presidente"; gravarTurno(turno); ligar(); } return; }
     if ("liveSom" in t.dataset) { somLigado = !somLigado; try { localStorage.setItem("radar:som", somLigado ? "on" : "off"); } catch { /* private window */ } som.desbloquear(); paint(); return; }
     if ("liveFx" in t.dataset) { efeitos = !efeitos; try { localStorage.setItem("radar:fx", efeitos ? "on" : "off"); } catch { /* private window: the choice lasts until the tab closes */ } paint(); return; }
     if (t.dataset.abrirUf) { escopo = t.dataset.abrirUf; ligar(); return; } // "Abrir X" of the live map: the Ao vivo of that state

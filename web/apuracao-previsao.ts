@@ -24,6 +24,7 @@ export interface Previsao {
   nivel: Nivel;
   n: number; // draws behind the chances
   contados: number; // share of the valid votes expected that the count already has
+  apurados: number; // valid votes counted so far (of the two finalists in a runoff)
   faltam: number; // valid votes still to come (estimate)
   decideNoPrimeiro: number | null; segundoTurno: number | null; // 1st round only: the chance of it ending there, and of going to a runoff
   defasadas: string[]; // files the feed kept after the TSE failed to answer
@@ -56,7 +57,7 @@ export function deProjecao(l: Leitura | null | undefined, prev: (id: string) => 
   });
   const total = a.base.validos + a.base.restante;
   return montar({
-    turno: 1, n: a.sim.n, contados: total > 0 ? a.base.validos / total : 0, faltam: a.base.restante,
+    turno: 1, n: a.sim.n, contados: total > 0 ? a.base.validos / total : 0, apurados: a.base.validos, faltam: a.base.restante,
     decideNoPrimeiro: (a.sim.p1turno[a.a] ?? 0) + (a.sim.p1turno[a.b2] ?? 0), segundoTurno: a.sim.segundoTurno, defasadas: l.defasadas,
   }, lado(a.a), lado(a.b2));
 }
@@ -70,7 +71,7 @@ export function deChance(l: LeituraChance | null | undefined, a: Quem, b: Quem):
   const [lo, med, hi] = c.faixa;
   const ancora = l.ancora;
   return montar({
-    turno: 2, n: c.n, contados: c.contados, faltam: l.partes.reduce((s, p) => s + p.restante, 0), decideNoPrimeiro: null, segundoTurno: null, defasadas: [],
+    turno: 2, n: c.n, contados: c.contados, apurados: nA + nB, faltam: l.partes.reduce((s, p) => s + p.restante, 0), decideNoPrimeiro: null, segundoTurno: null, defasadas: [],
   },
   { id: a.id, nome: a.nome, partido: a.partido, chance: c.a, pesquisa: ancora === null ? null : { media: ancora }, apuracao: ap, mc: [lo, med, hi] },
   { id: b.id, nome: b.nome, partido: b.partido, chance: c.b, pesquisa: ancora === null ? null : { media: 1 - ancora }, apuracao: ap === null ? null : 1 - ap, mc: [1 - hi, 1 - med, 1 - lo] });
