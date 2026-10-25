@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { EXTERIOR } from "./apuracao-uf.js";
 import { BRASIL, TODOS, contagemInicial, corridasDe, disputaDecidida, renderAoVivo, renderHero, resultadoDe } from "./apuracao-aovivo.js";
 import { atualizar, vazio } from "./apuracao-eleitos.js";
 import { registrar } from "./apuracao-graficos.js";
@@ -255,5 +256,15 @@ describe("cartão de disputa sem arquivo no 2º turno", () => {
   });
   test("sem a lista (não carregou) não afirma nada: mantém o texto de dúvida", () => {
     expect(cartoes(null)).toContain("Se não houve 2º turno nela");
+  });
+});
+
+describe("escopo Exterior", () => {
+  const palco = (escopo: string) => /<div class="live-palco[^"]*"/.exec(renderAoVivo(props({ escopo, ufCartoes: "SP" })))![0];
+
+  test("só o Exterior marca o palco (o mapa-múndi largo ganha a faixa toda); Brasil e estados ficam como estavam", () => {
+    expect(palco(EXTERIOR)).toContain(" exterior");
+    expect(palco(BRASIL)).not.toContain("exterior");
+    expect(palco("SP")).not.toContain("exterior");
   });
 });
