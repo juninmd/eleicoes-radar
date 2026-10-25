@@ -86,7 +86,7 @@ export function parseApuracao(json: unknown): Apuracao | null {
   const secoes = { total: brNumber(s?.ts), totalizadas: brNumber(s?.st) };
   const votos = {
     total: brNumber(v?.tv),
-    validos: brNumber(v?.vv !== undefined && v.vv !== "" ? v.vv : v?.vvc),
+    validos: brNumber(v?.vv != null && v.vv !== "" ? v.vv : v?.vvc),
     brancos: brNumber(v?.vb),
     nulos: brNumber(v?.tvn),
   };

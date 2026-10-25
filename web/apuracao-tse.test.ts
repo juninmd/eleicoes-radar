@@ -92,6 +92,11 @@ describe("parseApuracao", () => {
     expect(r.votos.validos).toBe(7777);
   });
 
+  test("a null vv counts as missing: valid votes fall back to vvc instead of zero", () => {
+    const r = parseApuracao(file({ v: { vv: null as unknown as string, vvc: "7777" } }))!;
+    expect(r.votos.validos).toBe(7777);
+  });
+
   test("proportional offices expose seats per list and the electoral quotient when published", () => {
     const agr = [
       { n: "1", nm: "Federação X", com: "PT/PC do B/PV", vag: "9", par: [{ n: "13", sg: "PT", cand: [cand("1", "1300", "ALFA", "1", "100", "1,00")] }] },
