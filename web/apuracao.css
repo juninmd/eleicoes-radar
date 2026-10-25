@@ -793,10 +793,13 @@
 .nt-mundo circle { fill-opacity: 0.78; stroke: var(--surface); stroke-width: 1; }
 .nt-mundo circle:hover { fill-opacity: 1; stroke: var(--ink); }
 
-/* Mobile: the leader's text gets the full row (the ring above it) instead of a squeezed column beside the ring. */
+/* Mobile: ring beside the name, the explanation on the full row below (it used to be squeezed into the narrow column). */
 @media (max-width: 520px) {
   .prev { padding: 12px; }
-  .prev-who { grid-template-columns: minmax(0, 1fr); gap: 12px; justify-items: start; }
-  .prev-anel { --s: 96px; }
-  .prev-txt { width: 100%; }
+  .prev-who { grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; align-items: center; }
+  .prev-anel { --s: 80px; grid-row: 1 / span 2; margin-bottom: 8px; }
+  .prev-txt { display: contents; }
+  .prev-txt .rot { grid-column: 2; align-self: end; justify-self: start; }
+  .prev-txt h4 { grid-column: 2; align-self: start; font-size: clamp(22px, 7vw, 30px); }
+  .prev-txt p { grid-column: 1 / -1; }
 }
