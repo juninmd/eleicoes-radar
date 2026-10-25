@@ -174,11 +174,23 @@
 .live-feed-d time { font: 600 11px var(--mono); color: var(--muted); padding-top: 1px; }
 .live-feed-d em { font: 700 10px var(--mono); font-style: normal; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
 .live-feed-d .muted.small { margin: 0; font-size: 10.5px; line-height: 1.35; }
+.live-feed-d summary { list-style: none; }
+.live-feed-d summary::-webkit-details-marker { display: none; }
+.live-feed-d summary::after { content: "Ocultar"; margin-left: auto; padding: 2px 9px; border: 1px solid var(--line); border-radius: 999px; font: 700 10px/1.4 var(--mono); text-transform: uppercase; color: var(--ink-2); }
+.live-feed-d:not([open]) summary::after { content: "Mostrar"; }
+.live-feed-d:not([open]) { padding-block: 6px; }
 @media (min-width: 1500px) {
   .live-corpo { grid-template-columns: minmax(0, 1fr) 300px; }
   .live-feed { order: 2; position: sticky; top: 8px; }
   .live-feed-d ol { max-height: calc(100vh - 160px); }
+  /* oculto: vira um trilho fino e o palco ganha a largura */
+  .live-corpo:has(.live-feed-d:not([open])) { grid-template-columns: minmax(0, 1fr) 40px; }
+  .live-feed-d:not([open]) { padding: 10px 4px; }
+  .live-feed-d:not([open]) summary { writing-mode: vertical-rl; justify-content: flex-end; gap: 10px; }
+  .live-feed-d:not([open]) summary small { display: none; }
+  .live-feed-d:not([open]) summary::after { margin: 0; padding: 8px 2px; }
 }
+
 
 /* onda de votos: cada regiao puxa o placar para um lado; a barra usa uma escala so */
 .live-onda { padding: 9px 11px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); min-width: 0; }
@@ -226,4 +238,51 @@
   .live-col-hero .live-vs-x { font-size: clamp(30px, 3.4vw, 52px); }
   .live-col-hero .apu-duelo-bar { height: 44px; }
   .live-col-hero .apu-duelo-bar .seg { font-size: 22px; }
+}
+
+/* Bloco do Presidente compacto (metade da altura): titulo, progresso e hora na mesma linha; duelo e barra enxutos; as explicacoes saem (o leitor ja le a diferenca no VS e nos KPIs). Vale em tela larga e no celular deitado. */
+@media (min-width: 981px), (orientation: landscape) and (max-height: 520px) {
+  .live-col-hero .live-hero { display: grid; grid-template-columns: auto minmax(60px, 1fr) auto; align-items: center; gap: 6px 14px; padding: 10px 14px; }
+  .live-col-hero .live-hero > * { grid-column: 1 / -1; }
+  .live-col-hero .live-hero > header, .live-col-hero .live-hero > .apu-prog, .live-col-hero .live-hero > .exp-meta { grid-column: auto; }
+  .live-col-hero .live-hero h3 { font-size: 22px; }
+  .live-col-hero .live-hero .exp-meta { margin: 0; font-size: 11px; white-space: nowrap; }
+  .live-col-hero .live-hero .apu-prog { height: 8px; }
+  .live-col-hero .live-barra, .live-col-hero .apu-duelo-leg, .live-col-hero .apu-duelo .exp-read,
+  .live-col-hero .live-hero > h4, .live-col-hero .live-hero > .muted.small:last-child { display: none; }
+  .live-col-hero .live-hero > h4:has(~ .apu-evo) { display: block; }
+  .live-col-hero .apu-evo { max-height: 90px; width: 100%; }
+  .live-col-hero .apu-duelo { gap: 4px; }
+}
+@media (min-width: 981px) {
+  .live-col-hero .live-duel { padding-block: 0; }
+  .live-col-hero .live-side { grid-template-columns: clamp(60px, 5.5vw, 88px) minmax(0, 1fr); padding: 8px 14px; row-gap: 0; }
+  .live-col-hero .live-side.b { grid-template-columns: minmax(0, 1fr) clamp(60px, 5.5vw, 88px); }
+  .live-col-hero .live-side-nome { font-size: clamp(18px, 2vw, 28px); line-height: 1.05; }
+  .live-col-hero .live-big { font-size: clamp(40px, 4.4vw, 64px); line-height: 1; }
+  .live-col-hero .live-vs-x { font-size: clamp(22px, 2.4vw, 34px); }
+  .live-col-hero .apu-duelo-bar { height: 36px; }
+  .live-col-hero .apu-duelo-bar .seg { font-size: 19px; }
+}
+
+/* Celular deitado: duas colunas no palco e KPIs numa linha so. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 980px) {
+  .live-palco { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .live-col-hero, .live-rodape { grid-column: 1 / -1; }
+  .live-kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .live-kpis dd small { display: none; }
+  .live-col-hero .live-duel { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+  .live-col-hero .live-side { grid-template-columns: 56px minmax(0, 1fr); justify-items: start; text-align: left; column-gap: 8px; align-content: center; }
+  .live-col-hero .live-side.b { grid-template-columns: minmax(0, 1fr) 56px; justify-items: end; text-align: right; }
+  .live-col-hero .live-side .live-foto { grid-column: 1; grid-row: 1 / span 5; align-self: center; justify-self: stretch; }
+  .live-col-hero .live-side.b .live-foto { grid-column: 2; }
+  .live-col-hero .live-side > :not(.live-foto) { grid-column: 2; }
+  .live-col-hero .live-side.b > :not(.live-foto) { grid-column: 1; }
+  .live-col-hero .live-side .av { width: 100%; height: auto; aspect-ratio: 4 / 5; }
+  .live-col-hero .live-side-esp, .live-col-hero .live-side-votos { display: none; }
+  .live-col-hero .live-big { font-size: 34px; }
+  .live-col-hero .live-side-nome { font-size: 15px; }
+  .live-col-hero .apu-duelo-bar { height: 28px; }
+  .live-col-hero .apu-duelo-bar .seg { font-size: 15px; }
+  .live-col-mapa .live-noite .nt-mapa { max-height: 70vh; min-height: 200px; }
 }
