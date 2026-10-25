@@ -73,8 +73,9 @@ export function renderCaminho(c: Caminho | null, cor: Cor): string {
   const precTxt = pct(c.precisa, 1);
   const precRotulo = precTxt === "50,0%" ? "pouco mais da metade" : precTxt;
   const mgRotulo = mgTxt === "0,0" ? "menos de 0,1 p.p." : `${mgTxt} p.p.`;
+  const fim = mgRotulo.endsWith(".") ? "" : "."; // "p.p." already closes the sentence: no second dot
   const frase = c.alcancavel
-    ? `<b>${nome}</b> tem <b>${pct(c.tem, 1)}</b> dos votos válidos apurados. Para terminar com mais votos que ${h(curto(c.frente.nome))}, precisa de <b>${precRotulo}</b> dos <b>${mi(c.faltam)}</b> que ainda faltam, isto é, ganhar o que falta por <b>${mgRotulo}</b>.`
+    ? `<b>${nome}</b> tem <b>${pct(c.tem, 1)}</b> dos votos válidos apurados. Para terminar com mais votos que ${h(curto(c.frente.nome))}, precisa de <b>${precRotulo}</b> dos <b>${mi(c.faltam)}</b> que ainda faltam, isto é, ganhar o que falta por <b>${mgRotulo}</b>${fim}`
     : `<b>${nome}</b> tem <b>${pct(c.tem, 1)}</b> dos votos válidos apurados. Mesmo com todos os <b>${mi(c.faltam)}</b> que faltam, não chegaria à frente de ${h(curto(c.frente.nome))}: precisaria de mais de 100% deles.`;
   const eixo = [lo, 0.5, hi].filter((x, i, a) => i !== 1 || (x > a[0]! && x < a[2]!)).map((x) => `<span style="left:${pos(x)}%">${Math.round(x * 100)}%</span>`).join("");
   return `<section class="live-cm" aria-labelledby="cm-t" style="--c:${cc}">
@@ -140,7 +141,7 @@ export function renderFinalistas(par: Par, avatar: (c: { id: string; nome: strin
 
 // ---- the wave of votes: each region's votes still to come, priced at what the region has already shown, and how far that moves the
 // first name's share of the two's votes. The bar is drawn to one scale for all rows; every figure is also printed.
-const sinal = (x: number) => (x < 0 ? "−" : "+");
+const sinal = (x: number) => (pp(x) === "0,0" ? "" : x < 0 ? "−" : "+"); // a sign in front of a printed zero reads as "−0,0"
 export function renderOnda(o: Onda | null, par: Par, cor: Cor): string {
   const casca = (corpo: string) => `<section class="live-onda" aria-labelledby="on-t"><h3 id="on-t">Onda de votos <small>o que falta, região a região</small></h3>${corpo}</section>`;
   if (!o || !o.linhas.length) return casca(`<p class="muted small">Aparece quando os primeiros estados tiverem votos e ainda faltar apurar.</p>`);
