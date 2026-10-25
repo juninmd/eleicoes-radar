@@ -107,7 +107,7 @@ export function createFeed({ load = loadResultado, onChange, every, timers = { s
     }
     if (mine !== token) return; // a cancelled request answers with AbortError: that is not a failure of the TSE
     if (falhou) falhas++;
-    else if (patch.status === "ok") falhas = 0;
+    else falhas = 0; // any answer that is not an error, 404 included, ends the wait
     emit(patch);
     timer = timers.set(tick, proxima());
   }

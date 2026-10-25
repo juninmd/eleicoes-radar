@@ -155,6 +155,15 @@ describe("createFeed", () => {
     await flush();
     expect(r.events.at(-1)).toMatchObject({ status: "ausente", dados: null });
     expect(r.timers).toHaveLength(1);
+    expect(r.timers[0].ms).toBe(POLL_MS);
+  });
+
+  test("any answer from the TSE that is not an error ends the wait: a 404 after three failures goes back to the normal rhythm", async () => {
+    const r = rig();
+    r.feed.follow("u1");
+    for (let i = 0; i < 3; i++) { r.calls[i].reject(new TypeError("Failed to fetch")); await flush(); await r.fire(); }
+    r.calls[3].reject(new HttpError(404)); await flush();
+    expect(r.timers[0].ms).toBe(POLL_MS);
   });
 
   test("a hidden tab skips the request but keeps the schedule, and refresh() catches up at once", async () => {
