@@ -14,6 +14,7 @@ import { createProjecao } from "./apuracao-projecao-estado.js";
 import { atualizar, vazio } from "./apuracao-novidades.js";
 import { atualizar as atualizarEleitos, vazio as vazioEleitos } from "./apuracao-eleitos.js";
 import { renderApuracao, vistasDe } from "./apuracao.js";
+import { LIMITE_MAXIMO, LIMITE_INICIAL } from "./apuracao-maisvotados.js";
 import { renderPainel } from "./apuracao-painel.js";
 import { PAGE_MUN } from "./apuracao-municipios-view.js";
 import { criarFx } from "./apuracao-fx-mount.js";
@@ -57,6 +58,7 @@ export function mountApuracao(el: HTMLElement) {
   let eleitos = vazioEleitos();
   let turno: Turno = lerTurno();
   let limit = PAGE;
+  let maisVotadosLimite = LIMITE_INICIAL; // "Mais votados": 10, then 30 after "Ver mais"
   let vista: Vista = "placar";
   let modoMapa = "lider";
   let selUf: string | null = null;
@@ -133,7 +135,7 @@ export function mountApuracao(el: HTMLElement) {
 
   // The two animated views (Corrida, Noite no mapa) keep their own DOM and are updated in place after every paint; see apuracao-fx-mount.js.
   const fx = criarFx({ el: corpo, anunciar: (txt) => { anuncio.textContent = txt; }, estado: () => ({ ctx: ctx && ctxVista(), vista, snap, nac, hist, mapa, mundo, exterior: ctx && vista === "noite" ? exteriorProps(estadoMun()) : null, cor, simulado: simAtivo() }) });
-  const nacional = () => !!ctx && (vista === "mapa" || vista === "camara" || vista === "noite"
+  const nacional = () => !!ctx && (vista === "mapa" || vista === "camara" || vista === "maisvotados" || vista === "noite"
     || (ctx.cargo === "Presidente" && (vista === "projecao" || vista === "chance" || vista === "exterior" || cheia())));
   const velha = (s: string | undefined) => s === "erro" || s === "ausente"; // same rule as linhasUf#defasada: the feed keeps the last numbers
   const fontesProj = (s: FeedSnapshot | null, n: BrasilSnapshot | null): Fonte[] =>
@@ -155,7 +157,7 @@ export function mountApuracao(el: HTMLElement) {
     const ch = cheia() ? chanceDe() : null, ex = cheia() ? exteriorDe() : null;
     const html = cheia()
       ? renderPainel({ cargo: ctx.cargo, uf: ctx.uf, turno, snap, nac, mapa, cor, novidades: novidades.itens, simulado, chance: ch ? { ...ch, cargo: ctx.cargo, cor, simulado } : null, proj: projDe(), exterior: ex ? { ...ex, cor, turno: turnoDe(ctx.cargo, turno) } : null })
-      : renderApuracao({ ...ctxVista(), turno, snap, nac, proj: projDe(), mun: munProps(), chance: chanceDe(), exterior: exteriorDe(), simulado, hist, novidades: novidades.itens, eleitos, limit, vista, modoMapa, selUf, mapa, cor: c });
+      : renderApuracao({ ...ctxVista(), turno, snap, nac, proj: projDe(), mun: munProps(), chance: chanceDe(), exterior: exteriorDe(), simulado, hist, novidades: novidades.itens, eleitos, limit, maisVotadosLimite, vista, modoMapa, selUf, mapa, cor: c });
     const key = semRelogio(html);
     const quando = corpo.querySelector<HTMLElement>("#apu-quando");
     if (key === painted && quando) {
@@ -188,7 +190,7 @@ export function mountApuracao(el: HTMLElement) {
       }
     }
   };
-  const zerarSessao = () => { limit = PAGE; hist = []; novidades = vazio(); eleitos = vazioEleitos(); projecao.reiniciar(); };
+  const zerarSessao = () => { limit = PAGE; maisVotadosLimite = LIMITE_INICIAL; hist = []; novidades = vazio(); eleitos = vazioEleitos(); projecao.reiniciar(); };
   // With the notifications on, the open race keeps being asked while the tab is in the background: that is when they matter.
   const feed = createFeed({ visible: () => !document.hidden || avisos.ativo(), onChange: (s) => { if (simAtivo()) return; snap = s; registrarSnap(s); paint(); } });
   const brasil = createBrasilFeed({ url: (c, uf) => tseUrl(c, uf, TSE_BASE, turnoDe(c, turno)), onChange: (s) => { if (simAtivo()) return; nac = s; agendar(); } });
@@ -308,10 +310,11 @@ export function mountApuracao(el: HTMLElement) {
   });
 
   el.addEventListener("click", (e) => {
-    const t = (e.target as Element).closest<HTMLElement>("[data-vista], [data-turno], [data-modo-mapa], [data-uf], [data-abrir-uf], [data-mun-modo], [data-mun-uf], [data-fx-pref], [data-demo-toggle], [data-demo], #apu-mais, #mun-mais");
+    const t = (e.target as Element).closest<HTMLElement>("[data-vista], [data-turno], [data-modo-mapa], [data-uf], [data-abrir-uf], [data-mun-modo], [data-mun-uf], [data-fx-pref], [data-demo-toggle], [data-demo], #apu-mais, #mun-mais, #mv-mais");
     if (!t) return;
     if (fx.clique(t)) return;
     if (t.id === "apu-mais") { limit += PAGE; paint(); }
+    else if (t.id === "mv-mais") { maisVotadosLimite = LIMITE_MAXIMO; paint(); }
     else if (t.id === "mun-mais") { munLimit += PAGE_MUN; paint(); }
     else if (t.dataset.munModo) { munCenario = { modo: t.dataset.munModo as Cenario["modo"], alvo: t.dataset.alvo ? Number(t.dataset.alvo) : munCenario.alvo }; munLimit = PAGE_MUN; paint(); }
     else if (t.dataset.munUf) { munFiltro = { ...munFiltro, uf: munFiltro.uf === t.dataset.munUf ? "" : t.dataset.munUf }; munLimit = PAGE_MUN; paint(); }
