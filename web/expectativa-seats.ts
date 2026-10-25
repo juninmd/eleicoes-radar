@@ -48,7 +48,7 @@ export function seats(exp: Expectativa, cargo: string, uf: string, cands: Candid
       ${list.length > limit ? `<button type="button" id="exp-mais" class="ghost">Mostrar mais</button>` : ""}
       <details class="how"><summary>Quão confiável é? Calibração em 2022</summary>
         <p class="muted small">${calibracaoTexto(bt.calibracao)}</p>
-        <table class="agenda"><caption class="sr">Chance prevista contra eleitos de fato, por faixa</caption><thead><tr><th scope="col">Chance prevista</th><th scope="col" class="num">Média prevista</th><th scope="col" class="num">Eleitos de fato</th><th scope="col" class="num">Candidaturas</th></tr></thead>
+        <div class="scroll"><table class="agenda"><caption class="sr">Chance prevista contra eleitos de fato, por faixa</caption><thead><tr><th scope="col">Chance prevista</th><th scope="col" class="num">Média prevista</th><th scope="col" class="num">Eleitos de fato</th><th scope="col" class="num">Candidaturas</th></tr></thead>
         <tbody>${bt.calibracao.filter((b) => b.n).map((b) => `<tr><td>${h(b.faixa)}</td><td class="num">${pct(b.previsto, 1)}</td><td class="num">${pct(b.observado, 1)}</td><td class="num">${int(b.n)}</td></tr>`).join("")}</tbody></table>
         <p class="muted small">Validação cruzada por estado: cada UF foi prevista por um modelo que não a viu. A chance não considera votos de legenda nem as regras de sobras em detalhe; é um sinal de competitividade, não uma previsão de votos.</p>
       </details>

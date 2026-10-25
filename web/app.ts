@@ -86,7 +86,7 @@ async function loadUf() {
   } catch {
     // Sem isto a lista ficaria em aria-busy para sempre e sem aviso.
     $("#lista").classList.remove("carregando");
-    $("#lista").innerHTML = `<li class="empty"><p role="status">Não foi possível carregar as candidaturas desta UF. Verifique a conexão.</p><button type="button" class="ghost" id="tentar">Tentar de novo</button></li>`;
+    $("#lista").innerHTML = `<li class="empty"><p role="alert">Não foi possível carregar as candidaturas desta UF. Verifique a conexão.</p><button type="button" class="ghost" id="tentar">Tentar de novo</button></li>`;
     $("#tentar").addEventListener("click", loadUf);
     if (foco) $("#tentar").focus();
     return;
@@ -431,8 +431,9 @@ async function main() {
   bind();
   await loadUf();
   document.body.classList.add("ready"); // the method text below stays hidden until the list has its final height
+  if (location.hash === "#sobre") $("#metodo-t").focus({ preventScroll: true }); // sobre() ran before the method text was shown
 }
 
 // The error goes in the radar list, so show the radar view even when another tab was saved (renderModo never ran).
 // The cause goes to the console: the page only tells the reader what to do, not the file that failed.
-main().catch((e) => { console.error(e); document.body.classList.add("ready"); document.body.dataset.visao = "radar"; $("#lista").classList.remove("carregando"); $("#lista").innerHTML = `<li class="empty"><p role="status">Não foi possível carregar os dados. Recarregue a página para tentar de novo.</p></li>`; });
+main().catch((e) => { console.error(e); document.body.classList.add("ready"); document.body.dataset.visao = "radar"; $("#lista").classList.remove("carregando"); $("#lista").innerHTML = `<li class="empty"><p role="alert">Não foi possível carregar os dados. Recarregue a página para tentar de novo.</p></li>`; });
