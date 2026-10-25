@@ -1,5 +1,6 @@
 // Who is watching and whom they cheer for, in memory only: an anonymous random id the browser makes up, the state the reader chose,
-// no IP and nothing on disk. A restart forgets everything, which is the privacy promise as much as a limit.
+// no IP. Presence lives in memory only; the cheering poll is kept by the armazem as a salted hash of the code, never the code itself.
+import { armazemMemoria, type Armazem } from "./armazem.js";
 export const UFS: ReadonlySet<string> = new Set("AC AL AM AP BA CE DF ES GO MA MG MS MT PA PB PE PI PR RJ RN RO RR RS SC SE SP TO".split(" "));
 export const ID_VALIDO = /^[A-Za-z0-9_-]{16,48}$/;
 
@@ -8,11 +9,11 @@ export interface Torcida { corrida: string; total: number; opcoes: (Opcao & { vo
 export interface Resumo { online: number; porUf: Record<string, number>; semUf: number; torcida: Torcida | null }
 export type ResultadoVoto = "ok" | "invalida" | "lotada" | "sem-presenca";
 
-export interface PresencaOpts { ttlMs?: number; maxOnline?: number; maxVotos?: number; agora?: () => number }
+export interface PresencaOpts { ttlMs?: number; maxOnline?: number; maxVotos?: number; agora?: () => number; armazem?: Armazem }
 
-export function criarPresenca({ ttlMs = 75_000, maxOnline = 50_000, maxVotos = 200_000, agora = Date.now }: PresencaOpts = {}) {
+export function criarPresenca({ ttlMs = 75_000, maxOnline = 50_000, maxVotos = 200_000, agora = Date.now, armazem = armazemMemoria() }: PresencaOpts = {}) {
   const vistos = new Map<string, { uf: string; t: number }>();
-  const votos = new Map<string, string>(); // visitor id -> option id; one cheer per browser, changeable
+  const votos = new Map<string, string>(); // hash of the visitor code -> option id; one cheer per browser, changeable
   const contagem = new Map<string, number>();
   let corrida = "";
   let opcoes: Opcao[] = [];
@@ -31,23 +32,31 @@ export function criarPresenca({ ttlMs = 75_000, maxOnline = 50_000, maxVotos = 2
     },
     // The race and its candidates come from the TSE file the monitor reads; the client can only pick among them.
     definirOpcoes(nova: string, lista: Opcao[]) {
-      corrida = nova;
+      if (nova !== corrida) {
+        // A new race (or the first read after a restart): the poll is whatever the store holds for it.
+        corrida = nova;
+        votos.clear();
+        contagem.clear();
+        for (const [h, o] of armazem.votosDe(nova)) { votos.set(h, o); mexe(o, 1); }
+      }
       opcoes = lista.slice(0, 15);
     },
     // Only someone who is online right now can cheer: a script that invents ids has to ping first and pays the same limits.
     votar(id: string, opcao: string): ResultadoVoto {
       if (!ID_VALIDO.test(id) || !opcoes.some((o) => o.id === opcao)) return "invalida";
       if (!presente(id)) return "sem-presenca";
-      const antes = votos.get(id);
+      const h = armazem.hash(id);
+      const antes = votos.get(h);
       if (antes === undefined && votos.size >= maxVotos) return "lotada";
       if (antes === opcao) return "ok";
       if (antes !== undefined) mexe(antes, -1);
-      votos.set(id, opcao);
+      votos.set(h, opcao);
       mexe(opcao, 1);
+      armazem.gravarVoto(corrida, h, opcao);
       return "ok";
     },
     meuVoto: (id: string): string | null => {
-      const v = votos.get(id);
+      const v = votos.get(armazem.hash(id));
       return v !== undefined && opcoes.some((o) => o.id === v) ? v : null;
     },
     resumo(): Resumo {

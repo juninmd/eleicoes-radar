@@ -7,7 +7,7 @@ import { criarLimite } from "./limite.js";
 import type { Monitor } from "./monitor.js";
 import type { Push } from "./push.js";
 
-export interface ApiDeps { presenca: Presenca; push: Push; monitor: Monitor }
+export interface ApiDeps { presenca: Presenca; push: Push; monitor: Monitor; persistente?: boolean }
 const MAX_CORPO = 1024;
 const GET = new Set(["/api/aovivo/estado", "/api/aovivo/ultimo", "/api/push/chave"]);
 const POST = new Set(["/api/aovivo/ping", "/api/aovivo/torcida", "/api/push/inscrever", "/api/push/cancelar"]);
@@ -16,12 +16,12 @@ const json = (dados: unknown, status = 200) => new Response(JSON.stringify(dados
 const erro = (status: number, msg: string, extra: Record<string, string> = {}) => new Response(JSON.stringify({ erro: msg }), { status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", ...extra } });
 const MUITAS = () => erro(429, "muitas requisições", { "Retry-After": "60" });
 
-export function criarApi({ presenca, push, monitor }: ApiDeps, agora: () => number = Date.now) {
+export function criarApi({ presenca, push, monitor, persistente = false }: ApiDeps, agora: () => number = Date.now) {
   const minuto = (max: number, chaves = 20_000) => criarLimite({ max, janelaMs: 60_000, chaves, agora });
   const ipLer = minuto(6000), ipPing = minuto(20_000), ipVoto = minuto(1200), ipPush = minuto(1200);
   const idPing = minuto(8, 100_000), idVoto = minuto(10, 100_000);
 
-  const estado = (id?: string) => ({ ...presenca.resumo(), meu: id ? presenca.meuVoto(id) : null, eventos: monitor.eventos().slice(0, 5), push: push.ativo() });
+  const estado = (id?: string) => ({ ...presenca.resumo(), meu: id ? presenca.meuVoto(id) : null, eventos: monitor.eventos().slice(0, 5), push: push.ativo(), persistente });
 
   async function corpo(req: Request): Promise<Record<string, unknown> | Response> {
     if (!(req.headers.get("content-type") ?? "").toLowerCase().startsWith("application/json")) return erro(415, "esperado application/json");

@@ -35,10 +35,14 @@ export async function criarVapid(env: { VAPID_PUBLIC?: string; VAPID_PRIVATE?: s
   };
 }
 
-export interface PushOpts { vapid: Vapid | null; enviar?: typeof fetch; max?: number; paralelo?: number }
+import { armazemMemoria, type Armazem } from "./armazem.js";
 
-export function criarPush({ vapid, enviar = fetch, max = 20_000, paralelo = 20 }: PushOpts) {
+export interface PushOpts { vapid: Vapid | null; enviar?: typeof fetch; max?: number; paralelo?: number; armazem?: Armazem }
+
+export function criarPush({ vapid, enviar = fetch, max = 20_000, paralelo = 20, armazem = armazemMemoria() }: PushOpts) {
+  // What the store kept from before a restart is checked again: a row that is no longer a browser push address is dropped, not trusted.
   const inscritos = new Set<string>();
+  for (const e of armazem.endpoints()) { const u = endpointValido(e); if (u && inscritos.size < max) inscritos.add(u.href); else armazem.apagarEndpoint(e); }
   return {
     ativo: () => vapid !== null,
     chave: () => vapid?.publica ?? null,
@@ -48,9 +52,10 @@ export function criarPush({ vapid, enviar = fetch, max = 20_000, paralelo = 20 }
       if (!u) return "invalido";
       if (!inscritos.has(u.href) && inscritos.size >= max) return "lotado";
       inscritos.add(u.href);
+      armazem.gravarEndpoint(u.href);
       return "ok";
     },
-    cancelar(endpoint: unknown) { const u = endpointValido(endpoint); if (u) inscritos.delete(u.href); },
+    cancelar(endpoint: unknown) { const u = endpointValido(endpoint); if (u) { inscritos.delete(u.href); armazem.apagarEndpoint(u.href); } },
     // Wakes every subscriber. 4xx answers mean the subscription is gone or was made for another key (the list is only ever refilled by the page):
     // forget it. Network errors and 5xx keep it for the next event.
     async notificar(): Promise<{ enviados: number; removidos: number; falhas: number }> {
@@ -63,7 +68,7 @@ export function criarPush({ vapid, enviar = fetch, max = 20_000, paralelo = 20 }
         if (!jwts.has(u.origin)) jwts.set(u.origin, vapid.assinar(u.origin));
         try {
           const res = await enviar(href, { method: "POST", headers: { Authorization: `vapid t=${await jwts.get(u.origin)}, k=${vapid.publica}`, TTL: "3600", Urgency: "high", Topic: "radar-evento" }, signal: AbortSignal.timeout(8000) });
-          if ([400, 401, 403, 404, 410].includes(res.status)) { inscritos.delete(href); r.removidos++; } else if (res.ok) r.enviados++; else r.falhas++;
+          if ([400, 401, 403, 404, 410].includes(res.status)) { inscritos.delete(href); armazem.apagarEndpoint(href); r.removidos++; } else if (res.ok) r.enviados++; else r.falhas++;
         } catch {
           r.falhas++;
         }

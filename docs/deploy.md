@@ -26,6 +26,10 @@ Rollback: `docker push` da tag anterior como `:latest` e `rollout restart`. Saú
 > construída aqui como `:latest`. No rollback, use uma tag construída aqui (sha curto, do `git rev-parse --short`):
 > as tags de sha longo vêm do CI e também não têm `web/data`.
 
+## Ao vivo: volume SQLite
+
+A torcida e as inscrições push ficam em `RADAR_DB=/data/radar.db`, num PVC `eleicoes-radar-data` (`local-path`, 1 Gi) montado em `/data` pelo chart (`juninmd/app-charts`, `eleicoes-radar/`). O pod roda com `readOnlyRootFilesystem`, então só `/data` e `/tmp` aceitam escrita. Sem o volume (ou se o arquivo não abrir) o app segue só em memória e registra isso no log de partida (`armazém só em memória`). Para conferir depois do deploy: o log do pod novo diz `armazém em disco (N inscritos recuperados)` e `/api/aovivo/estado` traz `"persistente":true`. Backup/limpeza: o arquivo é pequeno; apagar `radar.db*` zera a enquete e as inscrições.
+
 ## Ao vivo: segredos do push
 
 O push precisa de chaves VAPID num Secret (sem elas o push fica desligado e o resto funciona):

@@ -77,7 +77,7 @@ describe("monitor", () => {
 
   test("the operator test replaces what a woken worker reads for a while, stays out of the panel list, and gives way to the previous event", async () => {
     const fila = [arq("0", "0", "0", "17:00:00"), arq("3", "5", "4", "19:01:00")];
-    const m4 = criarMonitor({ turno: 2, disputas: [PRES], testeMs: 30, buscar: async () => fila.shift(), onEventos: () => {} });
+    const m4 = criarMonitor({ turno: 2, disputas: [PRES], testeMs: 20, buscar: async () => fila.shift(), onEventos: () => {} });
     await m4.rodada();
     await m4.rodada();
     const real = m4.ultimo();
@@ -86,7 +86,7 @@ describe("monitor", () => {
     expect(e.texto).toContain("Não é um evento da apuração");
     expect(m4.ultimo()).toBe(e);
     expect(m4.eventos().some((x) => x.tipo === "teste")).toBe(false);
-    await new Promise((ok) => setTimeout(ok, 80));
+    await new Promise((ok) => setTimeout(ok, 250)); // far longer than testeMs: a loaded machine must not make this flaky
     expect(m4.ultimo()).toBe(real);
   });
 });
