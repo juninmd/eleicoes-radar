@@ -69,6 +69,6 @@ export function painel(p: PainelProps): string {
     <p class="soc-grande"><b>${int(e.online)}</b> ${e.online === 1 ? "navegador" : "navegadores"} com a tela Ao vivo aberta</p>
     <section class="soc-bloco" aria-labelledby="soc-t-mapa"><h3 id="soc-t-mapa">Onde <small>pelo estado que cada pessoa escolheu</small></h3>${mapaOnline(e.porUf, p.mapa)}${semUf}</section>
     ${torcida(e, p.semRastro)}${avisos(p)}
-    <p class="soc-nota soc-priv">Cada navegador usa um código aleatório, sem nome, e-mail, IP ou localização. O servidor guarda só a contagem do momento, a escolha da torcida e o aviso push, na memória; reiniciar apaga tudo. ${p.semRastro ? "“Não rastrear” está ligado: nada é enviado daqui." : ""}</p>`;
+    <p class="soc-nota soc-priv">Cada navegador usa um código aleatório, sem nome, e-mail, IP ou localização. ${e.persistente ? "A contagem de quem está online fica só em memória. A torcida guarda uma sigla do seu código (não o código) e a escolha, e o aviso push guarda o endereço do navegador, em disco por até 90 dias." : "O servidor guarda só a contagem do momento, a escolha da torcida e o aviso push, na memória; reiniciar apaga tudo."} ${p.semRastro ? "“Não rastrear” está ligado: nada é enviado daqui." : ""}</p>`;
 }
 

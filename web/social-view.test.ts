@@ -63,10 +63,16 @@ describe("painel", () => {
     expect(html).not.toMatch(/<img|<script/i);
     expect(html).not.toContain('"><img');
   });
-  test("the privacy note says what is kept and what is not", () => {
-    const html = painel(props());
-    expect(html).toContain("sem nome, e-mail, IP ou localização");
-    expect(html).toContain("reiniciar apaga tudo");
+  test("the privacy note says what is kept and what is not, and changes when the server keeps data on disk", () => {
+    const memoria = painel(props());
+    expect(memoria).toContain("sem nome, e-mail, IP ou localização");
+    expect(memoria).toContain("reiniciar apaga tudo");
+    const disco = painel(props({ estado: estado({ persistente: true }) }));
+    expect(disco).toContain("sem nome, e-mail, IP ou localização");
+    expect(disco).not.toContain("reiniciar apaga tudo"); // never promise what the server does not do
+    expect(disco).toContain("uma sigla do seu código (não o código)");
+    expect(disco).toContain("até 90 dias");
+    expect(disco).toContain("online fica só em memória");
   });
 });
 

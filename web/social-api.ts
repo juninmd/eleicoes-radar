@@ -3,7 +3,7 @@
 export interface OpcaoTorcida { id: string; nome: string; partido: string; votos: number }
 export interface Torcida { corrida: string; total: number; opcoes: OpcaoTorcida[] }
 export interface EventoAviso { id: string; t: number; titulo: string; texto: string; rotulo: string }
-export interface Estado { online: number; porUf: Record<string, number>; semUf: number; torcida: Torcida | null; meu: string | null; eventos: EventoAviso[]; push: boolean }
+export interface Estado { online: number; porUf: Record<string, number>; semUf: number; torcida: Torcida | null; meu: string | null; eventos: EventoAviso[]; push: boolean; persistente?: boolean }
 
 const CHAVE = "radar:vid";
 const FORMATO = /^[A-Za-z0-9_-]{16,48}$/;
