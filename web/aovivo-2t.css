@@ -156,6 +156,16 @@
 @media (min-width: 641px) {
   .live-col-mapa .live-noite .nt-mapa { flex: none; width: 100%; height: auto; aspect-ratio: 16 / 11; max-height: min(52vh, 440px); min-height: 280px; }
 }
+/* Exterior: o mundo é largo (2,5 : 1). No quadro 16:11 de uma coluna sobravam faixas pretas em cima e embaixo, a coluna da direita ficava vazia e o
+   cartão do exterior caía para baixo do mapa. Aqui o palco vira uma coluna, o mapa usa a faixa toda e o cartão fica ao lado. */
+.live-palco.exterior { grid-template-columns: minmax(0, 1fr); }
+.live-palco.exterior .live-col-mapa .live-noite .nt-mapa { aspect-ratio: 2.1 / 1; min-height: 190px; max-height: min(60vh, 520px); }
+@media (max-width: 640px) { .live-palco.exterior .live-col-mapa .live-noite .nt-mapa { min-height: 250px; } } /* os 3 botões de zoom empilhados (~136 px) não cabem em 190 */
+@media (min-width: 981px) {
+  .live-palco.exterior .nt-corpo { flex-direction: row; align-items: stretch; }
+  .live-palco.exterior .nt-palco { flex: 1 1 0; min-width: 0; }
+  .live-palco.exterior .nt-lado { flex: 0 0 clamp(300px, 30%, 420px); align-content: start; }
+}
 .live-noite .nt-palco { align-self: stretch; } /* .nt-corpo alinha ao inicio: sem isto o palco encolhia ao tamanho do mapa */
 
 /* Barra lateral de acontecimentos: coluna fixa à direita em tela larga; abaixo disso, painel recolhível acima do palco. */
