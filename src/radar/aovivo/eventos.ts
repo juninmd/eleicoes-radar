@@ -45,7 +45,8 @@ export function detectar(prev: EstadoDisputa | null, d: Apuracao, disp: Disputa,
   const estado: EstadoDisputa = { lider: lider ?? prev.lider, avanco, ultimaVirada: prev.ultimaVirada, viradas: prev.viradas, emitidos: new Set([...prev.emitidos, ...eventos.map((e) => e.id)]) };
   if (lider && prev.lider && lider !== prev.lider) {
     const anterior = ordem.find((c) => c.id === prev.lider);
-    if (prev.avanco >= AVANCO_MINIMO && anterior && agora - prev.ultimaVirada >= INTERVALO_VIRADA_MS) {
+    if (prev.avanco >= AVANCO_MINIMO && anterior && agora - prev.ultimaVirada < INTERVALO_VIRADA_MS) estado.lider = prev.lider; // held back: say it once the interval passes, if it still holds
+    else if (prev.avanco >= AVANCO_MINIMO && anterior) {
       estado.viradas = prev.viradas + 1;
       estado.ultimaVirada = agora;
       eventos.push(mk(`virada:${estado.viradas}`, "virada", `${rot}: virada na contagem`, `${nome(a)} passou à frente de ${nome(anterior)} (${par}; ${pct(avanco)} das seções).`));
@@ -53,3 +54,7 @@ export function detectar(prev: EstadoDisputa | null, d: Apuracao, disp: Disputa,
   }
   return { estado, eventos };
 }
+
+// When one round brings several events a single push goes out, and the service worker reads the most important one.
+const PRIORIDADE: Record<string, number> = { tse: 0, prova: 1, fim: 2, virada: 3, marco: 4, inicio: 5 };
+export const destaque = (eventos: Evento[]): Evento | null => eventos.reduce<Evento | null>((m, x) => (!m || (PRIORIDADE[x.tipo] ?? 9) < (PRIORIDADE[m.tipo] ?? 9) ? x : m), null);

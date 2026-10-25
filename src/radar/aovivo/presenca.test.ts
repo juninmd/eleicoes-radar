@@ -40,11 +40,13 @@ describe("torcida", () => {
     p.definirOpcoes("Presidente · 2º turno", [ana, beto]);
     expect(p.votar(id(1), "x9")).toBe("invalida");
     expect(p.votar("curto", "a1")).toBe("invalida");
+    p.ping(id(1), "SP");
     expect(p.votar(id(1), "a1")).toBe("ok");
   });
   test("one cheer per browser: changing the pick moves it, repeating it changes nothing", () => {
     const p = criarPresenca();
     p.definirOpcoes("Presidente", [ana, beto]);
+    p.ping(id(1), "SP"); p.ping(id(2), "SP");
     p.votar(id(1), "a1"); p.votar(id(1), "a1"); p.votar(id(2), "a1");
     expect(p.resumo().torcida).toMatchObject({ total: 2 });
     p.votar(id(1), "b2");
@@ -56,18 +58,33 @@ describe("torcida", () => {
   test("a full poll refuses new voters but lets existing ones change their pick", () => {
     const p = criarPresenca({ maxVotos: 1 });
     p.definirOpcoes("Presidente", [ana, beto]);
+    p.ping(id(1), "SP"); p.ping(id(2), "SP");
     p.votar(id(1), "a1");
     expect(p.votar(id(2), "a1")).toBe("lotada");
     expect(p.votar(id(1), "b2")).toBe("ok");
   });
-  test("the summary is shared for a few seconds (a thousand tabs do not recompute it), then refreshes", () => {
+  test("only someone who is online can cheer: an invented id has to ping first, and an expired one has to ping again", () => {
+    let t = 0;
+    const p = criarPresenca({ ttlMs: 60_000, agora: () => t });
+    p.definirOpcoes("Presidente", [ana, beto]);
+    expect(p.votar(id(1), "a1")).toBe("sem-presenca");
+    p.ping(id(1), "SP");
+    expect(p.votar(id(1), "a1")).toBe("ok");
+    t = 61_000;
+    expect(p.votar(id(1), "b2")).toBe("sem-presenca");
+  });
+  test("the walk over every visitor is shared for a few seconds even while pings keep coming, and cheers show at once", () => {
     let t = 0;
     const p = criarPresenca({ agora: () => t });
+    p.definirOpcoes("Presidente", [ana, beto]);
     p.ping(id(1), "SP");
-    const a = p.resumo();
-    expect(p.resumo()).toBe(a);
+    expect(p.resumo().online).toBe(1);
+    p.ping(id(2), "SP"); // would invalidate a naive cache on every ping
+    expect(p.resumo().online).toBe(1);
+    p.votar(id(1), "a1");
+    expect(p.resumo().torcida?.total).toBe(1); // the poll is read fresh
     t = 4000;
-    expect(p.resumo()).not.toBe(a);
+    expect(p.resumo().online).toBe(2);
   });
 });
 

@@ -13,7 +13,7 @@ export async function criarRuntime(env: Record<string, string | undefined> = pro
     turno,
     base: env.RADAR_TSE_BASE || undefined, // only for rehearsals against a fake TSE
     onOpcoes: (corrida, opcoes) => presenca.definirOpcoes(corrida, opcoes),
-    onEvento: (e) => { console.log(`evento ${e.id}`); void push.notificar().then((r) => console.log(`push ${e.id}: ${r.enviados} enviados, ${r.removidos} removidos, ${r.falhas} falhas`)); },
+    onEventos: (eventos) => { console.log(`eventos ${eventos.map((e) => e.id).join(", ")}`); void push.notificar().then((x) => console.log(`push: ${x.enviados} enviados, ${x.removidos} removidos, ${x.falhas} falhas`)); },
   });
   if (env.RADAR_MONITOR !== "off") monitor.iniciar(Number(env.RADAR_MONITOR_MS) || 40_000);
   console.log(`ao vivo: monitor ${env.RADAR_MONITOR === "off" ? "desligado" : "ligado"} (turno ${turno}), push ${vapid ? "ligado" : "desligado (sem chaves VAPID)"}`);

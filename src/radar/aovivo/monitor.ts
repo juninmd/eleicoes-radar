@@ -3,7 +3,7 @@
 import { parseApuracao, tseUrl, TSE_BASE, type Apuracao, type Turno } from "../../../web/apuracao-tse.js";
 import { maisRecente } from "../../../web/apuracao-feed.js";
 import { titleName } from "../../../web/format.js";
-import { detectar, type Disputa, type EstadoDisputa, type Evento } from "./eventos.js";
+import { destaque, detectar, type Disputa, type EstadoDisputa, type Evento } from "./eventos.js";
 import type { Opcao } from "./presenca.js";
 
 // The 2026 runoff: the President plus the five state governments that went to a second round.
@@ -17,7 +17,7 @@ export interface MonitorOpts {
   disputas?: Disputa[];
   base?: string;
   buscar?: (url: string) => Promise<unknown>;
-  onEvento: (e: Evento) => void;
+  onEventos: (eventos: Evento[]) => void; // one call per round that brought news, in the order the races are listed
   onOpcoes?: (corrida: string, opcoes: Opcao[]) => void;
   agora?: () => number;
   guardar?: number;
@@ -29,31 +29,39 @@ const buscarJson = async (url: string): Promise<unknown> => {
   return r.json();
 };
 
-export function criarMonitor({ turno, disputas = DISPUTAS_2026_T2, base = TSE_BASE, buscar = buscarJson, onEvento, onOpcoes, agora = Date.now, guardar = 50 }: MonitorOpts) {
+export function criarMonitor({ turno, disputas = DISPUTAS_2026_T2, base = TSE_BASE, buscar = buscarJson, onEventos, onOpcoes, agora = Date.now, guardar = 50 }: MonitorOpts) {
   const estados = new Map<string, EstadoDisputa>();
   const vistos = new Map<string, Apuracao>();
   const recentes: Evento[] = [];
+  let ultimoDestaque: Evento | null = null;
   let falhas = 0;
   let timer: ReturnType<typeof setTimeout> | null = null;
   let parado = true;
 
-  async function uma(disp: Disputa): Promise<void> {
+  async function uma(disp: Disputa): Promise<Evento[]> {
     const chave = `${disp.cargo}-${disp.uf}`;
     const d = parseApuracao(await buscar(tseUrl(disp.cargo, disp.uf, base, turno)));
     if (!d) throw new Error("arquivo do TSE ilegível");
     const antes = vistos.get(chave);
-    if (maisRecente(d, antes) === antes) return; // an older file than one already seen: ignore it
+    if (maisRecente(d, antes) === antes) return []; // an older file than one already seen: ignore it
     vistos.set(chave, d);
     if (disp.cargo === "Presidente" && disp.uf === "BR") onOpcoes?.(`Presidente${turno === 2 ? " · 2º turno" : ""}`, d.candidatos.map((c) => ({ id: c.id, nome: titleName(c.nome), partido: c.partido })).filter((o) => o.id));
     const r = detectar(estados.get(chave) ?? null, d, disp, agora());
     estados.set(chave, r.estado);
-    for (const e of r.eventos) { recentes.push(e); if (recentes.length > guardar) recentes.shift(); onEvento(e); }
+    return r.eventos;
   }
 
   // One failing race does not stop the others; the delay doubles while every race fails, up to two minutes.
   async function rodada(): Promise<boolean> {
     const rs = await Promise.allSettled(disputas.map(uma));
     for (const r of rs) if (r.status === "rejected") console.error(`monitor: ${r.reason}`);
+    const novos = rs.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
+    if (novos.length) {
+      recentes.push(...novos);
+      recentes.splice(0, Math.max(0, recentes.length - guardar));
+      ultimoDestaque = destaque(novos); // what a woken service worker shows: the most important event of the round, never just the last one
+      try { onEventos(novos); } catch (e) { console.error(`monitor: onEventos ${e}`); } // a failing listener must not stop the next round
+    }
     return rs.some((r) => r.status === "fulfilled");
   }
 
@@ -73,7 +81,7 @@ export function criarMonitor({ turno, disputas = DISPUTAS_2026_T2, base = TSE_BA
     },
     parar() { parado = true; if (timer) clearTimeout(timer); timer = null; },
     eventos: (): Evento[] => [...recentes].reverse(),
-    ultimo: (): Evento | null => recentes.at(-1) ?? null,
+    ultimo: (): Evento | null => ultimoDestaque,
   };
 }
 export type Monitor = ReturnType<typeof criarMonitor>;

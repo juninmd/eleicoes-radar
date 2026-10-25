@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { cand, file } from "../../../web/apuracao-fixtures";
 import { parseApuracao } from "../../../web/apuracao-tse";
-import { AVANCO_MINIMO, detectar, INTERVALO_VIRADA_MS, type Disputa, type EstadoDisputa } from "./eventos";
+import { AVANCO_MINIMO, destaque, detectar, INTERVALO_VIRADA_MS, type Disputa, type EstadoDisputa } from "./eventos";
 
 const PRES: Disputa = { cargo: "Presidente", uf: "BR", rotulo: "Presidente", marcos: true };
 const GOV: Disputa = { cargo: "Governador", uf: "AC", rotulo: "Governo AC", marcos: false };
@@ -46,9 +46,12 @@ describe("detectar", () => {
     expect(ids(r.eventos)).toEqual(["virada:1"]);
     expect(r.eventos[0].texto).toContain("Beto Lima passou à frente de Ana Souza");
     const volta = detectar(r.estado, arq({ a: 50, b: 45, st: 53 }), PRES, INTERVALO_VIRADA_MS + 60_000);
-    expect(volta.eventos).toEqual([]); // flipped back a minute later: no second buzz
-    const depois = detectar(volta.estado, arq({ a: 50, b: 60, st: 54 }), PRES, 2 * INTERVALO_VIRADA_MS + 5);
-    expect(ids(depois.eventos)).toEqual(["virada:2"]);
+    expect(volta.eventos).toEqual([]); // flipped back a minute later: held back, not announced yet
+    const depois = detectar(volta.estado, arq({ a: 55, b: 45, st: 54 }), PRES, 2 * INTERVALO_VIRADA_MS + 5);
+    expect(ids(depois.eventos)).toEqual(["virada:2"]); // the interval passed and Ana is still ahead: now it is said, so nobody is left believing Beto leads
+    expect(depois.eventos[0].texto).toContain("Ana Souza passou à frente de Beto Lima");
+    const ida = detectar(volta.estado, arq({ a: 50, b: 60, st: 54 }), PRES, 2 * INTERVALO_VIRADA_MS + 5);
+    expect(ida.eventos).toEqual([]); // it went back to the leader already announced: nothing to say
   });
   test("the Radar's proof is labelled as a calculation, not as the TSE's mark", () => {
     const r = detectar(seed(), arq({ a: 60, b: 30, st: 90 }), PRES, 5);
@@ -72,5 +75,15 @@ describe("detectar", () => {
     });
     expect(todos.length).toBeGreaterThanOrEqual(4);
     for (const e of todos) expect(`${e.titulo} ${e.texto}`).not.toMatch(/vencedor|venceu|vai ganhar|será eleit|vai vencer/i);
+  });
+});
+
+describe("destaque", () => {
+  const ev = (tipo: string) => ({ id: tipo, t: 0, tipo, titulo: tipo, texto: "", rotulo: "" });
+  test("the TSE's mark outranks the Radar's proof, which outranks the rest; ties keep the first listed", () => {
+    expect(destaque([ev("inicio"), ev("marco"), ev("fim"), ev("tse"), ev("prova")])?.tipo).toBe("tse");
+    expect(destaque([ev("marco"), ev("virada"), ev("prova")])?.tipo).toBe("prova");
+    expect(destaque([ev("marco"), { ...ev("marco"), id: "segundo" }])?.id).toBe("marco");
+    expect(destaque([])).toBeNull();
   });
 });

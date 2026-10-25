@@ -37,7 +37,7 @@ export async function criarVapid(env: { VAPID_PUBLIC?: string; VAPID_PRIVATE?: s
 
 export interface PushOpts { vapid: Vapid | null; enviar?: typeof fetch; max?: number; paralelo?: number }
 
-export function criarPush({ vapid, enviar = fetch, max = 5000, paralelo = 20 }: PushOpts) {
+export function criarPush({ vapid, enviar = fetch, max = 20_000, paralelo = 20 }: PushOpts) {
   const inscritos = new Set<string>();
   return {
     ativo: () => vapid !== null,
@@ -51,7 +51,8 @@ export function criarPush({ vapid, enviar = fetch, max = 5000, paralelo = 20 }: 
       return "ok";
     },
     cancelar(endpoint: unknown) { const u = endpointValido(endpoint); if (u) inscritos.delete(u.href); },
-    // Wakes every subscriber. 404/410 mean the browser dropped the subscription: forget it. Other failures keep it for the next event.
+    // Wakes every subscriber. 4xx answers mean the subscription is gone or was made for another key (the list is only ever refilled by the page):
+    // forget it. Network errors and 5xx keep it for the next event.
     async notificar(): Promise<{ enviados: number; removidos: number; falhas: number }> {
       const r = { enviados: 0, removidos: 0, falhas: 0 };
       if (!vapid) return r;
@@ -62,7 +63,7 @@ export function criarPush({ vapid, enviar = fetch, max = 5000, paralelo = 20 }: 
         if (!jwts.has(u.origin)) jwts.set(u.origin, vapid.assinar(u.origin));
         try {
           const res = await enviar(href, { method: "POST", headers: { Authorization: `vapid t=${await jwts.get(u.origin)}, k=${vapid.publica}`, TTL: "3600", Urgency: "high", Topic: "radar-evento" }, signal: AbortSignal.timeout(8000) });
-          if (res.status === 404 || res.status === 410) { inscritos.delete(href); r.removidos++; } else if (res.ok) r.enviados++; else r.falhas++;
+          if ([400, 401, 403, 404, 410].includes(res.status)) { inscritos.delete(href); r.removidos++; } else if (res.ok) r.enviados++; else r.falhas++;
         } catch {
           r.falhas++;
         }

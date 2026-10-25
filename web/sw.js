@@ -25,7 +25,11 @@ self.addEventListener("notificationclick", (e) => {
   e.waitUntil((async () => {
     const abertas = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
     const aberta = abertas.find((c) => new URL(c.url).origin === self.location.origin);
-    if (aberta) { await aberta.focus(); return; }
+    if (aberta) {
+      await aberta.focus();
+      try { await aberta.navigate(e.notification.data?.url || "/"); } catch { /* a tab this worker does not control: it is already focused */ }
+      return;
+    }
     await self.clients.openWindow(e.notification.data?.url || "/");
   })());
 });

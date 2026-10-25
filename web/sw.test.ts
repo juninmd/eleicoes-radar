@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 
 // Runs the real sw.js against a fake worker scope: what the browser would do when a push wakes it.
-function carregar(fetchImpl: (url: string, init?: unknown) => Promise<{ ok: boolean; json: () => Promise<unknown> }>, abertas: { url: string; focus: () => Promise<void> }[] = []) {
+function carregar(fetchImpl: (url: string, init?: unknown) => Promise<{ ok: boolean; json: () => Promise<unknown> }>, abertas: { url: string; focus: () => Promise<void>; navigate?: (u: string) => Promise<void> }[] = []) {
   const ouvintes = new Map<string, (e: unknown) => void>();
   const mostradas: { titulo: string; opts: Record<string, unknown> }[] = [];
   const aberturas: string[] = [];
@@ -44,9 +44,11 @@ describe("sw.js", () => {
   });
   test("clicking focuses an open Radar tab, or opens the live tab when there is none", async () => {
     let focou = 0;
-    const comAba = carregar(async () => { throw new Error("x"); }, [{ url: "https://radar.test/", focus: async () => { focou++; } }]);
+    const navegou: string[] = [];
+    const comAba = carregar(async () => { throw new Error("x"); }, [{ url: "https://radar.test/", focus: async () => { focou++; }, navigate: async (u) => { navegou.push(u); } }]);
     await comAba.disparar("notificationclick", { notification: { close: () => {}, data: { url: "/#aovivo" } } });
     expect(focou).toBe(1);
+    expect(navegou).toEqual(["/#aovivo"]); // the open tab lands on the live tab, not wherever it was
     expect(comAba.aberturas).toEqual([]);
     const sem = carregar(async () => { throw new Error("x"); }, [{ url: "https://outro.test/", focus: async () => { focou++; } }]);
     await sem.disparar("notificationclick", { notification: { close: () => {}, data: { url: "/#aovivo" } } });

@@ -147,6 +147,6 @@ if (import.meta.main) {
   const { criarRuntime } = await import("./aovivo/runtime.js");
   const { api } = await criarRuntime();
   const comApi = handleAt(ROOT, api);
-  const server = Bun.serve({ port: PORT, hostname: HOST, fetch: (req, s) => comApi(req, s.requestIP(req)?.address) });
+  const server = Bun.serve({ port: PORT, hostname: HOST, maxRequestBodySize: 4096, fetch: (req, s) => comApi(req, s.requestIP(req)?.address) });
   console.log(`Radar do Voto em http://${server.hostname}:${server.port}`);
 }

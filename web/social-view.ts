@@ -65,7 +65,7 @@ function avisos(p: PainelProps): string {
 export function painel(p: PainelProps): string {
   const e = p.estado;
   const semUf = e.semUf ? `<p class="soc-nota">${int(e.semUf)} ${e.semUf === 1 ? "pessoa não informou" : "pessoas não informaram"} o estado.</p>` : "";
-  return `<div class="soc-cab"><h2 id="soc-t">Quem acompanha agora</h2><button type="button" class="ghost soc-x" data-soc-fechar aria-label="Fechar o painel">×</button></div>
+  return `<div class="soc-cab"><h2 id="soc-t">Quem acompanha agora</h2><button type="button" class="ghost soc-x" data-soc-fechar data-foco="fechar" aria-label="Fechar o painel">×</button></div>
     <p class="soc-grande"><b>${int(e.online)}</b> ${e.online === 1 ? "navegador" : "navegadores"} com a tela Ao vivo aberta</p>
     <section class="soc-bloco" aria-labelledby="soc-t-mapa"><h3 id="soc-t-mapa">Onde <small>pelo estado que cada pessoa escolheu</small></h3>${mapaOnline(e.porUf, p.mapa)}${semUf}</section>
     ${torcida(e, p.semRastro)}${avisos(p)}

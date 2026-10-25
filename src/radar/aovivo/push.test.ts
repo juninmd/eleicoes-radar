@@ -51,12 +51,12 @@ describe("push", () => {
   });
   test("a notification carries the VAPID header, collapses on a topic, and forgets subscriptions the browser dropped", async () => {
     const vistos: { url: string; init: RequestInit }[] = [];
-    const respostas = new Map([["a", 201], ["b", 410], ["c", 500]]);
+    const respostas = new Map([["a", 201], ["b", 410], ["c", 500], ["d", 403]]);
     const enviar = (async (url: string, init: RequestInit) => { vistos.push({ url, init }); return new Response(null, { status: respostas.get(url.split("/").pop()!) }); }) as unknown as typeof fetch;
     const p = criarPush({ vapid: await criarVapid(await chaves()), enviar });
-    for (const x of ["a", "b", "c"]) p.inscrever(`https://fcm.googleapis.com/fcm/send/${x}`);
-    expect(await p.notificar()).toEqual({ enviados: 1, removidos: 1, falhas: 1 });
-    expect(p.total()).toBe(2); // 410 gone, the 500 stays for the next event
+    for (const x of ["a", "b", "c", "d"]) p.inscrever(`https://fcm.googleapis.com/fcm/send/${x}`);
+    expect(await p.notificar()).toEqual({ enviados: 1, removidos: 2, falhas: 1 });
+    expect(p.total()).toBe(2); // 410 gone and 403 (made for another key) dropped, so the list cannot fill with dead ones; the 500 stays
     const h = vistos[0].init.headers as Record<string, string>;
     expect(h.Authorization).toMatch(/^vapid t=[\w-]+\.[\w-]+\.[\w-]+, k=[\w-]{87}$/);
     expect(h.Topic).toBe("radar-evento");
