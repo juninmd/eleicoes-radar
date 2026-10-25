@@ -156,6 +156,13 @@ describe("view da Previsão", () => {
     expect(html).toContain("sem votos");
   });
 
+  test("no vote counted yet: the card says it is a preview that only repeats the polls", () => {
+    const html = renderPrevisao(props({ previsao: prev({}, lado("a1", "ANA SOUZA", 0.82, { apuracao: null })) }));
+    expect(html).toContain("Prévia, sem votos apurados");
+    expect(html).toContain("só repete as pesquisas");
+    expect(html).not.toContain("deve terminar à frente");
+  });
+
   test("never a false 0% or 100%, and a chance beyond 99% reads as such on the photo too", () => {
     const html = renderPrevisao(props({ previsao: prev({}, lado("a1", "ANA SOUZA", 0.9995), lado("b2", "BETO LIMA", 0.0005)) }));
     expect(html).toContain("mais de 99%");
