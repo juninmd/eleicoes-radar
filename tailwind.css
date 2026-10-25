@@ -10,6 +10,7 @@
 @import "./web/expectativa.css" layer(components);
 @import "./web/apuracao.css" layer(components);
 @import "./web/aovivo-2t.css" layer(components);
+@import "./web/social.css" layer(components);
 @import "./web/panorama.css" layer(components);
 @import "tailwindcss/utilities.css" layer(utilities) source(none);
 

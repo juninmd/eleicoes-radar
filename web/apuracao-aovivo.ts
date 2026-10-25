@@ -22,6 +22,7 @@ import { observar, renderNoticias, vazio as vazioNoticias } from "./apuracao-aov
 import type { Noticia } from "./apuracao-aovivo-noticias.js";
 import { consolidar, renderConsolidado } from "./apuracao-consolidado.js";
 import { criarNoite } from "./apuracao-noite.js";
+import { criarSocial } from "./social.js";
 import { movimentoReduzido } from "./apuracao-fx.js";
 import { createProjecao } from "./apuracao-projecao-estado.js";
 import { createChance } from "./apuracao-chance.js";
@@ -385,6 +386,7 @@ export function mountAoVivo(el: HTMLElement) {
   const velha = (s: string | undefined) => s === "erro" || s === "ausente";
   // The live map is the Noite view of the Apuração tab. It keeps its own DOM across the string redraws of this tab (see `sincronizarMapa`).
   const noite = criarNoite();
+  const social = criarSocial(); // the online chip: fixed on <body>, outside everything this tab redraws
   // The screen-reader region lives outside the redrawn area, or nothing would be announced (same as the Apuração tab).
   const anuncio = document.createElement("div");
   anuncio.className = "sr";
@@ -597,9 +599,10 @@ export function mountAoVivo(el: HTMLElement) {
       turno = lido;
       const outro = mudou || !ctx || ctx.uf !== next.uf;
       ctx = next;
+      social.montar(next.uf);
       if (outro || !feeds.length) ligar(); else paint();
     },
-    hide() { parar(); ctx = null; el.innerHTML = ""; },
+    hide() { parar(); social.desmontar(); ctx = null; el.innerHTML = ""; },
   };
 }
 
