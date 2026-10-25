@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { brotliDecompressSync } from "node:zlib";
 import { handle } from "./serve";
 
 const get = (path: string, init: RequestInit = {}) => handle(new Request(`http://x${path}`, init));
@@ -22,9 +23,30 @@ describe("static server", () => {
     expect(body).toMatch(/^<body>\s*<script src="boot.js">/); // the first thing in the body is the script that needs a body
   });
   test("gzip when accepted", async () => {
-    const r = await get("/app.js", { headers: { "accept-encoding": "gzip, br" } });
+    const r = await get("/app.js", { headers: { "accept-encoding": "gzip" } });
     expect(r.headers.get("content-encoding")).toBe("gzip");
     expect(new TextDecoder().decode(Bun.gunzipSync(new Uint8Array(await r.arrayBuffer())))).toContain("renderExpectativa");
+  });
+  test("brotli wins when accepted: same bytes, smaller body", async () => {
+    const br = await get("/app.js", { headers: { "accept-encoding": "gzip, br" } });
+    expect(br.headers.get("content-encoding")).toBe("br");
+    const gz = await get("/app.js", { headers: { "accept-encoding": "gzip" } });
+    const brBytes = new Uint8Array(await br.arrayBuffer());
+    expect(brBytes.length).toBeLessThan((await gz.arrayBuffer()).byteLength);
+    expect(new TextDecoder().decode(brotliDecompressSync(brBytes))).toContain("renderExpectativa");
+  });
+  test("a matching ETag answers 304 with no body, a stale one gets the file", async () => {
+    const first = await get("/app.css");
+    const tag = first.headers.get("etag");
+    expect(tag).toBeTruthy();
+    const same = await get("/app.css", { headers: { "if-none-match": tag! } });
+    expect(same.status).toBe(304);
+    expect((await same.arrayBuffer()).byteLength).toBe(0);
+    expect(same.headers.get("content-security-policy")).toContain("default-src 'none'");
+    expect((await get("/app.css", { headers: { "if-none-match": 'W/"outro"' } })).status).toBe(200);
+  });
+  test("a NUL byte in the path is a 400, not an exception with a stack trace", async () => {
+    for (const path of ["/%00", "/index.html%00", "/app.js%00.ts"]) expect((await get(path)).status).toBe(400);
   });
   test("every response carries the security headers, the page and the assets alike", async () => {
     for (const path of ["/", "/app.js", "/data/meta.json", "/health", "/nao-existe.js"]) {
