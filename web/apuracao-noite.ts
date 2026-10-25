@@ -8,6 +8,8 @@
 import { h, int, titleName } from "./format.js";
 import { linhasUf, totalNacional, avancoDe } from "./apuracao-nacional.js";
 import { NOMES } from "./apuracao-mapa.js";
+import { pontosMundo, renderExterior } from "./apuracao-exterior.js";
+import type { ExteriorProps, PontoMundo } from "./apuracao-exterior.js";
 import { caixaDe, corDoPartido, decimos, depoisDoPrimeiroQuadro, elemento, iniciais, movimentoReduzido, odometro, pct1, reiniciaClasse } from "./apuracao-fx.js";
 import type { Caixa } from "./apuracao-fx.js";
 import type { Cargo, Fase } from "./apuracao-tse.js";
@@ -103,11 +105,27 @@ export function eventosNoite(antes: ReadonlyMap<string, ResumoUf> | null, depois
 // Intensity of a state's colour: from a pale tint at a dead heat to the full colour at a 25-point margin.
 export const intensidade = (margem: number): number => 0.28 + 0.72 * Math.min(Math.max(margem, 0) / 0.25, 1);
 
+// ---- pure: the world map of the vote abroad. Equirectangular (see src/radar/geo/world-map.ts): the map's top edge is 84°N.
+export interface MundoMap { fonte: string; viewBox: [number, number, number, number]; d: string }
+export const LAT_TOPO_MUNDO = 84;
+export const pontoNoMundo = (lat: number, lon: number, vb: readonly [number, number, number, number]): [number, number] => { const k = vb[2] / 360; return [(lon + 180) * k, (LAT_TOPO_MUNDO - lat) * k]; };
+// Area-true bubbles (radius by the square root of the valid votes), the biggest first so the small ones stay on top; coloured by the finalist ahead.
+export function bolhasMundo(pontos: PontoMundo[], vb: readonly [number, number, number, number], corA: string, corB: string, rMax = 22): string {
+  const maior = Math.max(1, ...pontos.map((x) => x.votos));
+  return pontos.map((x) => {
+    const [cx, cy] = pontoNoMundo(x.lat, x.lon, vb), r = Math.max(2.5, rMax * Math.sqrt(x.votos / maior)), lider = x.a === x.b ? "var(--vazio)" : x.a > x.b ? corA : corB;
+    return `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r.toFixed(1)}" fill="${h(lider)}"><title>${h(titleName(x.nome))}: ${int(x.votos)} votos válidos</title></circle>`;
+  }).join("");
+}
+
 // ---- the view
+export type Lugar = "brasil" | "exterior";
 export interface NoiteProps {
   nac: BrasilSnapshot | null;
   cargo: Cargo;
   mapa: UfMap | null | undefined; // undefined while loading, null when it failed
+  mundo?: MundoMap | null | undefined; // same, for the world map of the "Exterior" choice (President only)
+  exterior?: Omit<ExteriorProps, "cor" | "turno" | "compacto"> | null;
   byId: Map<string, Candidatura>;
   avatar: (c: Candidatura, size: string) => string;
   cor: Cores;
@@ -119,20 +137,24 @@ export interface NoiteProps {
 }
 interface Uf { b: HTMLButtonElement; sm: HTMLElement }
 
+const LEGENDA_BRASIL = "A cor é a do partido de quem está à frente no estado; quanto mais forte, maior a diferença para o segundo. Cinza: ainda sem arquivo. No cartograma todos os estados têm o mesmo tamanho.";
 const ESQUELETO = `<section class="nt-duelo" aria-label="Os dois mais votados no total"></section>
   <div class="nt-corpo">
     <section class="nt-palco" aria-label="Mapa dos estados">
       <div class="nt-barra">
-        <div class="apu-vistas" role="group" aria-label="Forma do mapa"><button type="button" data-nt-forma="mapa" aria-pressed="true">Mapa</button><button type="button" data-nt-forma="carto" aria-pressed="false">Cartograma</button></div>
+        <div class="apu-vistas nt-lugar" role="group" aria-label="Mapa" hidden><button type="button" data-nt-lugar="brasil" aria-pressed="true">Brasil</button><button type="button" data-nt-lugar="exterior" aria-pressed="false">Exterior</button></div>
+        <div class="apu-vistas nt-forma" role="group" aria-label="Forma do mapa"><button type="button" data-nt-forma="mapa" aria-pressed="true">Mapa</button><button type="button" data-nt-forma="carto" aria-pressed="false">Cartograma</button></div>
         <span class="muted small nt-contagem"></span>
       </div>
       <p class="empty nt-msg" hidden></p>
       <div class="nt-mapa"><canvas class="nt-fx" aria-hidden="true"></canvas></div>
-      <p class="muted small nt-leg">A cor é a do partido de quem está à frente no estado; quanto mais forte, maior a diferença para o segundo. Cinza: ainda sem arquivo. No cartograma todos os estados têm o mesmo tamanho.</p>
+      <div class="nt-mundo" hidden></div>
+      <p class="muted small nt-leg">${LEGENDA_BRASIL}</p>
     </section>
     <aside class="nt-lado" aria-label="Detalhes da apuração">
       <section class="nt-cartao"><h3>Seções totalizadas</h3><div class="nt-prog" role="img"></div><p class="nt-prog-t muted small"></p></section>
       <section class="nt-cartao nt-foco" aria-live="off"></section>
+      <section class="nt-cartao nt-ext" hidden></section>
       <section class="nt-cartao"><h3>Manchetes</h3><ul class="nt-manchetes"><li class="nt-vazia muted small">Aparecem quando um estado vira, um estado grande termina ou o total do país muda de lado.</li></ul></section>
     </aside>
   </div>`;
@@ -146,6 +168,7 @@ export function criarNoite(): Painel<NoiteProps> & { raiz: HTMLElement | null } 
   let topoAntes: Topo | null = null;
   let sel = "SP"; // the state in focus survives a redraw of the tab
   let forma: "mapa" | "carto" = "mapa";
+  let lugar: Lugar = "brasil";
   let ultimo: NoiteProps | null = null;
   let ultimasLinhas: LinhaUf[] = [];
   let observador: ResizeObserver | null = null;
@@ -235,6 +258,34 @@ export function criarNoite(): Painel<NoiteProps> & { raiz: HTMLElement | null } 
     else vt.call(document, aplica);
   }
 
+  // Brazil or abroad: the choice only exists for the President (the vote abroad is only in that race)
+  function aplicarLugar(p: NoiteProps) {
+    const ext = p.cargo === "Presidente" && lugar === "exterior";
+    q<HTMLElement>(".nt-lugar").hidden = p.cargo !== "Presidente";
+    raiz!.querySelectorAll<HTMLElement>("[data-nt-lugar]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.ntLugar === (ext ? "exterior" : "brasil"))));
+    raiz!.classList.toggle("exterior", ext);
+    for (const [s, v] of [[".nt-mapa", !ext], [".nt-forma", !ext], [".nt-foco", !ext], [".nt-mundo", ext], [".nt-ext", ext]] as const) q<HTMLElement>(s).hidden = !v;
+    const msg = q<HTMLElement>(".nt-msg"), leg = q<HTMLElement>(".nt-leg");
+    if (!ext) {
+      msg.hidden = !!p.mapa;
+      if (!p.mapa) msg.textContent = p.mapa === null ? "Não foi possível carregar a malha dos estados." : "Carregando o mapa…";
+      leg.textContent = LEGENDA_BRASIL;
+      return;
+    }
+    const vb = p.mundo?.viewBox, arq = p.exterior?.mun, pts = pontosMundo(arq && !p.simulado ? arq : null);
+    msg.hidden = !!p.mundo;
+    if (!msg.hidden) msg.textContent = p.mundo === null ? "Não foi possível carregar o mapa-múndi." : "Carregando o mapa-múndi…";
+    if (vb && p.mundo) {
+      const corA = arq ? corDoPartido(p.cor, arq.a.partido) : "", corB = arq ? corDoPartido(p.cor, arq.b.partido) : "";
+      const html = `<svg viewBox="${vb.join(" ")}" role="img" aria-label="Mapa-múndi com os votos do 1º turno por cidade no exterior"><path class="terra" d="${p.mundo.d}"/>${arq ? bolhasMundo(pts.pontos, vb, corA, corB) : ""}</svg>`;
+      const alvo = q<HTMLElement>(".nt-mundo");
+      if (alvo.dataset.h !== html) { alvo.innerHTML = html; alvo.dataset.h = html; }
+    }
+    leg.textContent = p.simulado ? "Na simulação o mapa-múndi fica sem as cidades: elas trazem as candidaturas reais."
+      : `Cada círculo é uma cidade com seções eleitorais no exterior, com área proporcional aos votos válidos do 1º turno (resultado final) e a cor do finalista mais votado ali.${pts.semPosicao ? ` ${int(pts.semPosicao)} cidades sem posição conhecida ficam só na tabela.` : ""}`;
+    q<HTMLElement>(".nt-ext").innerHTML = p.exterior ? renderExterior({ ...p.exterior, cor: (k) => corDoPartido(p.cor, k), turno: 1, compacto: true }) : "";
+  }
+
   function duelo(p: NoiteProps, topo: Topo, linhas: LinhaUf[]) {
     const el = q<HTMLElement>(".nt-duelo");
     if (p.cargo === "Presidente") {
@@ -309,14 +360,16 @@ export function criarNoite(): Painel<NoiteProps> & { raiz: HTMLElement | null } 
     get raiz() { return raiz; },
     montar(alvo) {
       if (host === alvo && raiz && alvo.contains(raiz)) return;
-      const guardada = { sel, forma };
+      const guardada = { sel, forma, lugar };
       this.parar();
-      sel = guardada.sel; forma = guardada.forma;
+      sel = guardada.sel; forma = guardada.forma; lugar = guardada.lugar;
       host = alvo;
       raiz = elemento("div", "fx nt", ESQUELETO);
       alvo.replaceChildren(raiz);
       raiz.addEventListener("click", (e) => {
         const t = e.target as Element;
+        const lg = t.closest<HTMLElement>("[data-nt-lugar]");
+        if (lg) { lugar = lg.dataset.ntLugar === "exterior" ? "exterior" : "brasil"; if (ultimo) { aplicarLugar(ultimo); depoisDoPrimeiroQuadro(ajustar); } return; }
         const f = t.closest<HTMLElement>("[data-nt-forma]");
         if (f) { trocarForma(f.dataset.ntForma === "carto" ? "carto" : "mapa"); return; }
         const u = t.closest<HTMLElement>("[data-nt-uf]");
@@ -334,13 +387,7 @@ export function criarNoite(): Painel<NoiteProps> & { raiz: HTMLElement | null } 
       ultimo = p;
       raiz.classList.toggle("sem-fx", !p.efeitos);
       raiz.classList.toggle("simulado", !!p.simulado);
-      const msg = q<HTMLElement>(".nt-msg");
-      if (p.mapa === undefined || p.mapa === null) {
-        msg.hidden = false; msg.textContent = p.mapa === null ? "Não foi possível carregar a malha dos estados." : "Carregando o mapa…";
-      } else {
-        msg.hidden = true;
-        if (mapaDe !== p.mapa) construirMapa(p.mapa);
-      }
+      if (p.mapa && mapaDe !== p.mapa) construirMapa(p.mapa);
       const linhas = linhasUf(p.nac?.ufs ?? {}, p.cargo);
       ultimasLinhas = linhas;
       const resumos = new Map(linhas.map((l) => [l.uf, resumoUf(l)]));
@@ -369,6 +416,7 @@ export function criarNoite(): Painel<NoiteProps> & { raiz: HTMLElement | null } 
       prog.setAttribute("aria-label", `${pct1(topo.avanco)} das seções totalizadas`);
       q<HTMLElement>(".nt-prog-t").textContent = topo.secoes.total ? `${int(topo.secoes.totalizadas)} de ${int(topo.secoes.total)} seções (${pct1(topo.avanco)}), soma dos ${int(topo.arquivos.com)} arquivos lidos` : "Aguardando os primeiros arquivos.";
       foco(p);
+      aplicarLugar(p);
 
       if (!p.salto) {
         for (const e of eventosNoite(antes, resumos, topoAntes, topo)) {

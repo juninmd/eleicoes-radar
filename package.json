@@ -17,6 +17,7 @@
     "radar:suppliers": "bun run src/radar/suppliers/fetch-suppliers.ts",
     "radar:panorama": "bun run src/radar/panorama.ts",
     "radar:geo": "bun run src/radar/geo/uf-map.ts",
+    "radar:geo-mundo": "bun run src/radar/geo/world-map.ts",
     "radar:hist": "bun run src/radar/hist/aggregate.ts",
     "radar:mun-hist": "bun run src/radar/municipal/aggregate.ts",
     "radar:mun-backtest": "bun run src/radar/municipal/backtest.ts",

@@ -32,6 +32,7 @@ import type { Fonte } from "./apuracao-projecao-estado.js";
 import type { Ponto } from "./apuracao-graficos.js";
 import type { EstadoMun } from "./apuracao-mount-props.js";
 import type { UfMap } from "../src/radar/geo/uf-map";
+import type { MundoMap } from "./apuracao-noite.js";
 
 const PAGE = 40;
 const UMA_VAGA: ReadonlySet<string> = new Set(["Presidente", "Governador"]);
@@ -53,6 +54,8 @@ export function mountApuracao(el: HTMLElement) {
   let selUf: string | null = null;
   let mapa: UfMap | null | undefined; // undefined while loading, null when it failed
   let buscandoMapa = false;
+  let mundo: MundoMap | null | undefined; // the world map of the Noite view's "Exterior" choice
+  let buscandoMundo = false;
   let painted: string | null = null;
   let raf = 0;
   const cor = createCores(PALETA, RESTO);
@@ -79,7 +82,7 @@ export function mountApuracao(el: HTMLElement) {
   let munFiltro = { uf: "", busca: "" };
   let munLimit = PAGE_MUN;
   // Cidades, Chance ao vivo, Exterior and the runoff panel read the municipal files.
-  const precisaMun = () => !!ctx && (vista === "municipios" || vista === "chance" || vista === "exterior" || (cheia() && UMA_VAGA.has(ctx.cargo) && turnoDe(ctx.cargo, turno) === 2));
+  const precisaMun = () => !!ctx && (vista === "municipios" || vista === "chance" || vista === "exterior" || (vista === "noite" && ctx.cargo === "Presidente") || (cheia() && UMA_VAGA.has(ctx.cargo) && turnoDe(ctx.cargo, turno) === 2));
   const munProps = (): RenderProps["mun"] => {
     if (vista !== "municipios" || !ctx || simAtivo()) return null;
     const disputa = munis.disputa(ctx);
@@ -105,7 +108,7 @@ export function mountApuracao(el: HTMLElement) {
   const ctxVista = (): Contexto => (simAtivo() ? { ...ctx!, byId: new Map(), exp: undefined } : ctx!);
 
   // The two animated views (Corrida, Noite no mapa) keep their own DOM and are updated in place after every paint; see apuracao-fx-mount.js.
-  const fx = criarFx({ el: corpo, anunciar: (txt) => { anuncio.textContent = txt; }, estado: () => ({ ctx: ctx && ctxVista(), vista, snap, nac, hist, mapa, cor, simulado: simAtivo() }) });
+  const fx = criarFx({ el: corpo, anunciar: (txt) => { anuncio.textContent = txt; }, estado: () => ({ ctx: ctx && ctxVista(), vista, snap, nac, hist, mapa, mundo, exterior: ctx && vista === "noite" ? exteriorProps(estadoMun()) : null, cor, simulado: simAtivo() }) });
   const nacional = () => !!ctx && (vista === "mapa" || vista === "camara" || vista === "noite"
     || (ctx.cargo === "Presidente" && (vista === "projecao" || vista === "chance" || vista === "exterior" || cheia())));
   const velha = (s: string | undefined) => s === "erro" || s === "ausente"; // same rule as linhasUf#defasada: the feed keeps the last numbers
@@ -202,7 +205,17 @@ export function mountApuracao(el: HTMLElement) {
       .catch((e) => { console.error("apuração: mapa", e); mapa = null; })
       .then(() => { buscandoMapa = false; paint(); });
   };
+  const carregarMundo = () => {
+    if (mundo || buscandoMundo) return;
+    buscandoMundo = true;
+    mundo = undefined;
+    getJson<MundoMap>("mapa-mundo.json")
+      .then((m) => { mundo = m; })
+      .catch((e) => { console.error("apuração: mapa-múndi", e); mundo = null; })
+      .then(() => { buscandoMundo = false; paint(); });
+  };
   const seguirMapa = () => {
+    if (vista === "noite" && ctx?.cargo === "Presidente") carregarMundo();
     if (vista === "mapa" || vista === "noite" || (cheia() && ctx?.cargo === "Presidente")) carregarMapa();
     if (simAtivo()) return;
     if (nacional()) brasil.follow(ctx!.cargo); else { brasil.stop(); nac = null; }

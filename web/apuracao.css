@@ -762,3 +762,11 @@
   .prev-leituras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 430px) { .prev { padding: 14px; } .prev-who { gap: 14px; } }
+
+/* Noite no mapa, escolha "Exterior": mapa-múndi com um círculo por cidade */
+.nt-mundo { width: 100%; max-width: 900px; margin-inline: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+.nt-mundo[hidden], .nt-mapa[hidden], .nt-forma[hidden], .nt-lugar[hidden], .nt-ext[hidden], .nt-foco[hidden] { display: none; }
+.nt-mundo svg { display: block; width: 100%; height: auto; }
+.nt-mundo .terra { fill: var(--vazio); stroke: var(--surface); stroke-width: 0.6; stroke-linejoin: round; }
+.nt-mundo circle { fill-opacity: 0.78; stroke: var(--surface); stroke-width: 1; }
+.nt-mundo circle:hover { fill-opacity: 1; stroke: var(--ink); }
