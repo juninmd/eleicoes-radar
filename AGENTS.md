@@ -44,6 +44,7 @@ Base: `https://cdn.tse.jus.br/estatistica/sead/odsele/<pasta>/<arquivo>.zip`. Os
 | Contas (receitas/despesas) | `prestacao_contas/prestacao_de_contas_eleitorais_candidatos_<ano>.zip` | `tse.ts`, `suppliers/collect.ts` |
 | Vagas | `consulta_vagas/consulta_vagas_<ano>.zip` | expectativa (Senado, deputados) |
 | Bens | `bem_candidato/bem_candidato_<ano>.zip` | `enrich/bens.ts` |
+| Boletim de Urna | `https://cdn.tse.jus.br/estatistica/sead/eleicoes/eleicoes<ano>/buweb/bweb_<turno>t_<UF>_<data>.zip` (via CKAN `resultados-<ano>-boletim-de-urna`) | `src/radar/bu/collect.ts` (agrega por município; só Presidente/Governador/Senador) |
 | Fundamentos de indeferimento | `motivo_cassacao/motivo_cassacao_<ano>.zip` | `enrich/cassacao.ts` |
 | Coligações | `consulta_coligacao/consulta_coligacao_<ano>.zip` | (baixado; coligação por candidato vem do cadastro) |
 | Fotos | `foto_cand/foto_cand<ano>_<UF>_div.zip` (+ `BR`) | `profiles/tse-photos.ts` |
@@ -236,6 +237,17 @@ Feito em 2026-10-25, dia do 2º turno. Bloco logo depois do duelo do Presidente,
 - **Curva:** um ponto por versão do arquivo nacional (`versao.hora`); versão repetida ou mais velha não entra; par de líderes diferente é outra curva; no máximo 240 pontos, só em memória.
 - **Homologação sem `web/data`:** o checkout não traz `web/data` e `serve.ts` aceita `WEB_ROOT`. Copiar `web/` para uma pasta temporária, trocar o `index.html` por um harness (`<div id="live-view">`, `fonts.css` e `app.css`; sem `fonts.css` o layout cai na fonte reserva) com um módulo que chama `mountAoVivo(el).show({ uf, abrir, avatar, prev, exp })`, e servir por `page.route` os arquivos do TSE (um passo por rodada; `document.dispatchEvent(new Event("visibilitychange"))` força a consulta) e `data/municipal/index.json` e `presidente-br.json` (2º turno). Conferido em 390 e 1280 px, claro e escuro, 1º e 2º turno, com e sem pesquisa do par e com a contagem terminada: sem erro de console e sem rolagem horizontal. O `body::before` (barra de progresso do app) aparece como uma linha roxa em screenshot de elemento; não é do bloco. Não use `pkill -f` com o caminho do servidor: casa com o próprio comando e derruba o shell.
 - **Do protótipo, não portado:** mapa em 4 lentes (apuração, pesquisa, Monte Carlo, desvio), cartograma, folha por estado, barra inferior do celular e o Exterior dentro do Ao vivo. Mapa e Exterior seguem na aba Apuração; a lente "pesquisa" por UF não existe para o Presidente (só há pesquisa nacional). Candidatos a próximo passo.
+
+## Boletim de Urna (vista "Boletim de Urna" da Apuração)
+
+Feito em 2026-10-25. O BU é o boletim impresso em cada urna, com uma linha por seção × cargo × votável. O TSE publica um ZIP por UF e turno pelo catálogo CKAN `resultados-<ano>-boletim-de-urna`; em 2026 o **2º turno ainda não estava publicado** no dia 25/10 (só o 1º, gerado em 05/10).
+
+- **Pipeline:** `bun run radar:bu <ano> <UFs> [turno]` (`src/radar/bu/collect.ts` + `aggregate.ts`). Baixa o ZIP com curl (o WAF do TSE derruba o fetch do Bun), lê em stream com `forEachZipRow`, agrega por município e grava `web/data/bu/<uf>-<cargo>-<turno>t.json` + `index.json`. Só os cargos **majoritários** (Presidente, Governador, Senador): deputados têm milhares de candidatos e multiplicariam o arquivo. O CSV do AC tem 119 MB (3,7 s); o de SP, 1,4 GB e 17,9 M linhas (~284 s); os JSONs ficam em ~20-680 KB.
+- **Agregação:** aptos/comparecimento/abstenções entram uma vez por seção (o CSV repete em cada linha); `CD_TIPO_VOTAVEL` 1 = nominal, 2 = branco, 3 = nulo; os votos somam. `total` é a soma dos municípios; `buGeradoEm` e `recebidoAte` vêm do CSV; `fonteUrl` aponta para o catálogo.
+- **Vista:** nova em `vistasDe` para os cargos com mapa, com tabela por município, busca, "Ver mais", cartões (seções, aptos, comparecimento, abstenções, brancos, nulos) e colunas dos 5 candidatos mais votados. Para Presidente o BU é por estado: a vista tem seletor de UF (default `ufEleitor`); para Governador/Senador, a UF da corrida. A comparação "Confere com o TSE" só aparece quando `raceUf === bu.uf` (no Presidente nacional não se compara o BU de um estado com o arquivo `br`).
+- **Parcial até o oficial:** se não há BU do turno atual, a vista mostra o **parcial do estado/país** do próprio arquivo do TSE (cards e top 5) e, quando existe BU do 1º turno, a tabela oficial dentro de `<details>` como **referência**; nada de municípios inventados. O `index.json` evita 404 ao cair para o 1º turno.
+- **Limite:** o BU é fechado depois do turno; não é atualizado durante a contagem. Para município ao vivo não existe fonte pública (o TSE publica por estado); a vista diz isso. O 2º turno entra quando o catálogo publicar o arquivo (`radar:bu 2026 <UF> 2`).
+- **Deploy:** `web/data/bu` não está no git; gerar/copiar junto com o `web/data` no volume. O `.dockerignore` já exclui `web/`; nada muda no Dockerfile.
 
 ## Checklist de nova eleição
 
