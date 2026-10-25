@@ -16,6 +16,8 @@ export class HttpError extends Error {
 }
 
 const TIMEOUT_MS = 20_000;
+// A TSE that fails for hours is not asked every minute: each consecutive failure doubles the wait, up to this cap.
+export const BACKOFF_MAX_MS = 5 * 60_000;
 
 // Date and time of a file as one sortable number; NaN when the file does not say.
 export type Versionado = { versao?: { data?: string; hora?: string } | null } | null | undefined;
@@ -79,7 +81,9 @@ export function createFeed({ load = loadResultado, onChange, every, timers = { s
   let timer: unknown = null;
   let ctl: AbortController | null = null;
   let snap: FeedSnapshot = { url: null, status: "carregando", dados: null, buscadoEm: null, erro: null };
+  let falhas = 0; // consecutive failures of the TSE (a 404 is not one)
   const espera = () => (typeof every === "number" ? every : (every ?? ((s: FeedSnapshot) => intervaloDe(s.dados, now(), POLL_MS)))(snap));
+  const proxima = () => (falhas === 0 ? espera() : Math.min(espera() * 2 ** falhas, BACKOFF_MAX_MS));
 
   // A renderer bug must never stop the polling: the next tick may bring numbers it can draw.
   const notify = () => {
@@ -95,13 +99,15 @@ export function createFeed({ load = loadResultado, onChange, every, timers = { s
     let patch: Partial<FeedSnapshot>;
     try {
       patch = { status: "ok", dados: maisRecente(await load(url!, ctl.signal), snap.dados), buscadoEm: now(), erro: null };
+      falhas = 0;
     } catch (e) {
       // 404: the TSE has not published this file (now). Either way the last good numbers stay on screen.
       patch = e instanceof HttpError && e.status === 404 ? { status: "ausente", erro: null } : { status: "erro", erro: (e as Error | null | undefined)?.message || "falha ao consultar o TSE" };
+      if (patch.status === "erro") falhas++;
     }
     if (mine !== token) return;
     emit(patch);
-    timer = timers.set(tick, espera());
+    timer = timers.set(tick, proxima());
   }
 
   return {

@@ -51,6 +51,22 @@ describe("ufsDo", () => {
 });
 
 describe("createBrasilFeed", () => {
+  test("a cycle where the TSE fails everywhere backs off: the wait doubles up to 5 min, and one good state restores it", async () => {
+    const r = rig();
+    const ciclo = async (resposta: (c: Call) => void) => { while (r.inflight().length) { resposta(r.inflight()[0]); await flush(); } };
+    r.feed.follow("Governador");
+    await flush();
+    const esperas: number[] = [];
+    for (let i = 0; i < 3; i++) {
+      await ciclo((c) => { c.done = true; c.reject(new TypeError("Failed to fetch")); });
+      esperas.push(r.timers[0].ms);
+      await r.fire();
+    }
+    expect(esperas).toEqual([2 * POLL_MS, 4 * POLL_MS, 5 * 60_000]);
+    await ciclo((c) => { c.done = true; c.resolve({ fase: "parcial", n: 1 } as unknown as Apuracao); });
+    expect(r.timers[0].ms).toBe(POLL_MS);
+  });
+
   test("starts every state as loading and never has more requests in flight than the limit", async () => {
     const r = rig({ concurrency: 3 });
     r.feed.follow("Governador");

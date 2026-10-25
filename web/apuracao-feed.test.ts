@@ -104,6 +104,22 @@ describe("createFeed", () => {
     expect(r.events.at(-1)).toMatchObject({ status: "ok", dados: data(3), erro: null });
   });
 
+  test("consecutive failures back off (doubling, capped at 5 min) and the first good answer restores the rhythm", async () => {
+    const r = rig();
+    r.feed.follow("u1");
+    const esperas: number[] = [];
+    for (let i = 0; i < 3; i++) {
+      r.calls[i].reject(new TypeError("Failed to fetch"));
+      await flush();
+      esperas.push(r.timers[0].ms);
+      await r.fire();
+    }
+    expect(esperas).toEqual([120_000, 240_000, 300_000]); // POLL_MS = 60 s, doubled per failure
+    r.calls[3].resolve(data(1));
+    await flush();
+    expect(r.timers[0].ms).toBe(POLL_MS);
+  });
+
   test("a 404 means the TSE has not published this file, and is not a failure", async () => {
     const r = rig();
     r.feed.follow("u1");
