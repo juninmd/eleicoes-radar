@@ -217,13 +217,15 @@ describe("Ao vivo: os painéis entram na tela do 2º turno", () => {
     expect(html).not.toContain("live-kpis");
   });
 
-  test("the side column splits in two on a laptop only when it holds the Previsão and the polls", () => {
+  test("the duel and the figures take the full width on top; the path to the lead opens the second column, above the Previsão and the polls", () => {
     const prevProps = { avatar: base.avatar, cor, estado: "carregando" as const, arquivos: { chegaram: 1, esperados: 28 } };
-    expect(renderAoVivo({ ...base, dois, prev: prevProps })).toContain('live-col-prev dupla"');
-    expect(renderAoVivo({ ...base, dois: { numeros: numeros(d) }, prev: prevProps })).not.toContain("dupla"); // the Previsão alone keeps the narrow column
-    const soPesquisas = renderAoVivo({ ...base, dois });
-    expect(soPesquisas).toContain('live-col-prev"'); // the polls alone fill the column ...
-    expect(soPesquisas).not.toContain("dupla"); // ... which then keeps its single-panel layout
+    const html = renderAoVivo({ ...base, dois, prev: prevProps });
+    const na = (nome: string) => html.indexOf(`live-col live-col-${nome}`);
+    expect(na("hero")).toBeLessThan(na("mapa"));
+    expect(html.indexOf("live-kpis")).toBeLessThan(na("mapa")); // the figures stay with the duel
+    expect(html.indexOf("live-cm")).toBeGreaterThan(na("prev"));
+    expect(html.indexOf("live-cm")).toBeLessThan(html.indexOf("prev-compacto"));
+    expect(html).not.toContain("dupla");
   });
 
   test("without the runoff data only the count in figures shows: no empty panels", () => {

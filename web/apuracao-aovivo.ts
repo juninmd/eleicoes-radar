@@ -295,8 +295,7 @@ export function renderAoVivo(p: AoVivoProps): string {
   const pesquisas = dois?.par && dois.pesquisas ? renderPesquisas2t(dois.pesquisas, dois.par, p.cor) : "";
   const antes = false; // the polls are collapsed and live in the third column, so no empty block waits for the count
   // The third column exists only where there is a Previsão or polls to put in it (not in a state's scope): without it the other two share the width.
-  const colPrev = `${p.prev ? renderPrevisao({ ...p.prev, compacto: true }) : ""}${antes ? "" : pesquisas}`;
-  const dupla = !!p.prev && !antes && !!pesquisas; // two panels share the column: only then does it split in two on a laptop
+  const colPrev = `${renderCaminho(dois?.caminho ?? null, p.cor)}${p.prev ? renderPrevisao({ ...p.prev, compacto: true }) : ""}${antes ? "" : pesquisas}`;
   const pctSecoes = pct(Math.floor(media * 1000) / 1000, 1);
   return `<section class="exp-card apu live" aria-labelledby="live-t">
     <header class="live-cabeca">
@@ -326,7 +325,6 @@ export function renderAoVivo(p: AoVivoProps): string {
         ${renderHero({ hero, avatar: p.avatar, cor: p.cor, esperado: p.esperado, fx: p.fx, turno })}
         ${turno === 2 && dois?.par && !dois.numeros ? renderFinalistas(dois.par, p.avatar, p.cor, dois.pesquisas?.media ?? null) : ""}
         ${renderNumeros(dois?.numeros ?? null)}
-        ${renderCaminho(dois?.caminho ?? null, p.cor)}
       </div>
       <div class="live-col live-col-mapa">
         ${mapaTempoReal}
@@ -334,7 +332,7 @@ export function renderAoVivo(p: AoVivoProps): string {
         ${dois?.par ? renderOnda(dois.onda ?? null, dois.par, p.cor) : ""}
         ${consolidado ? `<details class="live-detalhe"><summary>Total consolidado <small>27 estados + exterior</small></summary>${consolidado}</details>` : ""}
       </div>
-      ${colPrev ? `<div class="live-col live-col-prev${dupla ? " dupla" : ""}">${colPrev}</div>` : ""}
+      ${colPrev ? `<div class="live-col live-col-prev">${colPrev}</div>` : ""}
       <div class="live-rodape">
         ${resultadoVisual(resultadoDe(hero, linhas))}
         <section class="live-noite-eleitos" aria-label="Quem foi eleito">
