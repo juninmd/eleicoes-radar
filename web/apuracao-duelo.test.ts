@@ -165,3 +165,18 @@ describe("where it shows nothing", () => {
     expect(html(arq({ votos: [0, 0, 0], apurado: 0 }))).toBe("");
   });
 });
+
+describe("barra de disputa em destaque", () => {
+  const d = arq({ votos: [600, 400], apto: 1000, apurado: 800 });
+  test("with labels each stretch carries its own share, and the poll average is a tick at its place on the bar", () => {
+    const out = renderDuelo({ d, cargo: "Presidente", uf: "BR", cor, rotulos: true, pesquisa: { [d.candidatos[0]!.id]: 0.55 } });
+    expect(out).toContain("<b>60,0%</b>");
+    expect(out).toContain("<b>40,0%</b>");
+    expect(out).toContain('class="apu-duelo-pesq" style="left:55.00%"');
+  });
+  test("by default the bar is the plain one, and a poll outside 0 to 100% draws no tick", () => {
+    expect(html(d)).not.toContain("apu-duelo-pesq");
+    expect(html(d)).not.toContain("<b>60,0%</b></span>");
+    expect(renderDuelo({ d, cargo: "Presidente", uf: "BR", cor, pesquisa: { [d.candidatos[0]!.id]: 1.2 } })).not.toContain("apu-duelo-pesq");
+  });
+});
