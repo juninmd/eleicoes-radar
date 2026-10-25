@@ -13,7 +13,6 @@ data/tse/
 .env*
 *.log
 data/polls/
-data/pesquisas.json
 data/extra/
 data/receita/
 data/hist/

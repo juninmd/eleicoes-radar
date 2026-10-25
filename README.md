@@ -182,7 +182,7 @@ Requer Bun 1.3 (a imagem usa `oven/bun:1.3.13-slim`). Node 24 só para `bun run 
 ```sh
 bun install                    # dependências
 bun run radar:fetch            # arquivos abertos da Câmara (idempotente; --force atualiza)
-bun run radar:polls            # pesquisas da Wikipédia -> data/pesquisas.json (cache diário; --force atualiza)
+bun run radar:polls            # pesquisas da Wikipédia -> data/pesquisas.json (versionado; cache diário; --force atualiza)
 bun run radar:hist 2014        # (uma vez; também 2018 e 2022, ~3 min cada) resultados e contas antigas -> data/hist/
 bun run radar:model            # modelo de deputados treinado em 2018 e 2022 -> data/modelo-deputados.json
 bun run radar:mc-backtest      # (análise) logística vs Monte Carlo, deixando uma eleição de fora
