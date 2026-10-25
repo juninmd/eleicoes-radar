@@ -88,6 +88,7 @@ export function renderPrevisao({ estado, previsao: p, hist = [], avatar, cor, ar
   if (!p) return casca(`${AVISO_PREV}<p class="empty">Ainda não há votos apurados para simular. A previsão aparece com o primeiro arquivo que tenha votos.</p>`);
   const f = p.favorito, o = p.outro;
   const aberta = p.nivel === "aberta";
+  const previa = f.apuracao === null; // no vote counted: the simulation can only repeat the polls
   const sorteios = Math.round(f.chance * p.n);
   const stats = [
     `<div><dt>Final esperado de ${h(curto(f.nome))}</dt><dd>${pct(f.mc[1], 1)}<small>faixa ${virgula(f.mc[0] * 100)} a ${virgula(f.mc[2] * 100)}</small></dd></div>`,
@@ -95,12 +96,12 @@ export function renderPrevisao({ estado, previsao: p, hist = [], avatar, cor, ar
     `<div><dt>Votos por apurar</dt><dd>${votos(p.faltam)}<small>${pct(p.contados, 1)} dos votos esperados já entraram</small></dd></div>`,
   ].join("");
   return casca(`${AVISO_PREV}
-    <div class="prev-main" style="--lado:${h(cor(f.partido))}">
+    <div class="prev-main${previa ? " previa" : ""}" style="--lado:${h(cor(f.partido))}">
       <div class="prev-who">
         <div class="prev-anel" style="--v:${(f.chance * 100).toFixed(1)}">${avatar({ id: f.id, nome: f.nome }, "lg")}<b class="prev-pct">${h(f.chance > 0.99 ? ">99%" : pct(f.chance, 0))}</b></div>
-        <div class="prev-txt"><span class="rot ${aberta ? "aberta" : "alta"}">${NIVEL_TXT[p.nivel]}</span>
-          <h4>${h(titleName(f.nome))} <span>${aberta ? "aparece à frente, por pouco" : "deve terminar à frente"}</span></h4>
-          <p>Em ${int(sorteios)} dos ${int(p.n)} sorteios do Monte Carlo, ${h(curto(f.nome))} termina com mais votos válidos que ${h(curto(o.nome))}.</p></div>
+        <div class="prev-txt"><span class="rot ${aberta ? "aberta" : "alta"}">${previa ? "Prévia, sem votos apurados" : NIVEL_TXT[p.nivel]}</span>
+          <h4>${h(titleName(f.nome))} <span>${previa ? "à frente nas pesquisas" : aberta ? "aparece à frente, por pouco" : "deve terminar à frente"}</span></h4>
+          <p>${previa ? "Ainda não há votos: esta chance só repete as pesquisas e muda com a primeira apuração." : `Em ${int(sorteios)} dos ${int(p.n)} sorteios do Monte Carlo, ${h(curto(f.nome))} termina com mais votos válidos que ${h(curto(o.nome))}.`}</p></div>
       </div>
       <div class="prev-chance"><p class="prev-rot2">Chance de terminar à frente</p>
         <div class="prev-bar" role="img" aria-label="${h(`${curto(f.nome)} ${chanceTxt(f.chance)}, ${curto(o.nome)} ${chanceTxt(o.chance)}`)}"><span style="width:${(f.chance * 100).toFixed(1)}%;background:${h(cor(f.partido))}"></span><span style="width:${(o.chance * 100).toFixed(1)}%;background:${h(cor(o.partido))}"></span><u></u></div>
