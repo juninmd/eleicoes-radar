@@ -69,7 +69,8 @@ export function criarMunicipais(getJson: <T>(url: string) => Promise<T>, aoCarre
       return;
     }
     const d = disputa(ctx);
-    if (d && !arqs.has(d.arquivo)) {
+    // A failed file (null) is asked again: carregar runs on navigation, not on every paint, so this cannot loop.
+    if (d && (!arqs.has(d.arquivo) || arqs.get(d.arquivo) === null)) {
       arqs.set(d.arquivo, undefined);
       getJson<MunArquivo>(`data/municipal/${d.arquivo}`)
         .then((a) => { arqs.set(d.arquivo, a); })
