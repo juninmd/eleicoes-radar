@@ -58,7 +58,8 @@ describe("static server", () => {
     expect((await get("/apuracao-aovivo.js")).headers.get("cache-control")).toBe("no-cache"); // served from the .ts source
     // The stylesheet too: after a deploy new markup next to the old CSS shows broken layouts (a 304 costs no body).
     expect((await get("/app.css")).headers.get("cache-control")).toBe("no-cache");
-    expect((await get("/data/meta.json")).headers.get("cache-control")).toBe("public, max-age=300");
+    // A file that is in git: web/data is not there in CI, and a 404 carries no Cache-Control.
+    expect((await get("/fonts/public-sans.woff2")).headers.get("cache-control")).toBe("public, max-age=300");
     const mod = await get("/apuracao-aovivo.js");
     const cond = await get("/apuracao-aovivo.js", { headers: { "if-none-match": mod.headers.get("etag")! } });
     expect(cond.status).toBe(304);
