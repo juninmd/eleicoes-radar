@@ -17,6 +17,7 @@ export function abaSobDemanda<M, T>(importar: () => Promise<M>, montar: (m: M) =
 
 // Runs `usar` once the tab is ready. A hidden tab does nothing at all, so it neither downloads nor repaints. A failed download shows a reload: the browser caches the failed import, so an in-page retry cannot succeed.
 export function quandoPronta<T>(a: Aba<T>, el: HTMLElement, visivel: () => boolean, usar: (x: T) => void): void {
+  if (!visivel()) return;
   const pronta = a.get();
   if (pronta !== null) { usar(pronta); return; }
   a.carregar().then(

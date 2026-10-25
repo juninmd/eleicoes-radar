@@ -85,6 +85,24 @@ describe("quandoPronta", () => {
     expect(usada).toBe(false);
   });
 
+  test("aba pronta mas oculta não roda: o Ao vivo oculto não é repintado nem religa o TSE", async () => {
+    const aba = abaSobDemanda(async () => ({}), () => "pronta");
+    await aba.carregar();
+    let usada = false;
+    quandoPronta(aba, contenedor().el, () => false, () => { usada = true; });
+    expect(usada).toBe(false);
+  });
+
+  test("aba oculta e ainda não carregada não baixa o módulo", async () => {
+    const m = modulo(0);
+    let montagens = 0;
+    const aba = abaSobDemanda(m.importar, () => ++montagens);
+    quandoPronta(aba, contenedor().el, () => false, () => {});
+    await new Promise((r) => setTimeout(r, 0));
+    expect(m.importes()).toBe(0);
+    expect(montagens).toBe(0);
+  });
+
   // The browser caches a failed import, so a retry inside the page cannot succeed: the only way out offered is a reload.
   test("falha com a aba visível mostra 'Recarregar a página' com foco no botão, e o clique recarrega", async () => {
     const aba = abaSobDemanda(async () => { throw new Error("rede caiu"); }, () => "x");
