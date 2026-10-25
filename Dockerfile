@@ -3,9 +3,10 @@
 # has run the pipeline; CI cannot rebuild the data on its own.
 FROM oven/bun:1.3.13-slim
 WORKDIR /app
-COPY src/radar/serve.ts ./serve.ts
+COPY src/radar/serve.ts ./src/radar/serve.ts
+COPY src/radar/aovivo ./src/radar/aovivo
 COPY web ./web
 ENV HOST=0.0.0.0 PORT=3000 NODE_ENV=production
 EXPOSE 3000
 USER bun
-CMD ["bun", "serve.ts"]
+CMD ["bun", "src/radar/serve.ts"]

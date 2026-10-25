@@ -16,6 +16,7 @@
     "radar:profiles": "bun run src/radar/profiles/fetch-profiles.ts",
     "radar:suppliers": "bun run src/radar/suppliers/fetch-suppliers.ts",
     "radar:panorama": "bun run src/radar/panorama.ts",
+    "radar:vapid": "bun run src/radar/aovivo/keygen.ts",
     "radar:geo": "bun run src/radar/geo/uf-map.ts",
     "radar:geo-mundo": "bun run src/radar/geo/world-map.ts",
     "radar:bu": "bun run src/radar/bu/collect.ts",
