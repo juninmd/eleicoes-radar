@@ -39,9 +39,9 @@ export function renderPesquisas2t(p: Pesquisas2T, par: Par, cor: Cor): string {
     <header><h3 id="pq-t">Pesquisas do 2º turno <small>% dos votos válidos dos dois</small></h3></header>
     <p class="pq-resumo">${lado(par.a, p.media, false)}<span class="pq-x" aria-hidden="true">×</span>${lado(par.b, p.media === null ? null : 1 - p.media, true)}</p>
     <p class="pq-sub">${p.media === null ? "Sem média das pesquisas deste par" : `Média de <b>${int(n)}</b> ${n === 1 ? "pesquisa" : "pesquisas"}`}${atual ? " · " : ""}${atual}</p>
-    ${p.linhas.length ? `<div class="pq-eixo" aria-hidden="true"><span></span><div><div class="pq-ext"><span>← ${h(curto(par.b.nome))}</span><span>${h(curto(par.a.nome))} →</span></div><div class="pq-ticks">${ticks}</div></div><span></span></div>
+    ${p.linhas.length ? `<details class="pq-det-lista"><summary>Ver as ${int(p.linhas.length)} ${p.linhas.length === 1 ? "pesquisa" : "pesquisas"}</summary><div class="pq-eixo" aria-hidden="true"><span></span><div><div class="pq-ext"><span>← ${h(curto(par.b.nome))}</span><span>${h(curto(par.a.nome))} →</span></div><div class="pq-ticks">${ticks}</div></div><span></span></div>
     <ul class="pq-lista" aria-label="Pesquisas do 2º turno, da mais recente para a mais antiga">${linhas}</ul>
-    <ul class="pq-leg" aria-hidden="true"><li><i class="pq-pt"></i>cada pesquisa (cor de quem lidera nela)</li>${p.media === null ? "" : `<li><i class="pq-med"></i>média</li>`}${p.atual === null ? "" : `<li><i class="pq-ap"></i>${p.concluida ? "apuração concluída" : "apuração agora"}</li>`}</ul>` : `<p class="muted small">Nenhuma pesquisa só com os dois nomes foi encontrada.</p>`}
+    <ul class="pq-leg" aria-hidden="true"><li><i class="pq-pt"></i>cada pesquisa (cor de quem lidera nela)</li>${p.media === null ? "" : `<li><i class="pq-med"></i>média</li>`}${p.atual === null ? "" : `<li><i class="pq-ap"></i>${p.concluida ? "apuração concluída" : "apuração agora"}</li>`}</ul></details>` : `<p class="muted small">Nenhuma pesquisa só com os dois nomes foi encontrada.</p>`}
     <p class="muted small pq-nota">Indecisos, brancos e nulos ficam de fora: cada pesquisa vira a parcela dos dois entre quem escolheu um deles, a mesma base da apuração. Pesquisa não é resultado.</p>
   </section>`;
 }
@@ -123,4 +123,12 @@ export function renderOndeFalta(f: OndeFalta | null, ids: Par, cor: Cor, max = 6
     ${f.defasadas.length ? `<p class="fa-vel-txt small"><b>${int(f.defasadas.length)} ${f.defasadas.length === 1 ? "arquivo está" : "arquivos estão"} com números desatualizados:</b> ${h(f.defasadas.map(nomeUf).join(", "))}.</p>` : ""}
     <p class="muted small">${notas}</p>
   </section>`;
+}
+
+// ---- the two names of the runoff, always on screen (before the first vote the Presidente card has nothing to draw)
+export function renderFinalistas(par: Par, avatar: (c: { id: string; nome: string }, size: string) => string, cor: Cor, media: number | null, rotulo = "Presidente"): string {
+  const lado = (f: Finalista, v: number | null, cls: string) => `<div class="fin-lado ${cls}" style="--c:${h(cor(f.partido))}">${avatar({ id: f.id, nome: f.nome }, "sm")}<b>${h(curto(f.nome))}</b><small>${h(f.partido)}</small><span>${v === null ? "–" : pct(v, 1)}</span></div>`;
+  return `<section class="live-fin" aria-label="Candidatos do 2º turno"><h3>${h(rotulo)} <small>2º turno · candidatos</small></h3>
+    <div class="fin-par">${lado(par.a, media, "a")}<span class="fin-x" aria-hidden="true">×</span>${lado(par.b, media === null ? null : 1 - media, "b")}</div>
+    ${media === null ? "" : `<p class="muted small">% = média das pesquisas (votos válidos dos dois).</p>`}</section>`;
 }

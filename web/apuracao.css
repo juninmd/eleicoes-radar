@@ -42,7 +42,7 @@
 .apu-mapa { width: 100%; height: auto; max-height: 620px; background: var(--sunk); border-radius: var(--r-lg); overflow: visible; } /* visible: the focus ring of a state at the edge (Fernando de Noronha) is not clipped */
 .apu-mapa .uf { stroke: var(--surface); stroke-width: 1; cursor: pointer; transition: stroke-width 0.12s; }
 .apu-mapa .uf:hover { stroke: var(--ink); stroke-width: 2; }
-.apu-mapa .uf.feito { stroke: var(--ink-2); stroke-width: 1.6; }
+.apu-mapa .uf.feito { stroke: #fff; stroke-width: 2.2; stroke-dasharray: none; filter: drop-shadow(0 0 2px rgba(255,255,255,0.55)); } /* apuração 100% concluída */
 .apu-mapa .uf:focus-visible { stroke: var(--focus); stroke-width: 2.5; }
 .apu-mapa .uf-anel { stroke: var(--ink); stroke-width: 3; stroke-linejoin: round; } /* the selection, drawn on top of every neighbour */
 .apu .vel { font-style: italic; }
@@ -858,7 +858,9 @@
 .live-acoes .ghost { min-height: 30px; padding: 4px 10px; font-size: 12px; }
 .live-acoes .apu-turno-datas { display: none; }
 .live-acoes .apu-turnos { margin: 0; }
-.live-acoes .apu-turnos button { min-height: 30px; padding: 4px 9px; font-size: 12px; }
+.live-acoes .apu-turnos button { min-height: 34px; padding: 5px 14px; font-size: 13px; font-weight: 700; }
+.live-acoes .apu-turnos { border: 2px solid var(--ink-2); border-radius: 999px; padding: 2px; }
+.live-acoes .apu-turnos button[aria-pressed="true"] { background: var(--ink); color: var(--bg, #000); }
 .live-status { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 4px; }
 .live-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 2px 9px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink-2); font: 500 11.5px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
