@@ -18,6 +18,8 @@ import { turnoDe } from "./apuracao-tse.js";
 import { createCores } from "./apuracao-nacional.js";
 import { PALETA } from "./apuracao-mapa.js";
 import { renderCamara } from "./apuracao-camara.js";
+import { LIMITE_INICIAL } from "./apuracao-maisvotados.js";
+import { renderMaisVotados } from "./apuracao-maisvotados-view.js";
 import { renderNacional } from "./apuracao-nacional-view.js";
 import { renderMunicipios } from "./apuracao-municipios-view.js";
 import { renderChance } from "./apuracao-chance-view.js";
@@ -43,7 +45,7 @@ import type { Candidatura } from "./types.js";
 
 // What the view reads of a feed snapshot: the feed's own `url` is not needed to draw it.
 export type SnapView = Pick<FeedSnapshot, "status" | "dados"> & Partial<Pick<FeedSnapshot, "buscadoEm" | "erro">>;
-export type Vista = "placar" | "linha" | "mapa" | "projecao" | "cadeiras" | "camara" | "graficos" | "municipios" | "corrida" | "noite" | "chance" | "exterior";
+export type Vista = "placar" | "linha" | "mapa" | "projecao" | "cadeiras" | "camara" | "maisvotados" | "graficos" | "municipios" | "corrida" | "noite" | "chance" | "exterior";
 type Avatar = (c: Candidatura, size: string) => string;
 // What the view reads of data/expectativa.json: the poll summary of each race.
 export interface Corrida extends CorridaMapa { pesquisas: number; ultima?: string | null; confrontos?: Confronto[] }
@@ -58,6 +60,7 @@ export interface RenderProps {
   byId: Map<string, Candidatura>;
   avatar: Avatar;
   limit: number;
+  maisVotadosLimite?: number; // how many of the "Mais votados" list are on screen (10, then 30 after "Ver mais")
   turno?: Turno;
   exp?: Exp | null;
   vista?: Vista;
@@ -205,14 +208,14 @@ const aviso = (txt: string) => `<p class="empty">${txt}</p>`;
 
 const MAPA_CARGOS = new Set(["Presidente", "Governador", "Senador"]);
 const UMA_VAGA = new Set(["Presidente", "Governador"]); // one seat, one vote: the arithmetic of the Projeção view applies
-const ROTULOS: Record<Vista, string> = { placar: "Placar", linha: "Linha do tempo", mapa: "Mapa", projecao: "Projeção", cadeiras: "Cadeiras", camara: "Câmara", graficos: "Gráficos", municipios: "Cidades", corrida: "Corrida", noite: "Noite no mapa", chance: "Chance ao vivo", exterior: "Exterior" };
+const ROTULOS: Record<Vista, string> = { placar: "Placar", linha: "Linha do tempo", mapa: "Mapa", projecao: "Projeção", cadeiras: "Cadeiras", camara: "Câmara", maisvotados: "Mais votados", graficos: "Gráficos", municipios: "Cidades", corrida: "Corrida", noite: "Noite no mapa", chance: "Chance ao vivo", exterior: "Exterior" };
 // The Projeção is built on first-round arithmetic (who reaches 50%, who goes to a runoff): it has no place in the runoff itself.
 export const vistasDe = (cargo: Cargo, turno: Turno = 1): Vista[] => {
   // "corrida", "noite", "chance" and "exterior" are added to the views each office already had; none was taken away.
   const ext: Vista[] = cargo === "Presidente" ? ["exterior"] : []; // the vote abroad is only in the presidential race
   if (UMA_VAGA.has(cargo)) return turno === 2 ? ["placar", "linha", "mapa", "chance", "municipios", ...ext, "corrida", "noite", "graficos"] : ["placar", "linha", "mapa", "projecao", ...ext, "corrida", "noite", "graficos"];
   if (MAPA_CARGOS.has(cargo)) return ["placar", "linha", "mapa", "corrida", "graficos"];
-  return cargo === "Deputado Federal" ? ["placar", "linha", "cadeiras", "camara", "corrida", "graficos"] : ["placar", "linha", "cadeiras", "corrida", "graficos"];
+  return cargo === "Deputado Federal" ? ["placar", "linha", "cadeiras", "camara", "maisvotados", "corrida", "graficos"] : ["placar", "linha", "cadeiras", "corrida", "graficos"];
 };
 
 const quemDe = (d: Apuracao) => Object.fromEntries(d.candidatos.map((c) => [c.id, { nome: c.nome, partido: c.partido }]));
@@ -228,7 +231,7 @@ function graficos(d: Apuracao | null | undefined, rows: Linha[], hist: Ponto[], 
 
 // proj: what apuracao-projecao-estado.js hands over ({ analise, partes, nomes, esperadas }), or null while the files are loading.
 // novidades: the lines of apuracao-novidades.js kept by the mount since the tab was opened.
-export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, turno = 1, exp, vista = "placar", hist = [], novidades = [], eleitos, nac = null, proj = null, mun = null, chance = null, exterior = null, simulado = false, mapa, modoMapa = "lider", selUf = null, cor = createCores(PALETA) }: RenderProps): string {
+export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, maisVotadosLimite = LIMITE_INICIAL, turno = 1, exp, vista = "placar", hist = [], novidades = [], eleitos, nac = null, proj = null, mun = null, chance = null, exterior = null, simulado = false, mapa, modoMapa = "lider", selUf = null, cor = createCores(PALETA) }: RenderProps): string {
   const d = snap?.dados;
   const t = turnoDe(cargo, turno);
   const vistas = vistasDe(cargo, t);
@@ -247,6 +250,8 @@ export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, turno = 1
   let corpo: string;
   if (aberta === "camara") {
     corpo = renderCamara({ nac, cor });
+  } else if (aberta === "maisvotados") {
+    corpo = renderMaisVotados({ nac, limite: maisVotadosLimite });
   } else if (aberta === "mapa") {
     corpo = renderNacional({ nac, cargo, corridas, modo: modoMapa, sel: selUf, cor, mapa });
   } else if (aberta === "corrida" || aberta === "noite") {
@@ -285,7 +290,7 @@ export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, turno = 1
   // On the animated views the phase badge is set by the mount, in place: a badge that changes with the count would redraw the frame, and a redraw
   // would throw away the view (its feed of facts, the stamps the TSE just gave) at the very moment the count ends.
   const fxVista = aberta === "corrida" || aberta === "noite";
-  const quando = aberta === "mapa" || aberta === "camara" || aberta === "noite" || aberta === "exterior" || ((aberta === "projecao" || aberta === "chance") && cargo === "Presidente") ? nac?.buscadoEm : snap?.buscadoEm;
+  const quando = aberta === "mapa" || aberta === "camara" || aberta === "maisvotados" || aberta === "noite" || aberta === "exterior" || ((aberta === "projecao" || aberta === "chance") && cargo === "Presidente") ? nac?.buscadoEm : snap?.buscadoEm;
   const nav = `${seletorTurno(cargo, t)}<div class="apu-vistas apu-nav" role="group" aria-label="Visão da apuração">${vistas.map((v) => `<button type="button" data-vista="${v}" aria-pressed="${v === aberta}">${ROTULOS[v]}</button>`).join("")}</div>
     ${t === 2 ? `<p class="muted small">2º turno: só os dois finalistas. As médias das pesquisas e a Projeção são do 1º turno e não aparecem aqui.</p>` : ""}`;
   return `<section class="exp-card apu" aria-labelledby="apu-t">
