@@ -42,7 +42,7 @@
 .fa-bar { display: flex; gap: 1px; height: 16px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); background: var(--sunk); }
 .fa-bar span { display: block; min-width: 3px; }
 .fa-lista { display: grid; gap: 0; margin: 6px 0 4px; padding: 0; list-style: none; }
-.fa-lista li { display: grid; grid-template-columns: 34px minmax(0, 1.5fr) minmax(36px, 0.7fr) 62px; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
+.fa-lista li { display: grid; grid-template-columns: 34px minmax(0, 1.5fr) minmax(36px, 0.7fr) 80px; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
 .fa-lista li:last-child { border-bottom: 0; }
 .fa-uf { font: 900 16px/1 var(--display); letter-spacing: 0.02em; }
 .fa-uf abbr { text-decoration: none; }
@@ -50,7 +50,7 @@
 .fa-lid .key { flex: none; }
 .fa-av { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
 .fa-av i { display: block; height: 100%; background: linear-gradient(90deg, #7c3aed, #c4b5fd); }
-.fa-n { text-align: right; font: 700 12px var(--mono); font-variant-numeric: tabular-nums; }
+.fa-n { white-space: nowrap; text-align: right; font: 700 12px var(--mono); font-variant-numeric: tabular-nums; }
 .fa-lista li.vel { opacity: 0.72; }
 .fa-lista li.vel .fa-uf::after { content: "*"; color: var(--muted); }
 .fa-vel-txt { margin: 6px 0 0; font-size: 11.5px; }
@@ -130,7 +130,7 @@
   .pq-lista li { min-height: 32px; }
   .pq-inst .pq-det { display: none; }
   .pq-val { flex-direction: column; align-items: flex-end; gap: 0; }
-  .fa-lista li { grid-template-columns: 30px minmax(0, 1.4fr) minmax(28px, 0.5fr) 56px; gap: 6px; }
+  .fa-lista li { grid-template-columns: 30px minmax(0, 1.4fr) minmax(28px, 0.5fr) 66px; gap: 6px; }
 }
 
 /* Curva da apuracao na coluna do duelo: legivel (com as linhas das pesquisas) e sem os paragrafos de ajuda, que ficam na aba Apuracao. */
