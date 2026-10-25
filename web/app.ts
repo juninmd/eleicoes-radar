@@ -449,6 +449,52 @@ function bind() {
   };
   $("#limpar-filtros")?.addEventListener("click", resetFiltros);
 
+  // Left menu: hidden by default, opens on the edge handle or on hover, stays only when pinned.
+  const menu = $<HTMLElement>("#menu");
+  const menuToggle = $<HTMLButtonElement>("#menu-toggle");
+  const menuFixar = $<HTMLButtonElement>("#menu-fixar");
+  const menuFechar = $<HTMLButtonElement>("#menu-fechar");
+  const menuScrim = $<HTMLElement>("#menu-scrim");
+  const menuMobile = () => typeof matchMedia === "function" && matchMedia("(max-width: 860px)").matches;
+  let menuFixado = false;
+  try { menuFixado = localStorage.getItem("radar:menu") === "fixado" && !menuMobile(); } catch { /* private window */ }
+  let menuAberto = menuFixado;
+  const pintarMenu = () => {
+    document.body.classList.toggle("menu-aberto", menuAberto && !menuFixado);
+    document.body.classList.toggle("menu-fixado", menuFixado);
+    menuToggle.setAttribute("aria-expanded", String(menuAberto || menuFixado));
+    menuFixar.setAttribute("aria-pressed", String(menuFixado));
+    menuScrim.hidden = !(menuAberto && !menuFixado);
+  };
+  const guardarMenu = () => { try { if (menuFixado) localStorage.setItem("radar:menu", "fixado"); else localStorage.removeItem("radar:menu"); } catch { /* private window */ } };
+  const abrirMenu = (fixar = false) => { if (fixar) menuFixado = true; menuAberto = true; guardarMenu(); pintarMenu(); };
+  const fecharMenu = (devolverFoco = false) => { menuAberto = false; guardarMenu(); pintarMenu(); if (devolverFoco) menuToggle.focus({ preventScroll: true }); };
+  const soltarMenu = () => { menuFixado = false; fecharMenu(true); };
+  const focarAbaAtual = () => requestAnimationFrame(() => $('#modos [aria-selected="true"]')?.focus({ preventScroll: true }));
+  const irAoConteudo = () => { $("#principal").focus({ preventScroll: true }); window.scrollTo({ top: 0, behavior: "auto" }); };
+  pintarMenu();
+  menuToggle.addEventListener("click", () => {
+    if (menuFixado) { soltarMenu(); return; }
+    if (menuAberto) { fecharMenu(); return; }
+    abrirMenu(false); // transient: the pin inside keeps it open, choosing a tab closes it
+    focarAbaAtual();
+  });
+  menuFixar.addEventListener("click", () => { menuFixado = !menuFixado; menuAberto = true; guardarMenu(); pintarMenu(); });
+  menuFechar.addEventListener("click", soltarMenu);
+  menuScrim.addEventListener("click", soltarMenu);
+  $("#menu-sobre")?.addEventListener("click", () => { menuFixado = false; fecharMenu(); });
+  menu.addEventListener("pointerleave", (e) => {
+    const para = e.relatedTarget as Node | null;
+    if (menuFixado || menu.contains(document.activeElement) || (para && menu.contains(para))) return;
+    fecharMenu();
+  });
+  menu.addEventListener("focusin", () => { if (!menuAberto && !menuFixado) { menuAberto = true; pintarMenu(); } });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" || (!menuAberto && !menuFixado)) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    menuFixado = false; fecharMenu(true);
+  }, true);
+
   document.addEventListener("click", (e) => {
     const jump = (e.target as Element).closest<HTMLAnchorElement>(".djump a");
     if (jump) {
@@ -476,7 +522,14 @@ function bind() {
       else falhou();
       return;
     }
-    if (t.dataset.modo) { state.modo = t.dataset.modo; state.limit = PAGE; store.set("modo", state.modo); renderModo(); return; }
+    if (t.dataset.modo) {
+      state.modo = t.dataset.modo; state.limit = PAGE; store.set("modo", state.modo);
+      if (location.hash === "#sobre") { history.replaceState(null, "", `${location.pathname}${location.search}`); document.body.classList.remove("sobre"); }
+      renderModo();
+      if (!menuFixado) { fecharMenu(); irAoConteudo(); }
+      else if (menuMobile()) { soltarMenu(); irAoConteudo(); }
+      return;
+    }
     if (t.dataset.redeFoco !== undefined) {
       state.redeFoco = t.dataset.redeFoco; state.redeSel = null; state.modo = "rede";
       const c = state.cands.find((x) => x.id === state.redeFoco);
