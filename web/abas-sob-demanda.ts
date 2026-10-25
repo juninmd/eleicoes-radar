@@ -2,6 +2,7 @@
 export interface Aba<T> {
   get(): T | null; // the mounted value, or null while the module is still downloading or was never asked for
   carregar(): Promise<T>;
+  baixar(): void; // prefetch on hover or focus: download only, the mount waits for the first open
 }
 
 export function abaSobDemanda<M, T>(importar: () => Promise<M>, montar: (m: M) => T): Aba<T> {
@@ -10,6 +11,7 @@ export function abaSobDemanda<M, T>(importar: () => Promise<M>, montar: (m: M) =
   return {
     get: () => pronta,
     carregar: () => (emCurso ??= importar().then((m) => (pronta = montar(m))).catch((e) => { emCurso = null; throw e; })),
+    baixar: () => { importar().catch(() => {}); }, // a failed prefetch is not shown; the open that needs it reports the error
   };
 }
 

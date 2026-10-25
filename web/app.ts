@@ -62,6 +62,7 @@ const aoVivo = abaSobDemanda(() => import("./apuracao-aovivo.js"), (m) => m.moun
 const panorama = abaSobDemanda(() => import("./panorama.js"), (m) => m.mountPanorama($("#pan-view")));
 const expectativa = abaSobDemanda(() => import("./expectativa.js"), (m) => m.renderExpectativa);
 const redeAba = abaSobDemanda(() => import("./rede.js"), (m) => m.renderRede);
+const abaDo = (modo: string) => (modo === "apuracao" ? apuracao : modo === "aovivo" ? aoVivo : modo === "expectativa" ? expectativa : modo === "rede" ? redeAba : modo in PAN_MODES ? panorama : null);
 // A deep link to the Apuração tab, applied once that tab is ready (see abrirLink).
 let linkPendente: Visao | null = null;
 
@@ -329,6 +330,8 @@ function bind() {
   mountTabs($("#modos"));
   mountTabs($("#cedulas"));
   mountColaButtons({ get: () => state.cola, ballots: BALLOTS, clear: () => { state.cola = {}; store.set("cola", state.cola); render(); } });
+  // Hover or keyboard focus on a heavy tab starts its download, so the click does not wait for it.
+  for (const ev of ["pointerover", "focusin"]) $("#modos").addEventListener(ev, (e) => abaDo((e.target as Element).closest<HTMLElement>("[data-modo]")?.dataset.modo ?? "")?.baixar());
 }
 
 // A link to the Apuração tab (apuracao-link.ts): the race, the view, the round and, in the simulation, the moment of the night.

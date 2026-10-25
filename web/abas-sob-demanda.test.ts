@@ -23,6 +23,19 @@ describe("abaSobDemanda", () => {
     expect(aba.get()).toBe(a);
   });
 
+  test("prefetch só baixa: a montagem espera a primeira abertura", async () => {
+    const m = modulo(0);
+    let montagens = 0;
+    const aba = abaSobDemanda(m.importar, () => ++montagens);
+    aba.baixar();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(m.importes()).toBe(1);
+    expect(montagens).toBe(0);
+    expect(aba.get()).toBeNull();
+    await aba.carregar();
+    expect(montagens).toBe(1);
+  });
+
   test("falha de download não fica em cache: a próxima abertura tenta de novo", async () => {
     const m = modulo(1);
     const aba = abaSobDemanda(m.importar, (x) => x.valor);
