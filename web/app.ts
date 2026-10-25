@@ -134,6 +134,9 @@ function renderList() {
   const list = visible();
   $("#achados").innerHTML = achados(list.map((x) => x.c));
   $("#sem-evidencia").hidden = !semEvidencia(list);
+  const temFiltro = Boolean(state.busca || state.situacao !== "todas");
+  const btnLimpar = document.getElementById("limpar-filtros");
+  if (btnLimpar) btnLimpar.hidden = !temFiltro;
   const shown = list.slice(0, state.limit);
   // Two registrations with one number usually means a substitution the registry
   // does not resolve (its status field is empty); flag it instead of guessing.
@@ -148,7 +151,7 @@ function renderList() {
       <span class="who"><b>${h(displayName(c))}</b><small>${h(c.partido)}${STATUS[c.perfil?.status as string]?.curto ? ` · <em class="tag st-${h(c.perfil!.status)}">${h(STATUS[c.perfil!.status].curto)}</em>` : ""}${seen.get(c.num)! > 1 ? ` · <em class="tag st-reeleicao">número repetido no TSE</em>` : ""}${isPicked(state.cola, c) ? ` · <em class="tag ok">na cola</em>` : ""}</small></span>
       <span class="money">${moneyShort(c.fin.total)}</span>
       <span class="score"><b>${s.nota ?? "–"}</b><span class="ev" aria-label="Evidência ${pct(s.cobertura)}">${[0.01, 0.5, 0.99].map((t) => `<i class="${s.cobertura >= t ? "on" : ""}"></i>`).join("")}</span></span>
-    </button></li>`).join("") : `<li class="empty">Nenhuma candidatura encontrada com esses filtros.</li>`;
+    </button></li>`).join("") : `<li class="empty"><p>Nenhuma candidatura encontrada com esses filtros.</p><button type="button" class="btn-confirma" data-limpar-filtros>Limpar filtros</button></li>`;
   $("#mais").hidden = list.length <= state.limit;
   $("#mais").textContent = `Mostrar mais ${Math.min(PAGE, list.length - state.limit)} de ${int(list.length - state.limit)} restantes`;
 }
@@ -269,16 +272,24 @@ function bind() {
   $("#mostrarFotos").addEventListener("change", (e) => { state.mostrarFotos = (e.target as HTMLInputElement).checked; store.set("fotos", state.mostrarFotos); renderList(); renderDossierPanel(); if (state.modo === "aovivo") aoVivo.show({ uf: state.uf, abrir: abrirCorrida, avatar, prev: prevDe, exp: state.exp }); });
   $("#situacao").addEventListener("change", (e) => { state.situacao = (e.target as HTMLSelectElement).value; state.limit = PAGE; render(); });
   $("#mais").addEventListener("click", () => { state.limit += PAGE; renderList(); });
+  let pesosRaf = 0;
   $("#pesos").addEventListener("input", (e) => {
-    const k = (e.target as HTMLInputElement).dataset.weight as keyof AppState["weights"] | undefined;
+    const input = e.target as HTMLInputElement;
+    const k = input.dataset.weight as keyof AppState["weights"] | undefined;
     if (!k) return;
-    state.weights[k] = Number((e.target as HTMLInputElement).value);
-    (e.target as HTMLInputElement).setAttribute("aria-valuetext", LEVELS[state.weights[k]]);
-    (e.target as HTMLInputElement).closest(".peso")!.querySelector("output")!.textContent = LEVELS[state.weights[k]];
-    store.set("weights-v2", state.weights);
-    $("#presets").innerHTML = presetsHtml(state.weights);
-    renderList();
-    renderDossierPanel();
+    const val = Number(input.value);
+    state.weights[k] = val;
+    input.setAttribute("aria-valuetext", LEVELS[val]);
+    input.closest(".peso")!.querySelector("output")!.textContent = LEVELS[val];
+    if (!pesosRaf) {
+      pesosRaf = requestAnimationFrame(() => {
+        pesosRaf = 0;
+        store.set("weights-v2", state.weights);
+        $("#presets").innerHTML = presetsHtml(state.weights);
+        renderList();
+        renderDossierPanel();
+      });
+    }
   });
   const usePreset = (k: string) => {
     state.weights = { ...PRESETS[k].w };
@@ -288,9 +299,21 @@ function bind() {
   };
   $("#presets").addEventListener("click", (e) => { if (PRESETS[(e.target as HTMLElement).dataset.preset as string]) usePreset((e.target as HTMLElement).dataset.preset as string); });
   $("#usar-campanha").addEventListener("click", () => { usePreset("campanha"); $("#lista").scrollIntoView({ block: "start" }); $("#lista").focus({ preventScroll: true }); });
+    const resetFiltros = () => {
+    clearTimeout(buscaT);
+    state.busca = "";
+    state.situacao = "todas";
+    state.limit = PAGE;
+    $<HTMLInputElement>("#busca").value = "";
+    $<HTMLSelectElement>("#situacao").value = "todas";
+    renderList();
+  };
+  $("#limpar-filtros")?.addEventListener("click", resetFiltros);
+
   document.addEventListener("click", (e) => {
-    const t = (e.target as Element).closest<HTMLElement>("[data-ballot],[data-open],[data-close],[data-cola],[data-modo],#exp-mais,[data-rede],[data-rede-geral],[data-rede-foco]");
+    const t = (e.target as Element).closest<HTMLElement>("[data-ballot],[data-open],[data-close],[data-cola],[data-modo],#exp-mais,[data-rede],[data-rede-geral],[data-rede-foco],[data-limpar-filtros]");
     if (!t) return;
+    if (t.dataset.limparFiltros !== undefined) { resetFiltros(); return; }
     if (t.dataset.modo) { state.modo = t.dataset.modo; state.limit = PAGE; store.set("modo", state.modo); renderModo(); return; }
     if (t.dataset.redeFoco !== undefined) { state.redeFoco = t.dataset.redeFoco; state.redeSel = null; state.modo = "rede"; renderModo(); return; }
     if ("redeGeral" in t.dataset) { state.redeFoco = null; state.redeSel = null; renderModo(); return; }
@@ -314,6 +337,23 @@ function bind() {
   });
   mountTabs($("#modos"));
   mountTabs($("#cedulas"));
+    const btnTopo = document.getElementById("voltar-topo") as HTMLButtonElement | null;
+  if (btnTopo) {
+    let scrollRaf = 0;
+    window.addEventListener("scroll", () => {
+      if (!scrollRaf) {
+        scrollRaf = requestAnimationFrame(() => {
+          scrollRaf = 0;
+          btnTopo.hidden = window.scrollY < 400 || state.modo !== "radar";
+        });
+      }
+    }, { passive: true });
+    btnTopo.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      ($('#cedulas [aria-selected="true"]') as HTMLElement | null)?.focus({ preventScroll: true });
+    });
+  }
+
   mountColaButtons({ get: () => state.cola, ballots: BALLOTS, clear: () => { state.cola = {}; store.set("cola", state.cola); render(); } });
 }
 
