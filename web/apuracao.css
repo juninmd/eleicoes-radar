@@ -847,37 +847,176 @@
   .live .nt-barra .nt-contagem { flex: 1 0 100%; }
 }
 
-/* Ao vivo em tela cheia: o mapa e o total dividem a largura; o celular empilha. */
-.live-onde { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 2px 0 8px; }
-.live-onde span { color: var(--ink-2); font-size: 14px; }
-.live-onde b { font: 900 clamp(20px, 3vw, 34px)/1 var(--display); text-transform: uppercase; color: var(--ink); }
-.live-onde .ghost { margin-left: 2px; }
-.live-palco { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: clamp(12px, 2vw, 26px); align-items: start; margin-top: 10px; }
-.live-centro { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-.live-centro .live-hero { margin: 0; }
-.live-mapa-col { display: flex; flex-direction: column; min-width: 0; }
-.live-noite { display: flex; flex: 1; flex-direction: column; margin: 0; min-width: 0; }
-.live-noite .nt { flex: 1; }
-.live-noite .nt-duelo { display: none; } /* o duelo do Presidente acima já mostra os dois primeiros */
+/* Ao vivo: cabecalho compacto, tres colunas que cabem numa tela e texto fixo em balao. */
+.live-cabeca { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 14px; margin: 0 0 3px; }
+.live-titulo { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; min-width: 0; }
+.live-titulo h2 { margin: 0; font: 900 clamp(22px, 3vw, 34px)/1 var(--display); text-transform: uppercase; letter-spacing: 0.01em; }
+.live-onde { color: var(--ink-2); font-size: 13px; }
+.live-onde b { font: 900 clamp(15px, 1.8vw, 21px)/1 var(--display); text-transform: uppercase; color: var(--ink); }
+.live-voltar { min-height: 30px; padding: 4px 10px; font-size: 12px; }
+.live-acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.live-acoes .ghost { min-height: 30px; padding: 4px 10px; font-size: 12px; }
+.live-acoes .apu-turno-datas { display: none; }
+.live-acoes .apu-turnos { margin: 0; }
+.live-acoes .apu-turnos button { min-height: 30px; padding: 4px 9px; font-size: 12px; }
+.live-status { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 4px; }
+.live-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 2px 9px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink-2); font: 500 11.5px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Balao de tooltip: o texto fixo (datas, fonte, legenda, metodo) sai da tela e fica no "i". */
+.dica { position: relative; }
+.dica::after { content: attr(data-dica); position: absolute; z-index: 80; left: 50%; top: calc(100% + 7px); translate: -50% 0; width: max-content; max-width: min(320px, 74vw); padding: 8px 10px; border-radius: var(--r-md); background: var(--panel); color: var(--panel-ink); border: 1px solid var(--panel-2); box-shadow: var(--shadow); font: 500 12px/1.4 var(--body); text-align: left; white-space: normal; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.12s; }
+.dica:hover::after, .dica:focus-visible::after { opacity: 1; visibility: visible; }
+/* Tooltips on the right side open to the left so they cannot widen the page while hidden. */
+.live-acoes .dica::after, .live-status .dica::after, .prev-cabeca .dica::after, .live-col-prev .dica::after { left: auto; right: 0; translate: 0 0; }
+.dica.info { display: inline-grid; place-items: center; flex: none; width: 20px; height: 20px; padding: 0; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); font: 700 11px var(--mono); cursor: help; vertical-align: middle; }
+.dica.info:hover, .dica.info:focus-visible { border-color: var(--ink-2); color: var(--ink); }
+
+/* Palco: hero + resultado, mapa + total, previsao + eleitos. */
+.live-palco { container-type: inline-size; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1.2fr) minmax(260px, 310px); gap: clamp(10px, 1.4vw, 18px); align-items: start; margin-top: 2px; }
+.live-col-prev { width: 100%; max-width: 310px; }
+.live-col { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.live-col .live-hero { margin: 0; }
+.live-col-mapa .live-noite { margin: 0; }
+.live-col-prev .prev { margin: 0; }
+
+/* O duelo do Presidente fica compacto: a tela cheia e para o mapa, os numeros e a previsao. */
+.live-col-hero .live-side { padding: 6px 6px; gap: 2px; }
+.live-col-hero .live-side .av { width: 64px; height: 80px; }
+.live-col-hero .live-big { font-size: 26px; }
+.live-col-hero .live-side-nome { font-size: 13px; }
+.live-col-hero .live-side small, .live-col-hero .live-side-votos, .live-col-hero .live-side-esp { font-size: 9.5px; }
+.live-col-hero .live-side .rot { padding: 2px 5px; font-size: 9px; }
+.live-col-hero .live-vs-x { font-size: 22px; }
+.live-col-hero .live-duel { gap: 4px; }
+.live-col-hero .live-barra { display: none; } /* o duelo logo abaixo ja mostra os dois lados */
+.live-col-hero .live-hero h4 { margin: 2px 0; font-size: 11px; }
+.live-col-hero .live-hero h4:has(+ .muted.small) { display: none; } /* a curva sem dois pontos nao precisa do titulo */
+.live-col-hero .live-hero > .muted.small:last-child, .live-col-hero .apu-duelo .exp-read, .live-col-hero .apu-decidido details { display: none; }
+.live-col-hero .apu-decidido { padding: 5px 7px; font-size: 11px; line-height: 1.3; }
+.live-col-hero .apu-duelo { gap: 4px; font-size: 10px; }
+.live-col-hero .apu-duelo .apu-legenda { gap: 2px 10px; font-size: 10px; }
+.live-col-hero .apu-evo { max-height: 70px; width: 100%; }
+
+/* Mapa compacto: sem as legendas longas, que passam para o balao; cartoes do lado em duas colunas. */
+.live-noite { display: flex; flex-direction: column; min-width: 0; }
+.live-noite h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 4px; }
+.live-noite .nt-duelo { display: none; }
 .live-noite .nt-corpo { grid-template-columns: minmax(0, 1fr); }
-.live-noite .nt-mapa { width: 100%; max-width: none; aspect-ratio: 4 / 3; }
-.live-noite .nt-lado { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
-.live-noite .nt-manchetes { min-height: 0; }
-/* O duelo do Presidente fica compacto na coluna do total: a tela cheia é para o mapa e os números, não para retratos grandes. */
-.live-centro .live-side { padding: 14px 10px; }
-.live-centro .live-side .av { width: clamp(80px, 9vw, 128px); }
-.live-centro .live-big { font-size: clamp(30px, 4.2vw, 54px); }
-.live-centro .live-side-nome { font-size: clamp(15px, 1.7vw, 23px); }
-.live-centro .live-vs-x { font-size: clamp(24px, 3vw, 44px); }
-.live-centro .live-duel { gap: 8px; }
+.live-noite .nt-mapa { width: 100%; max-width: none; aspect-ratio: 1 / 0.92; }
+.live-noite .nt-lado { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.live-noite .nt-lado > .nt-cartao:first-child, .live-noite .nt-lado > .nt-cartao:last-child { display: none; } /* o progresso esta no chip do topo; as manchetes ficam na aba Apuracao */
+.live-noite .nt-dica, .live-noite .nt-leg { display: none; }
+.live-noite .nt-cartao { padding: 9px 10px; }
+.live-noite .nt-cartao h3 { margin-bottom: 5px; }
+.live-noite .nt-manchetes { max-height: 110px; overflow: auto; }
+.live-noite .apu-vistas button { min-height: 30px; padding: 4px 8px; font-size: 12px; }
+
+/* Resultado do TSE: selo animado de eleito e de nao eleito; so o texto do TSE conta. */
+.live-resultado { padding: 9px 11px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.live-resultado h3 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 6px; }
+.live-resultado ul { display: flex; flex-direction: column; gap: 5px; max-height: 112px; margin: 0; padding: 0; overflow: auto; list-style: none; }
+.live-resultado .res { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 5px 7px; border-radius: var(--r-md); background: var(--sunk); border-left: 3px solid var(--corrige); animation: res-entra 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.live-resultado .res.eleito { border-left-color: var(--confirma); box-shadow: inset 0 0 24px -14px var(--confirma); }
+.live-resultado .res.nao { opacity: 0.78; filter: grayscale(0.6); animation-name: res-apaga; }
+.res-selo { display: inline-flex; flex-direction: column; align-items: center; gap: 1px; padding: 3px 6px; border-radius: 4px; background: var(--confirma); color: var(--confirma-ink); font: 900 9.5px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; rotate: -3deg; }
+.res-selo small { font: 500 8px/1 var(--mono); opacity: 0.8; }
+.res.nao .res-selo { background: var(--muted); color: var(--surface); }
+.res.turno { border-left-color: var(--corrige); }
+.res.turno .res-selo { background: var(--corrige); color: var(--corrige-ink); }
+.res.eleito .res-selo { animation: res-carimbo 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.res-nome { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
+.res-nome b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; }
+.res-nome small { font: 500 10px var(--mono); color: var(--muted); }
+.res-pct { font: 700 12px var(--mono); font-variant-numeric: tabular-nums; }
+@keyframes res-entra { from { opacity: 0; transform: translateY(8px); } }
+@keyframes res-apaga { from { opacity: 0; filter: none; } }
+@keyframes res-carimbo { 0% { opacity: 0; scale: 2.4; rotate: -16deg; } 45% { opacity: 1; scale: 0.94; rotate: -6deg; } 70% { scale: 1.06; rotate: -6deg; } 100% { scale: 1; rotate: -3deg; } }
+.live-side.eleito .rot.alta { animation: selo-pulsa 2.4s ease-in-out infinite; }
+@keyframes selo-pulsa { 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--confirma) 26%, transparent); } }
+
+/* Total consolidado e quem foi eleito: detalhes que nao empurram a previsao para fora da tela. */
+.live-detalhe { padding: 7px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.live-detalhe summary { cursor: pointer; font: 700 11.5px var(--mono); letter-spacing: 0.03em; text-transform: uppercase; color: var(--ink-2); }
+.live-detalhe summary small { font-weight: 500; color: var(--muted); text-transform: none; }
+.live-detalhe .live-consol { margin: 8px 0 0; }
+.live-detalhe .live-consol h4 { margin-top: 0; }
+.live-noite-eleitos { max-height: 250px; padding: 9px 11px; overflow: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.live-noite-eleitos h3 { margin: 0 0 6px; }
+.live-noite-eleitos .apu-linha li { padding: 6px 8px; }
+
+/* Previsao em uma tela: leitura principal, tres numeros e a tabela; o resto abre em "As tres leituras". */
+.prev-compacto { gap: 8px; padding: 10px 12px; width: 100%; max-width: 310px; }
+.prev-cabeca { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.prev-cabeca h3 { margin: 0; font: 900 18px/1 var(--display); text-transform: uppercase; }
+.prev-cabeca h3 small { display: block; margin-top: 2px; font: 500 10px var(--mono); color: var(--muted); text-transform: none; }
+.prev-selo { display: inline-flex; align-items: center; padding: 3px 7px; border-radius: 999px; background: var(--corrige); color: var(--corrige-ink); font: 700 9.5px/1.2 var(--mono); letter-spacing: 0.03em; text-transform: uppercase; text-align: center; }
+.prev-cabeca .prev-selo { max-width: 46%; font-size: 8.5px; line-height: 1.2; }
+.prev-fav { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px; }
+.prev-anel-sm { --v: 0; position: relative; flex: none; width: 74px; height: 74px; padding: 3px; border-radius: 50%; background: conic-gradient(var(--lado) calc(var(--v) * 1%), var(--sunk) 0); }
+.prev-anel-sm .av { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.prev-anel-sm b { position: absolute; left: 50%; bottom: -7px; translate: -50% 0; padding: 1px 6px; border: 1px solid var(--lado); border-radius: 999px; background: var(--surface); font: 900 12px var(--display); white-space: nowrap; }
+.prev-fav-txt h4 { margin: 0; font: 900 clamp(16px, 1.5vw, 21px)/1 var(--display); text-transform: uppercase; }
+.prev-fav-txt h4 small { font: 500 11px var(--mono); color: var(--muted); }
+.prev-fav-txt p { margin: 3px 0 0; }
+.prev-mini { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 0; }
+.prev-mini div { padding: 5px 7px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); }
+.prev-mini dt { font: 500 9.5px var(--mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.prev-mini dd { margin: 1px 0 0; font: 700 12px var(--mono); font-variant-numeric: tabular-nums; }
+.prev-tab { width: 100%; border-collapse: collapse; font-size: 12px; }
+.prev-tab th, .prev-tab td { padding: 4px 5px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; }
+.prev-tab th:first-child { text-align: left; }
+.prev-tab thead th { font: 600 9.5px var(--mono); text-transform: uppercase; color: var(--muted); }
+.prev-tab tbody th { font-weight: 600; white-space: nowrap; }
+.prev-tab tbody th small { display: block; font: 500 9.5px var(--mono); color: var(--muted); }
+.prev-compacto .prev-bar { height: 16px; }
+.prev-compacto .prev-mais { margin-top: 2px; }
+.prev-compacto .prev-mais summary { font-size: 11px; }
+.prev-compacto .prev-leituras { grid-template-columns: minmax(0, 1fr); }
+
 .nt-msg[hidden] { display: none; } /* .empty would otherwise keep its display:flex */
-@media (max-width: 1100px) { .live-palco { grid-template-columns: minmax(0, 1fr); } .live-mapa-col { order: -1; } /* the map is the picker: it comes first when the screen stacks */ }
+@media (max-width: 1250px) {
+  .live-palco { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .live-col-prev { grid-column: 1 / -1; max-width: 360px; justify-self: center; }
+  .live-col-prev .prev-compacto { max-width: 360px; }
+}
+@media (max-width: 980px) {
+  .live-palco { grid-template-columns: minmax(0, 1fr); }
+  .live-col-mapa { order: -2; }
+  .live-col-prev { order: -1; grid-column: auto; max-width: 360px; justify-self: center; }
+  .live-col-prev .prev-compacto { max-width: 360px; }
+}
+@media (max-width: 480px) {
+  .live-col-prev, .live-col-prev .prev-compacto { max-width: 100%; }
+}
 @media (max-width: 640px) {
   .live > h2 { font-size: clamp(22px, 6.5vw, 30px); }
-  .live-onde b { font-size: 22px; }
-  .live .live-filtro { gap: 6px; }
-  .live .live-filtro .ghost, .live .apu-turnos button { min-height: 36px; padding: 5px 10px; font-size: 12px; }
-  .live .apu-turno-datas { display: none; }
-  .live .exp-meta { font-size: 12px; }
-  .live-noite .nt-mapa { aspect-ratio: 1 / 1; }
+  .live-cabeca { gap: 4px; }
+  .live-titulo h2 { font-size: 26px; }
+  .live-acoes { gap: 4px; }
+  .live-acoes .ghost, .live-acoes .apu-turnos button { min-height: 34px; padding: 4px 8px; }
+  .live-status { gap: 4px; }
+  .live-noite .nt-mapa { aspect-ratio: 1 / 0.92; }
+  .live-col-hero .live-side .av { width: 64px; }
+  .live-col-hero .live-big { font-size: 30px; }
+  .live-col-hero .apu-evo { max-height: 90px; }
+  .dica::after { left: auto; right: 0; translate: 0 0; max-width: min(280px, 82vw); }
+}
+
+
+
+
+/* Em telas altas o painel cabe inteiro: sem barra de rolagem de 1 px. */
+@media (min-width: 981px) and (min-height: 840px) { body[data-visao="aovivo"] { overflow: hidden; } }
+
+
+
+
+/* Ajuste de largura: tres colunas em qualquer tela >= 981 px (inclusive com o menu fixado),
+   e o duelo sem a barra de 50% quando a coluna fica estreita. A previsao fica sempre visivel. */
+@media (min-width: 981px) {
+  .live-palco { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1.2fr) minmax(260px, 310px); }
+  .live-col-prev { grid-column: auto; max-width: 310px; justify-self: stretch; }
+}
+@container (max-width: 1000px) {
+  .live-col-hero .apu-duelo { display: none; } /* a barra de 50% fica na aba Apuracao quando a coluna e estreita */
 }

@@ -11,9 +11,11 @@ export interface PrevProps {
   estado: "carregando" | "sem-disputa" | "concluida" | "ok";
   previsao?: Previsao | null; hist?: PontoPrev[]; avatar: AvatarPrev; cor: (partido: string) => string;
   arquivos?: { chegaram: number; esperados: number }; // 1st round: the 28 files must each answer once
+  compacto?: boolean; // the Ao vivo dashboard: one screen, details behind a <details>
 }
 
 export const AVISO_PREV = `<p class="apu-aviso"><b>Estimativa do Radar, não é resultado.</b> É uma simulação sobre os votos já apurados e as pesquisas. Quem foi eleito é o que o TSE marca.</p>`;
+const DICA_ESTIMATIVA = "Estimativa do Radar, não é resultado: simulação sobre os votos já apurados e as pesquisas. Quem foi eleito é o que o TSE marca.";
 const curto = (nome: string) => titleName(nome).split(" ").slice(0, 2).join(" ");
 const virgula = (x: number, d = 1) => x.toFixed(d).replace(".", ",");
 const votos = (n: number) => (n >= 1e6 ? `${virgula(n / 1e6)} mi` : int(Math.round(n)));
@@ -76,16 +78,67 @@ function metodo(p: Previsao): string {
   </ol></details>`;
 }
 
-export function renderPrevisao({ estado, previsao: p, hist = [], avatar, cor, arquivos }: PrevProps): string {
+function leituraCompacta(l: LadoPrev, cor: PrevProps["cor"]): string {
+  const p = l.pesquisa;
+  return `<tr style="--lado:${h(cor(l.partido))}">
+    <th scope="row"><i class="key" style="background:${h(cor(l.partido))}"></i>${h(curto(l.nome))}<small>${h(l.partido)}</small></th>
+    <td>${p ? pct(p.media, 1) : "–"}</td>
+    <td>${l.apuracao === null ? "–" : pct(l.apuracao, 1)}</td>
+    <td>${pct(l.mc[1], 1)}</td></tr>`;
+}
+
+// One screen of the Ao vivo dashboard: leader, chance, the three readings as a table, and everything else behind "As três leituras".
+function previsaoCompacta(p: Previsao, hist: PontoPrev[], avatar: AvatarPrev, cor: PrevProps["cor"]): string {
+  const f = p.favorito, o = p.outro;
+  const aberta = p.nivel === "aberta";
+  const previa = f.apuracao === null;
+  const sorteios = Math.round(f.chance * p.n);
+  const defasadas = p.defasadas.length ? `<p class="apu-aviso small"><b>Defasado:</b> ${int(p.defasadas.length)} ${p.defasadas.length === 1 ? "arquivo" : "arquivos"} (${h(p.defasadas.join(", "))}).</p>` : "";
+  return `<section class="prev prev-compacto" aria-labelledby="prev-t">
+    <header class="prev-cabeca">
+      <h3 id="prev-t">Previsão do Radar <small>${h(curto(f.nome))} × ${h(curto(o.nome))}</small></h3>
+      <span class="prev-selo dica" tabindex="0" data-dica="${h(DICA_ESTIMATIVA)}" aria-label="${h(DICA_ESTIMATIVA)}">Estimativa do Radar, não é resultado</span>
+    </header>
+    <div class="prev-fav" style="--lado:${h(cor(f.partido))}">
+      <div class="prev-anel-sm" style="--v:${(f.chance * 100).toFixed(1)}">${avatar({ id: f.id, nome: f.nome }, "md")}<b>${h(f.chance > 0.99 ? ">99%" : pct(f.chance, 0))}</b></div>
+      <div class="prev-fav-txt">
+        <h4>${h(titleName(f.nome))} <small>${h(f.partido)}</small></h4>
+        <p class="small"><span class="rot ${aberta ? "aberta" : "alta"}">${previa ? "Prévia, sem votos" : NIVEL_TXT[p.nivel]}</span> ${previa ? "à frente nas pesquisas" : "deve terminar à frente"}</p>
+        <p class="muted small">${int(sorteios)} de ${int(p.n)} sorteios · ${h(curto(o.nome))} ${chanceTxt(o.chance)}</p>
+      </div>
+    </div>
+    <div class="prev-bar" role="img" aria-label="${h(`${curto(f.nome)} ${chanceTxt(f.chance)}, ${curto(o.nome)} ${chanceTxt(o.chance)}`)}"><span style="width:${(f.chance * 100).toFixed(1)}%;background:${h(cor(f.partido))}"></span><span style="width:${(o.chance * 100).toFixed(1)}%;background:${h(cor(o.partido))}"></span><u></u></div>
+    <dl class="prev-mini">
+      <div><dt data-dica="Mediana do Monte Carlo; a faixa vai de 5% a 95% dos sorteios">Final</dt><dd>${pct(f.mc[1], 1)}</dd></div>
+      <div><dt data-dica="Chance de a disputa ir ao 2º turno">2º turno</dt><dd>${p.segundoTurno === null ? "–" : chanceTxt(p.segundoTurno)}</dd></div>
+      <div><dt data-dica="Votos válidos que ainda faltam entrar">Faltam</dt><dd>${votos(p.faltam)}</dd></div>
+    </dl>
+    <table class="prev-tab">
+      <caption class="sr">Pesquisas, apuração e Monte Carlo dos dois primeiros</caption>
+      <thead><tr><th scope="col">Candidatura</th><th scope="col">Pesq.</th><th scope="col">Apur.</th><th scope="col">MC</th></tr></thead>
+      <tbody>${leituraCompacta(f, cor)}${leituraCompacta(o, cor)}</tbody>
+    </table>
+    <details class="how prev-mais"><summary>As três leituras e a curva</summary>
+      <div class="prev-leituras">${regua(f, cor)}${regua(o, cor)}</div>
+      <div class="prev-hist" style="--lado:${h(cor(f.partido))}">${curvaSvg(p, hist)}</div>
+      ${metodo(p)}
+    </details>
+    ${defasadas}
+  </section>`;
+}
+
+export function renderPrevisao({ estado, previsao: p, hist = [], avatar, cor, arquivos, compacto = false }: PrevProps): string {
   const topo = (turno?: number) => `<header><h3 id="prev-t">Previsão do Radar <small>Presidente · Brasil${turno === 2 ? " · 2º turno" : ""}</small></h3></header>`;
-  const casca = (corpo: string, turno?: number) => `<section class="prev" aria-labelledby="prev-t">${topo(turno)}${corpo}</section>`;
+  const aviso = compacto ? `<p class="prev-selo dica" tabindex="0" data-dica="${h(DICA_ESTIMATIVA)}" aria-label="${h(DICA_ESTIMATIVA)}">Estimativa do Radar, não é resultado</p>` : AVISO_PREV;
+  const casca = (corpo: string, turno?: number) => `<section class="prev${compacto ? " prev-compacto" : ""}" aria-labelledby="prev-t">${topo(turno)}${corpo}</section>`;
   if (estado === "sem-disputa") return casca(`<p class="empty">Esta disputa não tem 2º turno: não há previsão a calcular.</p>`, 2);
   if (estado === "concluida") return casca(`<p class="exp-read">A apuração terminou: vale o resultado do TSE, e a previsão deixa de fazer sentido.</p>`);
   if (estado === "carregando") {
     const q = arquivos && arquivos.esperados > 0 ? ` ${arquivos.chegaram} de ${arquivos.esperados} arquivos do TSE responderam.` : "";
-    return casca(`${AVISO_PREV}<p class="empty">Carregando os arquivos de todos os estados e o modelo…${q}</p>`);
+    return casca(`${aviso}<p class="empty">Carregando os arquivos de todos os estados e o modelo…${q}</p>`);
   }
-  if (!p) return casca(`${AVISO_PREV}<p class="empty">Ainda não há votos apurados para simular. A previsão aparece com o primeiro arquivo que tenha votos.</p>`);
+  if (!p) return casca(`${aviso}<p class="empty">Ainda não há votos apurados para simular. A previsão aparece com o primeiro arquivo que tenha votos.</p>`);
+  if (compacto) return previsaoCompacta(p, hist, avatar, cor);
   const f = p.favorito, o = p.outro;
   const aberta = p.nivel === "aberta";
   const previa = f.apuracao === null; // no vote counted: the simulation can only repeat the polls
