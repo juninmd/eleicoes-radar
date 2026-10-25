@@ -56,7 +56,9 @@ describe("static server", () => {
   test("modules revalidate on every load; only static assets keep the 5 min cache", async () => {
     // Tabs load lazily: a stale cached dependency next to a fresh dependant fails with "does not provide an export named ...".
     expect((await get("/apuracao-aovivo.js")).headers.get("cache-control")).toBe("no-cache"); // served from the .ts source
-    expect((await get("/app.css")).headers.get("cache-control")).toBe("public, max-age=300");
+    // The stylesheet too: after a deploy new markup next to the old CSS shows broken layouts (a 304 costs no body).
+    expect((await get("/app.css")).headers.get("cache-control")).toBe("no-cache");
+    expect((await get("/data/meta.json")).headers.get("cache-control")).toBe("public, max-age=300");
     const mod = await get("/apuracao-aovivo.js");
     const cond = await get("/apuracao-aovivo.js", { headers: { "if-none-match": mod.headers.get("etag")! } });
     expect(cond.status).toBe(304);
