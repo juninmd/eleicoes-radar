@@ -846,3 +846,38 @@
   .live .nt-barra .apu-vistas button { flex: 0 0 auto; }
   .live .nt-barra .nt-contagem { flex: 1 0 100%; }
 }
+
+/* Ao vivo em tela cheia: o mapa e o total dividem a largura; o celular empilha. */
+.live-onde { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 2px 0 8px; }
+.live-onde span { color: var(--ink-2); font-size: 14px; }
+.live-onde b { font: 900 clamp(20px, 3vw, 34px)/1 var(--display); text-transform: uppercase; color: var(--ink); }
+.live-onde .ghost { margin-left: 2px; }
+.live-palco { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: clamp(12px, 2vw, 26px); align-items: start; margin-top: 10px; }
+.live-centro { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.live-centro .live-hero { margin: 0; }
+.live-mapa-col { display: flex; flex-direction: column; min-width: 0; }
+.live-noite { display: flex; flex: 1; flex-direction: column; margin: 0; min-width: 0; }
+.live-noite .nt { flex: 1; }
+.live-noite .nt-duelo { display: none; } /* o duelo do Presidente acima já mostra os dois primeiros */
+.live-noite .nt-corpo { grid-template-columns: minmax(0, 1fr); }
+.live-noite .nt-mapa { width: 100%; max-width: none; aspect-ratio: 4 / 3; }
+.live-noite .nt-lado { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.live-noite .nt-manchetes { min-height: 0; }
+/* O duelo do Presidente fica compacto na coluna do total: a tela cheia é para o mapa e os números, não para retratos grandes. */
+.live-centro .live-side { padding: 14px 10px; }
+.live-centro .live-side .av { width: clamp(80px, 9vw, 128px); }
+.live-centro .live-big { font-size: clamp(30px, 4.2vw, 54px); }
+.live-centro .live-side-nome { font-size: clamp(15px, 1.7vw, 23px); }
+.live-centro .live-vs-x { font-size: clamp(24px, 3vw, 44px); }
+.live-centro .live-duel { gap: 8px; }
+.nt-msg[hidden] { display: none; } /* .empty would otherwise keep its display:flex */
+@media (max-width: 1100px) { .live-palco { grid-template-columns: minmax(0, 1fr); } .live-mapa-col { order: -1; } /* the map is the picker: it comes first when the screen stacks */ }
+@media (max-width: 640px) {
+  .live > h2 { font-size: clamp(22px, 6.5vw, 30px); }
+  .live-onde b { font-size: 22px; }
+  .live .live-filtro { gap: 6px; }
+  .live .live-filtro .ghost, .live .apu-turnos button { min-height: 36px; padding: 5px 10px; font-size: 12px; }
+  .live .apu-turno-datas { display: none; }
+  .live .exp-meta { font-size: 12px; }
+  .live-noite .nt-mapa { aspect-ratio: 1 / 1; }
+}

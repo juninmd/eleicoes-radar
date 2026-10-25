@@ -44,12 +44,16 @@ describe("Ao vivo", () => {
     expect(html).not.toContain("live-side");
   });
 
-  test("o filtro lista Brasil, todos os estados, exterior e as 27 UFs, e marca a escolhida", () => {
-    const html = renderAoVivo(props({ escopo: "RJ" }));
-    expect(html).toContain('<option value="TODOS">');
-    expect(html).toContain('<option value="ZZ">Exterior</option>');
-    expect(html).toContain('<option value="RJ" selected>RJ</option>');
-    expect(html.match(/<option /g)).toHaveLength(30);
+  test("o mapa é o filtro: Brasil (total) por padrão, estado escolhido e botão de voltar", () => {
+    const br = renderAoVivo(props());
+    expect(br).not.toContain("live-escopo");
+    expect(br).toContain("Mostrando <b>Brasil (total)</b>");
+    expect(br).not.toContain("data-live-total"); // no "back" while already on the total
+    const rj = renderAoVivo(props({ escopo: "RJ" }));
+    expect(rj).toContain("Mostrando <b>RJ</b>");
+    expect(rj).toContain("Voltar ao Brasil (total)");
+    expect(rj).toContain("data-fx-host"); // the map stays as the picker in every scope
+    expect(renderAoVivo(props({ escopo: "ZZ", hero: heroDe("ZZ"), linhas: [] }))).toContain("Mostrando <b>Exterior</b>");
   });
 
   test("todos os estados ao mesmo tempo: um quadro por UF e o exterior no Presidente", () => {
@@ -63,7 +67,7 @@ describe("Ao vivo", () => {
     expect(html).toContain("Todos os estados");
   });
 
-  test("Brasil e todos os estados trazem o total consolidado e o lugar do mapa em tempo real; o Senador mantém o mapa estático", () => {
+  test("o total consolidado fica no Brasil; o mapa em tempo real fica em todos os escopos", () => {
     const d = parseApuracao(file({ cands: dois }))!;
     const ufs = Object.fromEntries(["SP", "ZZ"].map((u) => [u, { status: "ok" as const, dados: d, erro: null, buscadoEm: new Date() }]));
     const nac = { cargo: "Presidente" as const, ciclo: 1, buscadoEm: new Date(), ufs };
@@ -72,12 +76,11 @@ describe("Ao vivo", () => {
     expect(brasil).toContain("data-fx-host");
     expect(brasil).toContain("Mapa em tempo real");
     expect(renderAoVivo(props({ escopo: TODOS, nac }))).toContain("Total consolidado");
-    const gov = renderAoVivo(props({ escopo: TODOS, nac: { ...nac, cargo: "Governador" as const }, cargoTodos: "Governador" as const }));
-    expect(gov).toContain("data-fx-host");
-    expect(gov).not.toContain("Total consolidado");
+    const rj = renderAoVivo(props({ escopo: "RJ" }));
+    expect(rj).not.toContain("Total consolidado"); // the total is national; a state does not inherit it
+    expect(rj).toContain("data-fx-host");
     const sen = renderAoVivo(props({ escopo: TODOS, nac: { ...nac, cargo: "Senador" as const }, cargoTodos: "Senador" as const }));
-    expect(sen).not.toContain("data-fx-host");
-    expect(renderAoVivo(props({ escopo: "RJ" }))).not.toContain("data-fx-host");
+    expect(sen).toContain("data-fx-host"); // the map is the picker, so it stays even where the static map used to be
   });
 
   test("no exterior só há o Presidente: sem cartões de estado", () => {
@@ -99,7 +102,7 @@ describe("Ao vivo", () => {
   test("cartões e a linha do tempo reúnem as disputas; arquivo velho é avisado; ninguém é chamado de vencedor", () => {
     const l = linhaDe("Governador", "SP");
     const velha = { ...l, snap: { ...l.snap!, status: "erro" as const, erro: "sem conexão com o TSE" } };
-    const html = renderAoVivo(props({ linhas: [velha, sem("Senador", "SP")] }));
+    const html = renderAoVivo(props({ escopo: "SP", linhas: [velha, sem("Senador", "SP")] }));
     expect(html.match(/class="live-card"/g)).toHaveLength(2);
     expect(html).toContain("Consultando o TSE…");
     expect(html).toContain("Números desatualizados");
@@ -113,10 +116,10 @@ describe("Previsão do Radar na aba", () => {
   const previsao = { turno: 1 as const, favorito: lado("a1", "ANA SOUZA", 0.82), outro: lado("b2", "BETO LIMA", 0.18), nivel: "clara" as const, n: 2000, contados: 0.6, faltam: 3e6, decideNoPrimeiro: 0.2, segundoTurno: 0.8, defasadas: [] };
   const prev = { estado: "ok" as const, previsao, hist: [], avatar, cor };
 
-  test("vem logo depois do duelo e antes dos cartões; sem ela a tela fica como era", () => {
+  test("vem logo depois do duelo e antes da linha do tempo; sem ela a tela fica como era", () => {
     const html = renderAoVivo(props({ prev }));
     expect(html.indexOf("live-hero")).toBeLessThan(html.indexOf('class="prev"'));
-    expect(html.indexOf('class="prev"')).toBeLessThan(html.indexOf("live-card"));
+    expect(html.indexOf('class="prev"')).toBeLessThan(html.indexOf("Quem foi eleito"));
     expect(html).toContain("Estimativa do Radar, não é resultado");
     expect(renderAoVivo(props())).not.toContain('class="prev"');
   });

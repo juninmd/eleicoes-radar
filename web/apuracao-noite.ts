@@ -136,6 +136,10 @@ export interface NoiteProps {
   efeitos: boolean;
   salto?: boolean;
   simulado?: boolean;
+  lugar?: Lugar; // forces the Brazil/Exterior choice (the Ao vivo filter); undefined leaves it to the reader
+  onUf?: (uf: string) => void; // a state was clicked: the caller may filter the tab to it
+  onLugar?: (lugar: Lugar) => void;
+  semAbrir?: boolean; // embedded in a tab that already acts on the state click: no "open" button
   anunciar?: (txt: string) => void;
   som?: { vira(): void };
 }
@@ -151,7 +155,7 @@ const ESQUELETO = `<section class="nt-duelo" aria-label="Os dois mais votados no
         <span class="muted small nt-contagem"></span>
       </div>
       <p class="empty nt-msg" hidden></p>
-      <div class="nt-mapa" role="group" aria-label="Mapa interativo: arraste para mover; use os botões, Ctrl e a rolagem ou a pinça para ampliar">
+      <div class="nt-mapa" role="group" aria-label="Mapa interativo: arraste para mover; use os botões, a rolagem do mouse ou a pinça para ampliar">
         <div class="nt-cena"><div class="nt-mundo"></div></div>
         <canvas class="nt-fx" aria-hidden="true"></canvas>
         <div class="nt-zoom" role="group" aria-label="Zoom do mapa"><button type="button" data-nt-zoom="mais" aria-label="Ampliar o mapa">+</button><button type="button" data-nt-zoom="menos" aria-label="Reduzir o mapa">−</button><button type="button" data-nt-zoom="ajustar" aria-label="Voltar ao enquadramento">⤢</button></div>
@@ -359,7 +363,7 @@ export function criarNoite(): Painel<NoiteProps> & { raiz: HTMLElement | null; a
     el.innerHTML = `<h3>Estado em foco</h3><p class="nt-foco-uf">${h(sel)} <small>${h(nomeUf(sel))}</small></p>
       <p class="muted small">${int(l.secoes.totalizadas)} de ${int(l.secoes.total)} seções (${pct1(l.avanco ?? 0)})${l.defasada ? " · desatualizado: o TSE não respondeu na última consulta" : ""}</p>
       <ol class="nt-foco-lista">${linhas.join("")}</ol>
-      <button type="button" class="ghost" data-abrir-uf="${h(sel)}">Abrir ${h(sel)} na apuração</button>`;
+      ${p.semAbrir ? "" : `<button type="button" class="ghost" data-abrir-uf="${h(sel)}">Abrir ${h(sel)} na apuração</button>`}`;
   }
 
   function manchete(e: EventoNoite, cor: string) {
@@ -389,7 +393,7 @@ export function criarNoite(): Painel<NoiteProps> & { raiz: HTMLElement | null; a
       raiz.addEventListener("click", (e) => {
         const t = e.target as Element;
         const lg = t.closest<HTMLElement>("[data-nt-lugar]");
-        if (lg) { lugar = lg.dataset.ntLugar === "exterior" ? "exterior" : "brasil"; if (ultimo) { aplicarLugar(ultimo); depoisDoPrimeiroQuadro(ajustar); } return; }
+        if (lg) { lugar = lg.dataset.ntLugar === "exterior" ? "exterior" : "brasil"; if (ultimo) { aplicarLugar(ultimo); depoisDoPrimeiroQuadro(ajustar); ultimo.onLugar?.(lugar); } return; }
         const f = t.closest<HTMLElement>("[data-nt-forma]");
         if (f) { trocarForma(f.dataset.ntForma === "carto" ? "carto" : "mapa"); return; }
         const u = t.closest<HTMLElement>("[data-nt-uf]");
@@ -397,7 +401,7 @@ export function criarNoite(): Painel<NoiteProps> & { raiz: HTMLElement | null; a
           ufs.get(sel)?.b.setAttribute("aria-pressed", "false");
           sel = u.dataset.ntUf!;
           u.setAttribute("aria-pressed", "true");
-          if (ultimo) foco(ultimo);
+          if (ultimo) { foco(ultimo); ultimo.onUf?.(sel); }
         }
       });
       zoom = criarZoom({ vp: q<HTMLElement>(".nt-mapa"), cena: q<HTMLElement>(".nt-cena"), reduzido: () => movimentoReduzido() || !ultimo?.efeitos });
@@ -444,6 +448,7 @@ export function criarNoite(): Painel<NoiteProps> & { raiz: HTMLElement | null; a
       prog.setAttribute("aria-label", `${pct1(topo.avanco)} das seções totalizadas`);
       q<HTMLElement>(".nt-prog-t").textContent = topo.secoes.total ? `${int(topo.secoes.totalizadas)} de ${int(topo.secoes.total)} seções (${pct1(topo.avanco)}), soma dos ${int(topo.arquivos.com)} arquivos lidos` : "Aguardando os primeiros arquivos.";
       foco(p);
+      if (p.lugar && p.lugar !== lugar) { lugar = p.lugar; enquadrado = ""; } // the Ao vivo filter chose Brazil or Exterior: frame it once
       aplicarLugar(p);
 
       if (!p.salto) {

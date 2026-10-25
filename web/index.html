@@ -10,6 +10,32 @@
 <script src="boot.js"></script>
 
 <a class="skip" href="#principal">Pular para as candidaturas</a>
+<button type="button" id="menu-toggle" class="menu-toggle" aria-expanded="false" aria-controls="menu" aria-label="Abrir menu de seções">
+  <span aria-hidden="true">☰</span>
+</button>
+<div id="menu-scrim" class="menu-scrim" hidden></div>
+<nav id="menu" class="menu" aria-label="Seções do Radar">
+  <div class="menu-topo">
+    <span class="menu-marca">Radar do Voto <b>2026</b></span>
+    <button type="button" id="menu-fixar" class="menu-pin" aria-pressed="false" aria-label="Manter o menu aberto">Fixar</button>
+    <button type="button" id="menu-fechar" class="menu-fechar" aria-label="Fechar menu">×</button>
+  </div>
+  <div id="modos" role="tablist" aria-label="Visão" aria-orientation="vertical">
+    <button type="button" role="tab" id="tab-radar" aria-controls="painel" data-modo="radar" aria-selected="true">Radar técnico</button>
+    <button type="button" role="tab" id="tab-expectativa" aria-controls="painel" data-modo="expectativa" aria-selected="false" tabindex="-1">Expectativa</button>
+    <button type="button" role="tab" id="tab-rede" aria-controls="painel" data-modo="rede" aria-selected="false" tabindex="-1">Rede</button>
+    <button type="button" role="tab" id="tab-aovivo" aria-controls="painel" data-modo="aovivo" aria-selected="false" tabindex="-1">Ao vivo</button>
+    <button type="button" role="tab" id="tab-apuracao" aria-controls="painel" data-modo="apuracao" aria-selected="false" tabindex="-1">Apuração</button>
+    <button type="button" role="tab" id="tab-partidos" aria-controls="painel" data-modo="partidos" aria-selected="false" tabindex="-1">Partidos</button>
+    <button type="button" role="tab" id="tab-dinheiro" aria-controls="painel" data-modo="dinheiro" aria-selected="false" tabindex="-1">Dinheiro</button>
+    <button type="button" role="tab" id="tab-aliancas" aria-controls="painel" data-modo="aliancas" aria-selected="false" tabindex="-1">Alianças</button>
+    <button type="button" role="tab" id="tab-perfil" aria-controls="painel" data-modo="perfil" aria-selected="false" tabindex="-1">Perfil</button>
+    <button type="button" role="tab" id="tab-redes" aria-controls="painel" data-modo="redes" aria-selected="false" tabindex="-1">Redes</button>
+  </div>
+  <div class="menu-rodape">
+    <a href="#sobre" id="menu-sobre">Como funciona</a>
+  </div>
+</nav>
 <header class="hero">
   <div class="wrap hero-in">
     <h1>Radar do Voto <span>2026</span></h1>
@@ -61,18 +87,6 @@
   </aside>
 
   <main id="principal" tabindex="-1">
-    <div id="modos" role="tablist" aria-label="Visão">
-      <button type="button" role="tab" id="tab-radar" aria-controls="painel" data-modo="radar" aria-selected="true">Radar técnico</button>
-      <button type="button" role="tab" id="tab-expectativa" aria-controls="painel" data-modo="expectativa" aria-selected="false" tabindex="-1">Expectativa</button>
-      <button type="button" role="tab" id="tab-rede" aria-controls="painel" data-modo="rede" aria-selected="false" tabindex="-1">Rede</button>
-      <button type="button" role="tab" id="tab-aovivo" aria-controls="painel" data-modo="aovivo" aria-selected="false" tabindex="-1">Ao vivo</button>
-      <button type="button" role="tab" id="tab-apuracao" aria-controls="painel" data-modo="apuracao" aria-selected="false" tabindex="-1">Apuração</button>
-      <button type="button" role="tab" id="tab-partidos" aria-controls="painel" data-modo="partidos" aria-selected="false" tabindex="-1">Partidos</button>
-      <button type="button" role="tab" id="tab-dinheiro" aria-controls="painel" data-modo="dinheiro" aria-selected="false" tabindex="-1">Dinheiro</button>
-      <button type="button" role="tab" id="tab-aliancas" aria-controls="painel" data-modo="aliancas" aria-selected="false" tabindex="-1">Alianças</button>
-      <button type="button" role="tab" id="tab-perfil" aria-controls="painel" data-modo="perfil" aria-selected="false" tabindex="-1">Perfil</button>
-      <button type="button" role="tab" id="tab-redes" aria-controls="painel" data-modo="redes" aria-selected="false" tabindex="-1">Redes</button>
-    </div>
     <div id="painel" role="tabpanel" aria-labelledby="tab-radar">
     <div id="cedulas" role="tablist" aria-label="Cédulas na ordem da urna"></div>
     <div id="cedula-painel" role="tabpanel">
