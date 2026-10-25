@@ -116,6 +116,14 @@ describe("evolucao", () => {
     expect(html).toContain("99,9%");
   });
 
+  test("the wide variant keeps the width and the lines, and only shortens the box (the compact Ao vivo column)", () => {
+    const normal = evolucao(pts(4), quem, cor), largo = evolucao(pts(4), quem, cor, {}, { largo: true });
+    expect(normal).toContain('viewBox="0 0 640 250"');
+    expect(largo).toContain('viewBox="0 0 640 170"');
+    expect(largo.match(/<polyline/g)).toHaveLength(3);
+    expect(largo).toContain("50,0%");
+  });
+
   test("needs at least two points: before that it explains when the chart will appear", () => {
     const html = evolucao(pts(1), quem, cor);
     expect(html).not.toContain("<svg");
