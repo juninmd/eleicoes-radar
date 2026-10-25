@@ -6,6 +6,8 @@
 import { resolve, sep } from "node:path";
 import { brotliCompress, constants as Z } from "node:zlib";
 import { promisify } from "node:util";
+import type { Api } from "./aovivo/api.js";
+import { ipDe } from "./aovivo/limite.js";
 
 const ROOT = resolve(process.env.WEB_ROOT ?? "web");
 const PORT = Number(process.env.PORT ?? 4173);
@@ -75,7 +77,9 @@ async function compile(source: string, key: string): Promise<Bytes> {
   return out;
 }
 
-export const handleAt = (root: string) => async (req: Request): Promise<Response> => secure(await route(req, resolve(root)));
+// `api` answers /api/* (presence, cheering, push); null in the static-only tests and for a plain `handle`.
+export const handleAt = (root: string, api: Api | null = null) => async (req: Request, peer?: string): Promise<Response> =>
+  secure((await api?.(req, ipDe(req, peer))) ?? (await route(req, resolve(root))));
 export const handle = handleAt(ROOT);
 
 async function route(req: Request, root: string): Promise<Response> {
@@ -140,6 +144,9 @@ async function route(req: Request, root: string): Promise<Response> {
 }
 
 if (import.meta.main) {
-  const server = Bun.serve({ port: PORT, hostname: HOST, fetch: handle });
+  const { criarRuntime } = await import("./aovivo/runtime.js");
+  const { api } = await criarRuntime();
+  const comApi = handleAt(ROOT, api);
+  const server = Bun.serve({ port: PORT, hostname: HOST, maxRequestBodySize: 4096, fetch: (req, s) => comApi(req, s.requestIP(req)?.address) });
   console.log(`Radar do Voto em http://${server.hostname}:${server.port}`);
 }

@@ -2,7 +2,7 @@
 
 Volta para o [README](../README.md).
 
-Imagem `ghcr.io/juninmd/eleicoes-radar` (`Dockerfile`: só `web/` + `serve.ts`), servida em
+Imagem `ghcr.io/juninmd/eleicoes-radar` (`Dockerfile`: `web/`, `src/radar/serve.ts` e `src/radar/aovivo/`), servida em
 `https://eleicoes-radar.antonio-code.duckdns.org` por um Deployment no namespace `apps` de um k3s.
 O manifesto não está versionado em `juninmd/app-charts` (404 em 2026-10-24): o `kubectl` abaixo
 reinicia o Deployment que já existe.
@@ -25,6 +25,27 @@ Rollback: `docker push` da tag anterior como `:latest` e `rollout restart`. Saú
 > depois de um merge serve o site sem dados. Depois de cada merge em `main`, publique de novo a imagem
 > construída aqui como `:latest`. No rollback, use uma tag construída aqui (sha curto, do `git rev-parse --short`):
 > as tags de sha longo vêm do CI e também não têm `web/data`.
+
+## Ao vivo: segredos e deploy por tag imutável
+
+O push precisa de chaves VAPID num Secret (sem elas o push fica desligado e o resto funciona):
+
+```sh
+bun run radar:vapid > ../vapid.env          # fora do repositório; guarda a privada
+# no cluster (a privada vai por stdin, não por argumento):
+kubectl -n apps create secret generic eleicoes-radar-vapid --from-env-file=/dev/stdin <<< "$(cat ../vapid.env; echo VAPID_SUBJECT=mailto:operador@exemplo.org)"
+kubectl -n apps set env deploy/eleicoes-radar --from=secret/eleicoes-radar-vapid
+```
+
+Trocar a chave pública invalida as inscrições push. Presença, torcida e inscrições ficam só em memória: todo deploy as zera.
+
+Para não depender de `:latest` (o CI o sobrescreve sem `web/data` a cada merge), implante pela tag do sha:
+
+```sh
+docker push ghcr.io/juninmd/eleicoes-radar:<sha>
+kubectl -n apps set image deploy/eleicoes-radar eleicoes-radar=ghcr.io/juninmd/eleicoes-radar:<sha>
+kubectl -n apps rollout status deploy/eleicoes-radar
+```
 
 O servidor (`src/radar/serve.ts`) envia `Content-Security-Policy` restritiva (`default-src 'none'`, scripts só da própria origem,
 `connect-src` só a origem e `resultados.tse.jus.br`), `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` e afins em toda

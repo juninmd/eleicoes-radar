@@ -1,6 +1,7 @@
 # Allowlist: only the static site and its server go into the image.
 *
 !src/radar/serve.ts
+!src/radar/aovivo/
 !web/
 web/*.test.ts
 web/styles.css
@@ -8,3 +9,6 @@ web/expectativa.css
 web/apuracao.css
 web/aovivo-2t.css
 web/panorama.css
+src/radar/aovivo/*.test.ts
+src/radar/aovivo/keygen.ts
+web/social.css

@@ -651,6 +651,7 @@ setupConexaoListener();
 // A link to the Apuração tab (apuracao-link.ts): the race, the view, the round and, in the simulation, the moment of the night.
 // The link modules load only for a #apuracao hash, so the radar boot stays light.
 async function abrirLink() {
+  if (location.hash === "#aovivo") { state.modo = "aovivo"; return; } // the link a push notification opens
   if (!location.hash.startsWith("#apuracao")) return;
   const [{ decodificar }, { PASSOS }] = await Promise.all([import("./apuracao-link.js"), import("./apuracao-sim.js")]);
   const v = decodificar(location.hash, PASSOS);
