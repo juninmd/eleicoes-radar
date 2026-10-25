@@ -4,9 +4,10 @@
 import type { Apuracao, Cargo } from "../../../web/apuracao-tse.js";
 import { decididos, eleitoTse } from "../../../web/apuracao-eleito.js";
 import { titleName } from "../../../web/format.js";
+import { cartaoUrl } from "./cartao.js";
 
 export interface Disputa { cargo: Cargo; uf: string; rotulo: string; marcos: boolean }
-export interface Evento { id: string; t: number; tipo: string; titulo: string; texto: string; rotulo: string }
+export interface Evento { id: string; t: number; tipo: string; titulo: string; texto: string; rotulo: string; cartao?: string }
 export interface EstadoDisputa { lider: string | null; avanco: number; ultimaVirada: number; viradas: number; emitidos: Set<string> }
 
 export const AVANCO_MINIMO = 0.1; // below this the first urns are noise (same bar as the live tab's "virou")
@@ -25,10 +26,12 @@ export function detectar(prev: EstadoDisputa | null, d: Apuracao, disp: Disputa,
   const avanco = avancoDe(d);
   const comVotos = d.fase !== "aguardando" && !!a && a.votos > 0;
   const par = a && b ? `${nome(a)} ${pct(a.pct)} · ${nome(b)} ${pct(b.pct)} dos votos válidos` : "";
-  const mk = (id: string, tipo: string, titulo: string, texto: string): Evento => ({ id: `${k}:${id}`, t: agora, tipo, titulo, texto, rotulo: rot });
+  // The picture is the two front-runners' share of their valid votes and the sections counted; with fewer than two candidates there is none.
+  const cartao = a && b && a.votos + b.votos > 0 ? cartaoUrl(a.votos / (a.votos + b.votos), avanco) : undefined;
+  const mk = (id: string, tipo: string, titulo: string, texto: string, imagem = true): Evento => ({ id: `${k}:${id}`, t: agora, tipo, titulo, texto, rotulo: rot, ...(imagem && cartao ? { cartao } : {}) });
 
   const fatos: Evento[] = [];
-  if (d.fase !== "aguardando") fatos.push(mk("inicio", "inicio", `${rot}: a apuração começou`, "As primeiras seções chegaram do TSE."));
+  if (d.fase !== "aguardando") fatos.push(mk("inicio", "inicio", `${rot}: a apuração começou`, "As primeiras seções chegaram do TSE.", false));
   if (disp.marcos) for (const [id, lim] of MARCOS) if (avanco >= lim) fatos.push(mk(id, "marco", `${rot}: ${Math.round(lim * 100)}% das seções apuradas`, par));
   for (const id of decididos(d, disp.cargo, disp.uf)) {
     const c = d.candidatos.find((x) => x.id === id);

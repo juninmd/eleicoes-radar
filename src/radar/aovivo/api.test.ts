@@ -27,6 +27,23 @@ const post = (path: string, body: unknown, h: Record<string, string> = {}) =>
   new Request(`http://radar.test${path}`, { method: "POST", headers: { "content-type": "application/json", host: "radar.test", ...h }, body: typeof body === "string" ? body : JSON.stringify(body) });
 const get = (path: string) => new Request(`http://radar.test${path}`);
 
+describe("cartão do aviso", () => {
+  test("serves a cacheable PNG for valid steps and refuses anything else", async () => {
+    const { api } = await montar();
+    const ok = (await api(get("/api/aovivo/cartao.png?a=120&s=25"), "1.1.1.1"))!;
+    expect(ok.status).toBe(200);
+    expect(ok.headers.get("content-type")).toBe("image/png");
+    expect(ok.headers.get("cache-control")).toContain("immutable");
+    expect([...new Uint8Array(await ok.arrayBuffer()).subarray(1, 4)]).toEqual([80, 78, 71]);
+    for (const q of ["", "a=120", "a=-1&s=5", "a=201&s=5", "a=5&s=101", "a=1e2&s=5", "a=abcd&s=5", "a=1000&s=5"]) expect((await api(get(`/api/aovivo/cartao.png?${q}`), "1.1.1.1"))!.status).toBe(400);
+  });
+  test("the operator test push carries a sample picture the service worker can show", async () => {
+    const { monitor } = await montar();
+    const e = monitor.testar();
+    expect(e.cartao).toBe("/api/aovivo/cartao.png?a=100&s=50");
+  });
+});
+
 describe("api", () => {
   test("only /api/ paths are taken; everything else goes on to the static server", async () => {
     const { api } = await montar();
