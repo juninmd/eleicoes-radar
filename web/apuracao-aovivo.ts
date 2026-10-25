@@ -167,6 +167,9 @@ const faixaEleito = (d: Apuracao) => {
   return e.length ? `<p class="live-eleito" role="status"><b>O TSE marcou "${h(e[0].situacao)}":</b> ${e.map((c) => `${h(titleName(c.nome))} (${h(c.partido)})`).join(" e ")}.</p>` : "";
 };
 
+// Same cut as the "turn" events of the map (AVANCO_MINIMO): the first urns come from a few places and the board still swings.
+export const contagemInicial = ({ totalizadas, total }: Apuracao["secoes"]): boolean => total > 0 && totalizadas / total < 0.1;
+
 export function renderHero({ hero, avatar, cor, esperado = {}, fx = EFEITOS_PADRAO, turno = 1 }: { hero: Hero; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado>; fx?: Efeitos; turno?: Turno }): string {
   const d = hero.snap?.dados;
   const onde = hero.uf === BRASIL ? "Brasil" : hero.uf === EXTERIOR ? "Exterior" : hero.uf;
@@ -199,8 +202,10 @@ export function renderHero({ hero, avatar, cor, esperado = {}, fx = EFEITOS_PADR
   const pa = Math.max(0, Math.min(100, (a.pct / ((a.pct + b.pct) || 1)) * 100));
   const mini = (c: Candidato, cls: string) => `<span class="live-mini ${cls}" style="--lado:${cor(c.partido)}">${avatar({ id: c.id, nome: c.nome }, "sm")}<span class="live-mini-t"><b>${h(curto(c.nome))}</b><span>${pct(c.pct, 1)}</span></span></span>`;
   const barra = `<div class="live-barra" aria-hidden="true">${mini(a, "a")}<span class="live-barra-bar"><i style="width:${pa.toFixed(1)}%;background:${cor(a.partido)}"></i><i style="width:${(100 - pa).toFixed(1)}%;background:${cor(b.partido)}"></i></span>${mini(b, "b")}</div>`;
+  const inicio = contagemInicial(d.secoes) ? `<p class="apu-aviso small"><b>Começo da contagem:</b> com ${pctSecoes(d.secoes)} das seções o placar ainda não representa o país (as urnas chegam fora de ordem) e deve mudar bastante.</p>` : "";
   return `<section class="${classe}" aria-label="Presidente ${h(onde)}">${topo(fase)}${base}
     ${barra}
+    ${inicio}
     ${faixaEleito(d)}
     <div class="live-duel" style="--ca:${cor(a.partido)};--cb:${cor(b.partido)}">${raios}${lado(a, a.pct > b.pct ? "a lead" : "a", avatar, cor, esperado[a.id], d.fase, fim?.derrotado === a)}
       <div class="live-vs" aria-hidden="true"><span class="live-vs-x">VS</span><b>${dif.toFixed(1).replace(".", ",")}</b><small>p.p. de diferença</small></div>
