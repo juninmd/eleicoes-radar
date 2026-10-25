@@ -251,3 +251,15 @@ Feito em 2026-10-25. Nos escopos "Brasil (total)" (Presidente) e "Todos os estad
 
 - **Total consolidado** (`apuracao-consolidado.ts`, Presidente): soma dos 27 arquivos de estado **mais o `zz`** (exterior), por candidatura, com a coluna do exterior à parte e a conferência com o arquivo nacional `br` do destaque (que já tem o exterior dentro: "confere" ou "difere em N votos, arquivos de horários diferentes"). Exterior sem arquivo ou desatualizado é dito; nenhum nome de vencedor.
 - **Mapa em tempo real:** é a vista "Noite no mapa" da Apuração (`criarNoite`), com Mapa/Cartograma e a escolha Brasil/Exterior (mapa-múndi + cidades do 1º turno via `data/municipal`). A aba Ao vivo se redesenha por HTML, então o HTML só deixa `<div class="fx-host" data-fx-host>` e o controlador **muda o DOM da vista para o novo placeholder** a cada redesenho (`noite.adotar`), sem recriar (estado em foco, manchetes e o que já acendeu ficam). `sincronizarMapa` roda depois de todo `paint`, inclusive o que só troca o relógio. O botão "Abrir X" do estado em foco abre o Ao vivo daquele estado. O índice municipal é pedido uma vez por (re)início (`pedirMun`), nunca do `paint`: falha não pode virar laço.
+
+<!-- base-actions-main-policy -->
+## GitHub Actions — padrão obrigatório (@main)
+
+- Referencie as actions internas sempre pelo branch, nunca por SHA:
+  - `uses: juninmd/base-actions/<action>@main`
+  - `uses: juninmd/base-actions/.github/workflows/<arquivo>.yml@main`
+- Não fixe `@<sha>` em `juninmd/base-actions`: a atualização é centralizada no
+  `main` e passa a valer no próximo run.
+- PRs cujos checks não iniciam por billing/spending limit são mesclados pelo bot central
+  `juninmd/base-actions/.github/workflows/auto-merge-billing-blocked.yml`.
+  Para impedir o merge automático de um PR, aplique a label `do-not-merge`.
