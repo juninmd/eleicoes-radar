@@ -54,7 +54,7 @@ export function partidosView({ data, cargo, label, metrica }: { data: CargoAgg; 
     <p class="muted small">Cada bolha é um partido. Para a direita, mais dinheiro arrecadado (escala logarítmica). Para cima, ${h(eixoY)}${temVagas ? " segundo o modelo, que usa arrecadação, força da lista e ocupação declarada" : ""}. O tamanho é o número de candidaturas. Passe o mouse sobre uma bolha para ver os valores.</p>
     ${bubbles(pontos, { xFmt: moneyShort, yFmt: (v: number) => (temVagas && !ONE_SEAT.has(cargo) ? v.toFixed(v < 10 ? 1 : 0).replace(".", ",") : pct(v)) })}
     <details class="how"><summary>Tabela completa (${rows.length} partidos)</summary>
-      <div class="scroll"><table class="agenda pan-table"><thead><tr><th>Partido</th><th class="num">Candidaturas</th><th class="num">Arrecadado</th><th class="num">Mediana por campanha</th><th class="num">Fundos públicos</th><th class="num">Mulheres</th>${temVagas ? `<th class="num">${h(M.vagas.nome)}</th>` : ""}</tr></thead><tbody>${tabela}</tbody></table></div>
+      <div class="scroll"><table class="agenda pan-table"><caption class="sr">Partidos: candidaturas, arrecadação e fundos públicos do cargo</caption><thead><tr><th scope="col">Partido</th><th scope="col" class="num">Candidaturas</th><th scope="col" class="num">Arrecadado</th><th scope="col" class="num">Mediana por campanha</th><th scope="col" class="num">Fundos públicos</th><th scope="col" class="num">Mulheres</th>${temVagas ? `<th scope="col" class="num">${h(M.vagas.nome)}</th>` : ""}</tr></thead><tbody>${tabela}</tbody></table></div>
       <p class="muted small">Mediana: só campanhas com receita declarada. Candidaturas sem prestação de contas não entram nos valores em dinheiro.</p>
     </details>`;
 }

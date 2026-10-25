@@ -115,7 +115,7 @@ function runoffs(r: Corrida, byId: Map<string, Candidatura>) {
   return rows.length ? `<h3>Cenários de 2º turno <small>pesquisa mais recente por par</small></h3>
     <p class="muted small">Pesquisas só com os dois nomes. Não entram na média do 1º turno: servem para decidir quem vence o 2º turno dentro das simulações.</p>
     ${avg.length ? `<p class="exp-read">Média usada nas simulações, entre quem escolheu um dos dois: ${avg.join(" · ")}.</p>` : ""}
-    <div class="scroll"><table class="agenda"><thead><tr><th>Cenário</th><th class="num">Diferença</th><th>Instituto</th><th class="num">Data</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>` : "";
+    <div class="scroll"><table class="agenda"><caption class="sr">Cenários de 2º turno nas pesquisas, com diferença, instituto e data</caption><thead><tr><th scope="col">Cenário</th><th scope="col" class="num">Diferença</th><th scope="col">Instituto</th><th scope="col" class="num">Data</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>` : "";
 }
 
 function pollTable(title: string, polls: PollRow[], cols: Candidatura[]) {
@@ -124,7 +124,8 @@ function pollTable(title: string, polls: PollRow[], cols: Candidatura[]) {
   return `<h3>${h(title)} <small>% de todos os entrevistados</small></h3>
     <p class="muted small">Aqui o indeciso conta no total; por isso os números são menores que os votos válidos das barras.</p>
     <div class="scroll"><table class="agenda exp-polls">
-    <thead><tr><th>Instituto</th><th class="num">Data</th><th class="num">Amostra</th>${cols.map((c) => `<th class="num">${h(displayName(c))}</th>`).join("")}<th class="num">Indecisos</th></tr></thead>
+    <caption class="sr">${h(title)}: intenção de voto de cada instituto, em % de todos os entrevistados</caption>
+    <thead><tr><th scope="col">Instituto</th><th scope="col" class="num">Data</th><th scope="col" class="num">Amostra</th>${cols.map((c) => `<th scope="col" class="num">${h(displayName(c))}</th>`).join("")}<th scope="col" class="num">Indecisos</th></tr></thead>
     <tbody>${polls.map((p) => `<tr><td>${h(p.instituto)}</td><td class="num">${fmtDate(p.fim)}</td><td class="num">${p.amostra ? int(p.amostra) : "–"}</td>${cols.map((c) => `<td class="num">${cell(p.votos[c.id])}</td>`).join("")}<td class="num">${cell(p.indecisos)}</td></tr>`).join("")}</tbody>
   </table></div>`;
 }

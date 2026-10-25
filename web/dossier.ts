@@ -77,7 +77,7 @@ function agendaBlock(m: Candidatura["mandato"], agenda: AgendaConfig | null) {
       <td class="voto">${h(voto ?? "–")}</td><td><span class="pill ${status[0]}">${h(status[1])}</span></td></tr>`;
   })).join("");
   return `<section><h3>Votos na sua agenda <small>(lista editável em src/radar/agenda.json)</small></h3>
-    <div class="scroll"><table class="agenda"><thead><tr><th>Votação</th><th>Votou</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+    <div class="scroll"><table class="agenda"><caption class="sr">Como o candidato votou em cada votação da agenda</caption><thead><tr><th scope="col">Votação</th><th scope="col">Votou</th><th scope="col"></th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }
 
 function idade(nasc: string) {
