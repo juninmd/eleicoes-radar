@@ -1,9 +1,11 @@
 // Serves web/ locally and in production (Docker). index.html is authored as an
 // artifact body (no <html>/<head>), so it is wrapped in the skeleton the artifact host adds.
 // The page is authored in TypeScript: a module the browser asks for as /x.js is served from x.ts, transpiled on demand
-// (no build step, so the Dockerfile and the CSP stay as they were). Gzip and transpiled output are cached in memory,
+// (no build step, so the Dockerfile and the CSP stay as they were). Brotli, gzip and transpiled output are cached in memory,
 // keyed by file and mtime, so an edited source is never served stale.
 import { resolve, sep } from "node:path";
+import { brotliCompress, constants as Z } from "node:zlib";
+import { promisify } from "node:util";
 
 const ROOT = resolve(process.env.WEB_ROOT ?? "web");
 const PORT = Number(process.env.PORT ?? 4173);
@@ -19,10 +21,19 @@ const SKELETON = (page: string) => {
   const [head, body] = splitHead(page);
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">${head}</head><body>${body}</body></html>`;
 };
+const PHOTOS = /[\\/]data[\\/]fotos[\\/]/; // base64 JPEG barely shrinks: brotli gains ~1.5% over gzip for seconds of CPU
 const COMPRESSIBLE = /\.(html|js|css|json|svg)$/;
 const SOURCE = /\.ts[. ]*$|:/i;
 type Bytes = Uint8Array<ArrayBuffer>;
-const gz = new Map<string, Bytes>();
+const packed = new Map<string, Promise<Bytes>>(); // the promise is stored so two first requests share one compression
+const brotli = promisify(brotliCompress);
+// "br;q=0" means "not br": the coding counts only with a positive weight.
+const accepts = (header: string, coding: string) => header.split(",").some((t) => {
+  const [name, ...params] = t.trim().toLowerCase().split(";");
+  const q = params.map((p) => p.trim()).find((p) => p.startsWith("q="));
+  return name === coding && (q === undefined || Number(q.slice(2)) > 0);
+});
+const BOOT = Date.now().toString(36); // a new process may serve a new skeleton: old ETags of the page must not match
 const transpiled = new Map<string, Bytes>();
 const TS = new Bun.Transpiler({ loader: "ts" });
 
@@ -75,6 +86,7 @@ async function route(req: Request, root: string): Promise<Response> {
   } catch {
     return new Response("bad request", { status: 400 });
   }
+  if (path.includes("\0")) return new Response("bad request", { status: 400 }); // Bun.file throws on it
   if (path === "/health") return new Response("ok");
   const file = resolve(root, `.${path === "/" ? "/index.html" : path}`);
   if (!file.startsWith(root + sep)) return new Response("forbidden", { status: 403 });
@@ -104,11 +116,25 @@ async function route(req: Request, root: string): Promise<Response> {
     "Cache-Control": html ? "no-cache" : "public, max-age=300",
     Vary: "Accept-Encoding",
   });
-  if (COMPRESSIBLE.test(file) && /\bgzip\b/.test(req.headers.get("accept-encoding") ?? "")) {
-    let z = gz.get(key);
-    if (!z) gz.set(key, (z = Bun.gzipSync(compiled ?? (await body(file)))));
-    headers.set("Content-Encoding", "gzip");
-    return new Response(req.method === "HEAD" ? null : z, { headers });
+  const etag = `W/"${Bun.file(source).lastModified.toString(36)}-${BOOT}"`;
+  headers.set("ETag", etag);
+  if (req.headers.get("if-none-match")?.split(",").some((t) => t.trim() === etag)) return new Response(null, { status: 304, headers });
+  const accepted = req.headers.get("accept-encoding") ?? "";
+  const enc = !COMPRESSIBLE.test(file) ? null : accepts(accepted, "br") && !PHOTOS.test(file) ? "br" : accepts(accepted, "gzip") ? "gzip" : null;
+  if (enc) {
+    const k = `${enc}:${key}`;
+    let z = packed.get(k);
+    if (!z) {
+      const pack = async (): Promise<Bytes> => {
+        const raw = compiled ?? (await body(file));
+        // Async so a big file never stalls /health; q9 is ~20x faster than 11 for ~13% more bytes, and the result is cached.
+        return enc === "br" ? new Uint8Array(await brotli(raw, { params: { [Z.BROTLI_PARAM_QUALITY]: 9, [Z.BROTLI_PARAM_SIZE_HINT]: raw.length } })) : Bun.gzipSync(raw);
+      };
+      packed.set(k, (z = pack()));
+      z.catch(() => packed.delete(k));
+    }
+    headers.set("Content-Encoding", enc);
+    return new Response(req.method === "HEAD" ? null : await z, { headers });
   }
   return new Response(req.method === "HEAD" ? null : (compiled ?? (await body(file))), { headers });
 }

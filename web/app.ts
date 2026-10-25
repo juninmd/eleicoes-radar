@@ -92,8 +92,9 @@ async function loadUf() {
   loadFotos();
 }
 
-// Photos load per open ballot, after the list; a missing file just means initials.
+// Photos load per open ballot, after the list; a missing file just means initials. Off means no bytes: a ballot file is up to 7 MB gzipped.
 async function loadFotos() {
+  if (!state.mostrarFotos) return;
   const b = BALLOTS[state.ballot];
   const cargo = state.uf === "DF" && b.alt ? b.alt : b.cargo;
   const file = `data/fotos/${b.national ? "BR" : state.uf}-${slug(cargo)}.json`;
@@ -284,7 +285,7 @@ function bind() {
   });
   $("#ordem").addEventListener("change", (e) => { state.ordem = (e.target as HTMLSelectElement).value; renderList(); });
   $<HTMLInputElement>("#mostrarFotos").checked = state.mostrarFotos;
-  $("#mostrarFotos").addEventListener("change", (e) => { state.mostrarFotos = (e.target as HTMLInputElement).checked; store.set("fotos", state.mostrarFotos); renderList(); renderDossierPanel(); mostrarAoVivo(); });
+  $("#mostrarFotos").addEventListener("change", (e) => { state.mostrarFotos = (e.target as HTMLInputElement).checked; store.set("fotos", state.mostrarFotos); renderList(); renderDossierPanel(); if (state.mostrarFotos) loadFotos(); mostrarAoVivo(); });
   $("#situacao").addEventListener("change", (e) => { state.situacao = (e.target as HTMLSelectElement).value; state.limit = PAGE; render(); });
   $("#mais").addEventListener("click", () => { state.limit += PAGE; renderList(); });
   let pesosRaf = 0;
