@@ -792,3 +792,11 @@
 .nt-mundo .terra { fill: var(--vazio); stroke: var(--surface); stroke-width: 0.6; stroke-linejoin: round; }
 .nt-mundo circle { fill-opacity: 0.78; stroke: var(--surface); stroke-width: 1; }
 .nt-mundo circle:hover { fill-opacity: 1; stroke: var(--ink); }
+
+/* Mobile: the leader's text gets the full row (the ring above it) instead of a squeezed column beside the ring. */
+@media (max-width: 520px) {
+  .prev { padding: 12px; }
+  .prev-who { grid-template-columns: minmax(0, 1fr); gap: 12px; justify-items: start; }
+  .prev-anel { --s: 96px; }
+  .prev-txt { width: 100%; }
+}
