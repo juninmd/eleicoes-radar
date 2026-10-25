@@ -196,7 +196,7 @@ describe("view da Previsão", () => {
 
   test("the curve of the night: a hint until there are two points, then the line with its end", () => {
     expect(renderPrevisao(props())).toContain("segunda atualização do TSE");
-    const h = [{ hora: "19:00:00", a: "a1", b: "b2", pa: 0.6 }, { hora: "19:01:00", a: "a1", b: "b2", pa: 0.82 }];
+    const h = [{ hora: "19:00:00", t: 1, a: "a1", b: "b2", pa: 0.6 }, { hora: "19:01:00", t: 2, a: "a1", b: "b2", pa: 0.82 }];
     const html = renderPrevisao(props({ hist: h }));
     expect(html).toContain('aria-label="Chance de Ana Souza terminar à frente, de 60% às 19:00 a 82% às 19:01"');
     expect(html).toContain('class="linha"');
