@@ -147,7 +147,7 @@ body:not(.ready) .metodo { display: none; } /* it would sit in view until the li
 /* Dossier */
 #dossie { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 20px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 24px); overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
 .dhead { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; gap: 14px; align-items: center; }
-.av { display: block; object-fit: cover; border-radius: 3px; background: var(--sunk); }
+.av { display: block; object-fit: cover; border-radius: 3px; background: var(--sunk); aspect-ratio: 4 / 5; }
 .av.sm { width: 36px; height: 45px; }
 .av.lg { width: 72px; height: 90px; }
 .av.xs { width: 28px; height: 35px; }
@@ -170,6 +170,11 @@ body:not(.ready) .metodo { display: none; } /* it would sit in view until the li
 .nota.small { font-size: 28px; }
 .scoreline .muted { font-size: 12px; }
 .scoreline .btn-confirma { margin-left: auto; }
+.djump { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0 8px; border-bottom: 1px solid var(--line); margin-top: -6px; }
+.djump a { font: 600 12px var(--body); color: var(--ink-2); background: var(--sunk); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; text-decoration: none; white-space: nowrap; transition: border-color 0.12s, color 0.12s; }
+.djump a:hover { color: var(--ink); border-color: var(--ink-2); }
+.djump a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
 #dossie[hidden] { display: none; } /* the display:flex above would otherwise beat the hidden attribute and leave a full-screen overlay on narrow screens */
 #dossie section { display: flex; flex-direction: column; gap: 10px; }
 #dossie h3 { font: 700 13px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.1em; margin: 0; color: var(--ink-2); display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }

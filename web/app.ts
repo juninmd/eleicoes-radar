@@ -162,7 +162,7 @@ function avatar(c: AvatarSrc, size: string) {
   const src = state.mostrarFotos && (state.fotos[c.id] || c.foto);
   const initials = displayName(c).split(" ").filter((w) => /^[A-ZÀ-Ú]/.test(w)).map((w) => w[0]).slice(0, 2).join("");
   return src
-    ? `<img class="av ${size}" src="${h(src)}" alt="" loading="lazy">`
+    ? `<img class="av ${size}" src="${h(src)}" alt="" loading="lazy" decoding="async">`
     : `<span class="av ${size} ini" aria-hidden="true">${h(initials)}</span>`;
 }
 
@@ -326,6 +326,20 @@ function bind() {
   $("#limpar-filtros")?.addEventListener("click", resetFiltros);
 
   document.addEventListener("click", (e) => {
+    const jump = (e.target as Element).closest<HTMLAnchorElement>(".djump a");
+    if (jump) {
+      const href = jump.getAttribute("href");
+      if (href?.startsWith("#")) {
+        const target = $("#dossie").querySelector(href);
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+          (target as HTMLElement).setAttribute("tabindex", "-1");
+          (target as HTMLElement).focus({ preventScroll: true });
+        }
+      }
+      return;
+    }
     const t = (e.target as Element).closest<HTMLElement>("[data-ballot],[data-open],[data-close],[data-cola],[data-modo],#exp-mais,[data-rede],[data-rede-geral],[data-rede-foco],[data-limpar-filtros]");
     if (!t) return;
     if (t.dataset.limparFiltros !== undefined) { resetFiltros(); return; }
