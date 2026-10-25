@@ -179,7 +179,7 @@ function renderDossierPanel() {
 
 // The supplier sidecar is read only by the dossier and the network: it loads after the list, or at once when one of them asks first.
 const forn = createFornecedores();
-const estadoForn = (c: Candidatura) => (c.fornecedores !== undefined ? "pronto" : forn.estado(c.uf));
+const estadoForn = (c: Candidatura) => forn.estadoDe(c);
 const ocioso = (fn: () => void) => ("requestIdleCallback" in window ? requestIdleCallback(fn) : setTimeout(fn, 200));
 
 function pedirFornecedores(ufs: string[]) {
