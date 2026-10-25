@@ -18,9 +18,12 @@ import { atualizar, vazio } from "./apuracao-eleitos.js";
 import { idadeTxt, pausaDoTse } from "./apuracao-ritmo.js";
 import { repaint, relogio, idade, semRelogio } from "./apuracao-dom.js";
 import { avancoDe } from "./apuracao-nacional.js";
+import { consolidar, renderConsolidado } from "./apuracao-consolidado.js";
+import { criarNoite } from "./apuracao-noite.js";
+import { movimentoReduzido } from "./apuracao-fx.js";
 import { createProjecao } from "./apuracao-projecao-estado.js";
 import { createChance } from "./apuracao-chance.js";
-import { chanceProps, criarMunicipais } from "./apuracao-mount-props.js";
+import { chanceProps, criarMunicipais, exteriorProps } from "./apuracao-mount-props.js";
 import { deChance, deProjecao, registrarPrev } from "./apuracao-previsao.js";
 import { renderPrevisao } from "./apuracao-previsao-view.js";
 import type { Apuracao, Candidato, Cargo, Fase, Turno } from "./apuracao-tse.js";
@@ -33,6 +36,8 @@ import type { EstadoEleitos } from "./apuracao-eleitos.js";
 import type { Fonte } from "./apuracao-projecao-estado.js";
 import type { PrevProps } from "./apuracao-previsao-view.js";
 import type { PontoPrev } from "./apuracao-previsao.js";
+import type { MundoMap } from "./apuracao-noite.js";
+import type { Candidatura } from "./types.js";
 import type { RenderProps } from "./apuracao.js";
 
 export interface Corrida { cargo: Cargo; uf: string }
@@ -188,11 +193,11 @@ export function renderHero({ hero, avatar, cor, esperado = {}, fx = EFEITOS_PADR
 }
 
 // Every state at once for one office: leader, runner-up and how much of the count is in.
-function todosOsEstados(nac: BrasilSnapshot | null, cargo: Cargo, mapa?: UfMap | null, cor?: Cores): string {
+function todosOsEstados(nac: BrasilSnapshot | null, cargo: Cargo, mapa?: UfMap | null, cor?: Cores, semMapa = false): string {
   const abas = `<div class="apu-vistas" role="group" aria-label="Cargo">${CARGOS_TODOS.map((c) => `<button type="button" data-live-cargo="${c}" aria-pressed="${c === cargo}">${c}</button>`).join("")}</div>`;
   if (!nac || nac.cargo !== cargo) return `${abas}<p class="muted small">Consultando os arquivos de todos os estados…</p>`;
   const linhas = linhasUf(nac.ufs, cargo);
-  const mapaHtml = mapa && cor ? `<div class="live-mapa">${mapaSvg({ mapa, linhas, modo: "lider", cor, sel: null, corridas: null, cargo })}${legenda({ modo: "lider", linhas, cor, cargo })}</div>` : "";
+  const mapaHtml = !semMapa && mapa && cor ? `<div class="live-mapa">${mapaSvg({ mapa, linhas, modo: "lider", cor, sel: null, corridas: null, cargo })}${legenda({ modo: "lider", linhas, cor, cargo })}</div>` : "";
   const fila = new Map(linhas.map((l) => [l.uf, l]));
   const tiles = ufsDo(cargo).map((uf) => {
     const l = fila.get(uf);
@@ -209,7 +214,7 @@ function todosOsEstados(nac: BrasilSnapshot | null, cargo: Cargo, mapa?: UfMap |
     <p class="muted small">Cada quadro é o arquivo do TSE do estado: o líder e o segundo de agora, não o resultado. Toque num estado para filtrar a tela.${cargo === "Presidente" ? " O exterior tem arquivo próprio." : ""}</p>`;
 }
 
-export interface AoVivoProps { prev?: PrevProps | null; hero: Hero; linhas: Linha[]; escopo: string; ufCartoes: string; nac: BrasilSnapshot | null; cargoTodos: Cargo; mapa?: UfMap | null; agora: Date; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado>; fx?: Efeitos; turno?: Turno }
+export interface AoVivoProps { prev?: PrevProps | null; nacPrev?: BrasilSnapshot | null; hero: Hero; linhas: Linha[]; escopo: string; ufCartoes: string; nac: BrasilSnapshot | null; cargoTodos: Cargo; mapa?: UfMap | null; agora: Date; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado>; fx?: Efeitos; turno?: Turno }
 
 const opcoes = (escopo: string, ufMeu: string) => [
   `<option value="${BRASIL}"${escopo === BRASIL ? " selected" : ""}>Brasil (total)</option>`,
@@ -227,6 +232,12 @@ export function renderAoVivo(p: AoVivoProps): string {
   const pausa = ativos.some((d) => d.fase === "parcial") ? pausaDoTse(ativos, agora) : null;
   const consultas = todas.map((l) => l.snap?.buscadoEm).filter((x): x is Date => !!x);
   const quando = consultas.length ? new Date(Math.max(...consultas.map((x) => x.getTime()))) : null;
+  // The live map (the Noite view of the Apuração tab) and the consolidated total live on the national scopes: Brasil (President) and "all states" (President or Governor).
+  const mapaFx = escopo === BRASIL || (escopo === TODOS && p.cargoTodos !== "Senador");
+  const cargoMapa: Cargo = escopo === BRASIL ? "Presidente" : p.cargoTodos;
+  const nacPres = escopo === BRASIL ? p.nacPrev ?? null : escopo === TODOS && p.cargoTodos === "Presidente" ? nac : null;
+  const consolidado = renderConsolidado(consolidar(nacPres, hero.snap?.dados), (partido) => p.cor(partido));
+  const mapaTempoReal = mapaFx ? `<section class="live-noite" aria-labelledby="live-noite-t"><h3 id="live-noite-t">Mapa em tempo real <small>${h(cargoMapa)}${turno === 2 && cargoMapa !== "Senador" ? " · 2º turno" : ""}</small></h3><div class="fx-host" data-fx-host></div></section>` : "";
   const cartoes = escopo === EXTERIOR ? "" : `<h3>Disputas de ${h(p.ufCartoes)}</h3><div class="live-grid">${linhas.map((l) => card(l, turno)).join("")}</div>`;
   return `<section class="exp-card apu live" aria-labelledby="live-t">
     <h2 id="live-t">Ao vivo <span class="rot aberta">${ativos.length} de ${todas.length} disputas com apuração</span></h2>
@@ -234,9 +245,11 @@ export function renderAoVivo(p: AoVivoProps): string {
     <p class="muted exp-meta">${quando ? `Consultado às <span id="apu-quando">${h(quando.toLocaleTimeString("pt-BR"))}</span> · ` : ""}atualiza sozinho (a cada 30 s a 2 min, conforme o ritmo da apuração) enquanto você estiver nesta aba. Média das seções totalizadas: <b>${pct(Math.floor(media * 1000) / 1000, 1)}</b>${pausa ? ` · arquivo mais recente <span id="apu-idade">(${idadeTxt(pausa.idadeMs)})</span>` : ""}.</p>
     ${pausa?.parado ? `<p class="apu-aviso apu-pausa"><b>Sem arquivo novo do TSE há mais de 10 minutos.</b> A pausa é do TSE, que publica em rodadas.</p>` : ""}
     ${renderHero({ hero, avatar: p.avatar, cor: p.cor, esperado: p.esperado, fx: p.fx, turno })}
+    ${consolidado}
+    ${mapaTempoReal}
     ${p.prev ? renderPrevisao(p.prev) : ""}
     ${turno === 2 ? `<p class="muted small">2º turno: Presidente e Governador (só onde houve). Senador e deputados foram decididos no 1º turno e seguem com os arquivos dele. As pesquisas e a curva de expectativa são do 1º turno e não aparecem aqui.</p>` : ""}
-    ${escopo === TODOS ? `<h3>Todos os estados</h3>${todosOsEstados(nac, p.cargoTodos, p.mapa, p.cor)}` : ""}
+    ${escopo === TODOS ? `<h3>Todos os estados</h3>${todosOsEstados(nac, p.cargoTodos, p.mapa, p.cor, mapaFx)}` : ""}
     ${escopo === TODOS || escopo === EXTERIOR ? "" : cartoes}
     ${escopo === TODOS ? cartoes : ""}
     <h3>Quem foi eleito <small>nas disputas acima, desde que você abriu a aba</small></h3>
@@ -255,7 +268,10 @@ export function mountAoVivo(el: HTMLElement) {
   let linhas: Linha[] = [];
   let nac: BrasilSnapshot | null = null;
   let mapa: UfMap | null = null;
-  fetch("mapa-uf.json").then((r) => (r.ok ? r.json() : null)).then((m) => { if (m) { mapa = m as UfMap; agendar(); } }).catch(() => {}); // no map: the tiles below still say it
+  let mapaFalhou = false;
+  fetch("mapa-uf.json").then((r) => (r.ok ? r.json() : null)).then((m) => { if (m) mapa = m as UfMap; else mapaFalhou = true; agendar(); }).catch(() => { mapaFalhou = true; agendar(); }); // no map: the tiles below still say it
+  let mundo: MundoMap | null | undefined; // the world map of the live map's "Exterior" choice: undefined until asked, null when it failed
+  let pedindoMundo = false;
   let feeds: ReturnType<typeof createFeed>[] = [];
   let brasil: ReturnType<typeof createBrasilFeed> | null = null;
   let painted: string | null = null;
@@ -277,6 +293,47 @@ export function mountAoVivo(el: HTMLElement) {
   const munis = criarMunicipais(getJson, () => agendar());
   const ctxPres = () => ({ cargo: "Presidente" as Cargo, uf: BRASIL, exp: ctx?.exp });
   const velha = (s: string | undefined) => s === "erro" || s === "ausente";
+  // The live map is the Noite view of the Apuração tab. It keeps its own DOM across the string redraws of this tab (see `sincronizarMapa`).
+  const noite = criarNoite();
+  // The screen-reader region lives outside the redrawn area, or nothing would be announced (same as the Apuração tab).
+  const anuncio = document.createElement("div");
+  anuncio.className = "sr";
+  anuncio.setAttribute("role", "status");
+  anuncio.setAttribute("aria-live", "polite");
+  el.after(anuncio);
+  let munPedido = false; // the municipal index/file (cities abroad) is asked once per (re)start, never from paint: a failure would loop
+  const pedirMun = () => { if (!munPedido && escopo !== EXTERIOR) { munPedido = true; munis.carregar(ctxPres()); } };
+  const carregarMundo = () => {
+    if (mundo !== undefined || pedindoMundo) return;
+    pedindoMundo = true;
+    getJson<MundoMap>("mapa-mundo.json").then((m) => { mundo = m; }).catch((e) => { console.error("ao vivo: mapa-múndi", e); mundo = null; }).then(() => { pedindoMundo = false; agendar(); });
+  };
+  const fonteMapa = (): { nac: BrasilSnapshot | null; cargo: Cargo } | null => {
+    if (escopo === BRASIL) return { nac: nacPrev, cargo: "Presidente" };
+    if (escopo === TODOS && cargoTodos !== "Senador") return { nac: nac && nac.cargo === cargoTodos ? nac : null, cargo: cargoTodos };
+    return null;
+  };
+  let byIdDe: { nac: BrasilSnapshot | null; mapa: Map<string, Candidatura> } = { nac: null, mapa: new Map() };
+  const byId = (n: BrasilSnapshot | null) => {
+    if (byIdDe.nac === n) return byIdDe.mapa;
+    const m = new Map<string, Candidatura>();
+    for (const u of Object.values(n?.ufs ?? {})) for (const c of u.dados?.candidatos ?? []) if (!m.has(c.id)) m.set(c.id, { id: c.id, nome: c.nome } as unknown as Candidatura);
+    byIdDe = { nac: n, mapa: m };
+    return m;
+  };
+  const sincronizarMapa = () => {
+    const alvo = el.querySelector<HTMLElement>("[data-fx-host]");
+    const f = fonteMapa();
+    if (!ctx || !alvo || !f) { noite.parar(); return; }
+    if (noite.raiz) noite.adotar(alvo); else noite.montar(alvo);
+    if (f.cargo === "Presidente") carregarMundo();
+    const exterior = f.cargo === "Presidente" ? exteriorProps({ ctx: ctxPres(), turno, snap: hero.snap, nac: f.nac, indice: munis.indice(), disputa: munis.disputa(ctxPres()), arquivo: munis.arquivo(ctxPres()), simulado: false, idSim: () => null }) : null;
+    noite.atualizar({
+      nac: f.nac, cargo: f.cargo, mapa: mapa ?? (mapaFalhou ? null : undefined), mundo, exterior,
+      byId: byId(f.nac), avatar: ctx.avatar, cor, efeitos: efeitos && !movimentoReduzido(), som,
+      anunciar: (txt) => { anuncio.textContent = txt; },
+    });
+  };
 
   // The big K.O. and its flash live outside the redrawn area: a redraw (any of the five feeds can trigger one) must not cut them off.
   const tocarKo = () => {
@@ -328,7 +385,7 @@ export function mountAoVivo(el: HTMLElement) {
     const decidida = !!disputaDecidida(hero.snap?.dados);
     const fx: Efeitos = { ligado: efeitos, intro: intro && !!hero.snap?.dados, ko: decidida && !koTocou, som: somLigado };
     if (fx.intro && efeitos) som.intro();
-    const html = renderAoVivo({ hero, linhas, escopo, ufCartoes: ufCartoes(), nac, cargoTodos, mapa, agora: new Date(), avatar: ctx.avatar, cor, esperado, fx, turno, prev: previsaoProps() });
+    const html = renderAoVivo({ hero, linhas, escopo, ufCartoes: ufCartoes(), nac, nacPrev, cargoTodos, mapa, agora: new Date(), avatar: ctx.avatar, cor, esperado, fx, turno, prev: previsaoProps() });
     if (hero.snap?.dados) intro = false;
     if (decidida && !koTocou) { koTocou = true; tocarKo(); }
     const key = semRelogio(html);
@@ -337,14 +394,16 @@ export function mountAoVivo(el: HTMLElement) {
       quando.textContent = relogio(html) ?? quando.textContent;
       const i = el.querySelector<HTMLElement>("#apu-idade");
       if (i) i.textContent = idade(html) ?? i.textContent;
+      sincronizarMapa();
       return;
     }
     painted = key;
     repaint(el, html);
+    sincronizarMapa();
   };
   const agendar = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; paint(); }); };
 
-  const parar = () => { feeds.forEach((f) => f.stop()); feeds = []; brasil?.stop(); brasil = null; nacFeed?.stop(); nacFeed = null; nacPrev = null; linhas = []; nac = null; painted = null; };
+  const parar = () => { noite.parar(); munPedido = false; feeds.forEach((f) => f.stop()); feeds = []; brasil?.stop(); brasil = null; nacFeed?.stop(); nacFeed = null; nacPrev = null; linhas = []; nac = null; painted = null; };
 
   // (Re)starts every feed for the chosen scope: the President's file of that scope, the other races of one state, and the 28 files when
   // every state is shown at once.
@@ -387,20 +446,21 @@ export function mountAoVivo(el: HTMLElement) {
     if (escopo === BRASIL) {
       nacFeed = createBrasilFeed({ url: (c, uf) => tseUrl(c, uf, TSE_BASE, turnoDe(c, turno)), onChange: (s) => { nacPrev = s; agendar(); } });
       nacFeed.follow("Presidente");
-      if (turnoDe("Presidente", turno) === 2) munis.carregar(ctxPres());
     }
+    if (escopo === BRASIL || (escopo === TODOS && cargoTodos === "Presidente")) pedirMun();
     paint();
   };
 
   el.addEventListener("click", (e) => {
-    const t = (e.target as Element).closest<HTMLElement>("[data-abrir-corrida], [data-uf], [data-live-escopo], [data-live-cargo], [data-live-fx], [data-live-som], [data-turno]");
+    const t = (e.target as Element).closest<HTMLElement>("[data-abrir-corrida], [data-abrir-uf], [data-uf], [data-live-escopo], [data-live-cargo], [data-live-fx], [data-live-som], [data-turno]");
     if (!t || !ctx) return;
     if (t.dataset.turno) { const novo: Turno = t.dataset.turno === "2" ? 2 : 1; if (novo !== turno) { turno = novo; gravarTurno(turno); ligar(); } return; }
     if ("liveSom" in t.dataset) { somLigado = !somLigado; try { localStorage.setItem("radar:som", somLigado ? "on" : "off"); } catch { /* private window */ } som.desbloquear(); paint(); return; }
     if ("liveFx" in t.dataset) { efeitos = !efeitos; try { localStorage.setItem("radar:fx", efeitos ? "on" : "off"); } catch { /* private window: the choice lasts until the tab closes */ } paint(); return; }
+    if (t.dataset.abrirUf) { escopo = t.dataset.abrirUf; ligar(); return; } // "Abrir X" of the live map: the Ao vivo of that state
     if (t.dataset.uf && !t.dataset.liveEscopo) { escopo = t.dataset.uf; ligar(); return; }
     if (t.dataset.liveEscopo) { escopo = t.dataset.liveEscopo; ligar(); return; }
-    if (t.dataset.liveCargo) { cargoTodos = t.dataset.liveCargo as Cargo; nac = null; brasil?.follow(cargoTodos); paint(); return; }
+    if (t.dataset.liveCargo) { cargoTodos = t.dataset.liveCargo as Cargo; nac = null; brasil?.follow(cargoTodos); if (cargoTodos === "Presidente") pedirMun(); paint(); return; }
     const [cargo, uf] = t.dataset.abrirCorrida!.split("|");
     ctx.abrir(cargo as Cargo, uf);
   });

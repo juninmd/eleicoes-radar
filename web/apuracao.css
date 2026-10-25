@@ -803,3 +803,14 @@
   .prev-txt h4 { grid-column: 2; align-self: start; font-size: clamp(22px, 7vw, 30px); }
   .prev-txt p { grid-column: 1 / -1; }
 }
+
+/* Ao vivo: total consolidado (estados + exterior) and the live map (the Noite view, mounted into .fx-host) */
+.live-consol, .live-noite { margin-block: 14px; min-width: 0; }
+.live-consol h4, .live-noite h3 { margin: 0 0 8px; }
+.live-consol h4 small, .live-noite h3 small { font: 500 12px var(--mono); color: var(--muted); }
+.live-consol-t { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.live-consol-t th, .live-consol-t td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+.live-consol-t thead th { font: 700 11px var(--mono); color: var(--muted); text-transform: uppercase; }
+.live-consol-t th:first-child { text-align: left; white-space: normal; }
+.live-consol-t th small { color: var(--muted); font-weight: 500; }
+@media (max-width: 520px) { .live-consol-t { font-size: 12px; } .live-consol-t th, .live-consol-t td { padding: 5px 4px; } }
