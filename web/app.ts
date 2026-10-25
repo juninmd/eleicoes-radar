@@ -76,9 +76,16 @@ const ballotOf = (c: Candidatura) => BALLOTS.findIndex((b) => b.cargo === c.carg
 
 async function loadUf() {
   $("#lista").setAttribute("aria-busy", "true");
-  const [local, br] = await Promise.all([loadJson<Candidatura[]>(`data/uf/${state.uf}.json`), loadJson<Candidatura[]>("data/uf/BR.json")]);
-  state.cands = [...local, ...br];
-  $("#lista").removeAttribute("aria-busy");
+  try {
+    const [local, br] = await Promise.all([loadJson<Candidatura[]>(`data/uf/${state.uf}.json`), loadJson<Candidatura[]>("data/uf/BR.json")]);
+    state.cands = [...local, ...br];
+  } catch {
+    // Sem isto a lista ficaria em aria-busy para sempre e sem aviso.
+    $("#lista").innerHTML = `<li class="muted">Não foi possível carregar os dados desta UF. Recarregue a página para tentar de novo.</li>`;
+    return;
+  } finally {
+    $("#lista").removeAttribute("aria-busy");
+  }
   render();
   loadFotos();
 }
