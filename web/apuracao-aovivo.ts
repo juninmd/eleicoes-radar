@@ -6,7 +6,7 @@ import { createFeed } from "./apuracao-feed.js";
 import { createBrasilFeed, EXTERIOR, ufsDo } from "./apuracao-uf.js";
 import { tseUrl, TSE_BASE, TEM_SEGUNDO_TURNO, turnoDe } from "./apuracao-tse.js";
 import { gravarTurno, lerTurno, seletorTurno } from "./apuracao-turno.js";
-import { createCores, linhasUf } from "./apuracao-nacional.js";
+import { createCores, fixarCores, linhasUf } from "./apuracao-nacional.js";
 import { PALETA, RESTO, legenda, mapaSvg } from "./apuracao-mapa.js";
 import type { UfMap } from "../src/radar/geo/uf-map";
 import { renderDuelo } from "./apuracao-duelo.js";
@@ -492,6 +492,7 @@ export function mountAoVivo(el: HTMLElement) {
     return { numeros: n, par, pesquisas: par ? pesquisas2t(corrida, par, d) : null, caminho: caminho(prev?.previsao), falta: ondeFalta(nacPrev, restantesModelo), onda: par ? onda(nacPrev, par) : null };
   };
   const paint = () => {
+    if (hero.snap?.dados) fixarCores(cor, hero.snap.dados.candidatos);
     if (!ctx) return;
     const prev = previsaoProps();
     const dois = doisProps(prev);
