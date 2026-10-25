@@ -6,7 +6,7 @@ import { createFeed } from "./apuracao-feed.js";
 import { createBrasilFeed, EXTERIOR, ufsDo } from "./apuracao-uf.js";
 import { tseUrl, TSE_BASE, TEM_SEGUNDO_TURNO, turnoDe } from "./apuracao-tse.js";
 import { gravarTurno, lerTurno, seletorTurno } from "./apuracao-turno.js";
-import { createCores, linhasUf } from "./apuracao-nacional.js";
+import { createCores, fixarCores, linhasUf } from "./apuracao-nacional.js";
 import { PALETA, RESTO, legenda, mapaSvg } from "./apuracao-mapa.js";
 import type { UfMap } from "../src/radar/geo/uf-map";
 import { renderDuelo } from "./apuracao-duelo.js";
@@ -94,14 +94,17 @@ function resumo(d: Apuracao, cargo: Cargo): string {
   return b ? `Diferença de <b>${((a.pct - b.pct) * 100).toFixed(1).replace(".", ",")} p.p.</b> entre os dois primeiros${a.pct < 0.5 ? `; faltam ${((0.5 - a.pct) * 100).toFixed(1).replace(".", ",")} p.p. para o 1º chegar a 50%` : ""}.` : "";
 }
 
-function card({ cargo, uf, snap, eleitos }: Linha, turno: Turno = 1): string {
+// `segundos` = "cargo|uf" of the runoffs that exist (the municipal index), null while it is not loaded: only then is a missing file known to
+// mean "decided in the 1st round" instead of "not published yet".
+function card({ cargo, uf, snap, eleitos }: Linha, turno: Turno = 1, segundos: ReadonlySet<string> | null = null): string {
   const t = turnoDe(cargo, turno);
   const d = snap?.dados;
   const local = uf === "BR" ? "Brasil" : uf;
   const chave = `${cargo}|${uf}`;
   const abrir = `<button type="button" class="ghost live-abrir" data-abrir-corrida="${h(chave)}">Abrir a apuração</button>`;
   if (!d) {
-    const msg = snap?.status === "ausente" ? `O TSE ainda não publicou o arquivo desta disputa.${t === 2 ? " Se não houve 2º turno nela, o arquivo não existe." : ""}` : snap?.status === "erro" ? `Não foi possível consultar o TSE: ${h(snap.erro)}.` : "Consultando o TSE…";
+    const semSegundo = t === 2 && !!segundos && !segundos.has(chave);
+    const msg = snap?.status === "ausente" && semSegundo ? "Não houve 2º turno nesta disputa: ela foi decidida no 1º turno." : snap?.status === "ausente" ? `O TSE ainda não publicou o arquivo desta disputa.${t === 2 ? " Se não houve 2º turno nela, o arquivo não existe." : ""}` : snap?.status === "erro" ? `Não foi possível consultar o TSE: ${h(snap.erro)}.` : "Consultando o TSE…";
     return `<article class="live-card" aria-label="${h(cargo)} ${h(local)}"><header><h3>${h(cargo)} <small>${h(local)}${t === 2 ? " · 2º turno" : ""}</small></h3></header><p class="muted small">${msg}</p>${abrir}</article>`;
   }
   const velha = snap!.status === "erro" || snap!.status === "ausente";
@@ -168,6 +171,9 @@ const faixaEleito = (d: Apuracao) => {
   return e.length ? `<p class="live-eleito" role="status"><b>O TSE marcou "${h(e[0].situacao)}":</b> ${e.map((c) => `${h(titleName(c.nome))} (${h(c.partido)})`).join(" e ")}.</p>` : "";
 };
 
+// Same cut as the "turn" events of the map (AVANCO_MINIMO): the first urns come from a few places and the board still swings.
+export const contagemInicial = ({ totalizadas, total }: Apuracao["secoes"]): boolean => total > 0 && totalizadas / total < 0.1;
+
 export function renderHero({ hero, avatar, cor, esperado = {}, fx = EFEITOS_PADRAO, turno = 1 }: { hero: Hero; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado>; fx?: Efeitos; turno?: Turno }): string {
   const d = hero.snap?.dados;
   const onde = hero.uf === BRASIL ? "Brasil" : hero.uf === EXTERIOR ? "Exterior" : hero.uf;
@@ -200,8 +206,10 @@ export function renderHero({ hero, avatar, cor, esperado = {}, fx = EFEITOS_PADR
   const pa = Math.max(0, Math.min(100, (a.pct / ((a.pct + b.pct) || 1)) * 100));
   const mini = (c: Candidato, cls: string) => `<span class="live-mini ${cls}" style="--lado:${cor(c.partido)}">${avatar({ id: c.id, nome: c.nome }, "sm")}<span class="live-mini-t"><b>${h(curto(c.nome))}</b><span>${pct(c.pct, 1)}</span></span></span>`;
   const barra = `<div class="live-barra" aria-hidden="true">${mini(a, "a")}<span class="live-barra-bar"><i style="width:${pa.toFixed(1)}%;background:${cor(a.partido)}"></i><i style="width:${(100 - pa).toFixed(1)}%;background:${cor(b.partido)}"></i></span>${mini(b, "b")}</div>`;
+  const inicio = contagemInicial(d.secoes) ? `<p class="apu-aviso small"><b>Começo da contagem:</b> com ${pctSecoes(d.secoes)} das seções o placar ainda não representa o país (as urnas chegam fora de ordem) e deve mudar bastante.</p>` : "";
   return `<section class="${classe}" aria-label="Presidente ${h(onde)}">${topo(fase)}${base}
     ${barra}
+    ${inicio}
     ${faixaEleito(d)}
     <div class="live-duel" style="--ca:${cor(a.partido)};--cb:${cor(b.partido)}">${raios}${lado(a, a.pct > b.pct ? "a lead" : "a", avatar, cor, esperado[a.id], d.fase, fim?.derrotado === a)}
       <div class="live-vs" aria-hidden="true"><span class="live-vs-x">VS</span><b>${dif.toFixed(1).replace(".", ",")}</b><small>p.p. de diferença</small></div>
@@ -269,7 +277,7 @@ function resultadoVisual(itens: ResultadoTse[]): string {
 // and where the votes to come are.
 export interface Dois { numeros: Numeros | null; par?: Par | null; pesquisas?: Pesquisas2T | null; caminho?: Caminho | null; falta?: OndeFalta | null; onda?: Onda | null }
 
-export interface AoVivoProps { noticias?: Noticia[]; prev?: PrevProps | null; dois?: Dois | null; nacPrev?: BrasilSnapshot | null; hero: Hero; linhas: Linha[]; escopo: string; ufCartoes: string; nac: BrasilSnapshot | null; cargoTodos: Cargo; mapa?: UfMap | null; agora: Date; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado>; fx?: Efeitos; turno?: Turno }
+export interface AoVivoProps { noticias?: Noticia[]; prev?: PrevProps | null; dois?: Dois | null; nacPrev?: BrasilSnapshot | null; hero: Hero; linhas: Linha[]; escopo: string; ufCartoes: string; nac: BrasilSnapshot | null; cargoTodos: Cargo; segundos?: ReadonlySet<string> | null; mapa?: UfMap | null; agora: Date; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado>; fx?: Efeitos; turno?: Turno }
 
 export function renderAoVivo(p: AoVivoProps): string {
   const { hero, linhas, escopo, nac, agora, dois } = p;
@@ -288,7 +296,7 @@ export function renderAoVivo(p: AoVivoProps): string {
   const consolidado = escopo === BRASIL || escopo === TODOS ? renderConsolidado(consolidar(nacPres, hero.snap?.dados), (partido) => p.cor(partido)) : "";
   const mapaTempoReal = `<section class="live-noite" aria-labelledby="live-noite-t"><h3 id="live-noite-t">Mapa em tempo real <small>${h(cargoMapa)}${turno === 2 && cargoMapa !== "Senador" ? " · 2º turno" : ""}</small> ${dica(DICA_MAPA, "Como filtrar pelo mapa")}</h3>
     <div class="fx-host" data-fx-host></div></section>`;
-  const cartoes = escopo === BRASIL || escopo === EXTERIOR ? "" : `<h3>Disputas de ${h(p.ufCartoes)}</h3><div class="live-grid">${linhas.map((l) => card(l, turno)).join("")}</div>`;
+  const cartoes = escopo === BRASIL || escopo === EXTERIOR ? "" : `<h3>Disputas de ${h(p.ufCartoes)}</h3><div class="live-grid">${linhas.map((l) => card(l, turno, p.segundos)).join("")}</div>`;
   const fxLigado = (p.fx ?? EFEITOS_PADRAO).ligado;
   const somLigado = (p.fx ?? EFEITOS_PADRAO).som !== false;
   const hora = quando?.toLocaleTimeString("pt-BR") ?? "";
@@ -421,7 +429,7 @@ export function mountAoVivo(el: HTMLElement) {
     carregarMundo();
     const exterior = f.cargo === "Presidente" && turno === 1 ? exteriorProps({ ctx: ctxPres(), turno, snap: hero.snap, nac: f.nac, indice: munis.indice(), disputa: munis.disputa(ctxPres()), arquivo: munis.arquivo(ctxPres()), simulado: false, idSim: () => null }) : null;
     noite.atualizar({
-      nac: f.nac, cargo: f.cargo, mapa: mapa ?? (mapaFalhou ? null : undefined), mundo, exterior,
+      nac: f.nac, cargo: f.cargo, mapa: mapa ?? (mapaFalhou ? null : undefined), mundo, exterior, semCidades: turno === 2,
       byId: byId(f.nac), avatar: ctx.avatar, cor, efeitos: efeitos && !movimentoReduzido(), som,
       lugar: escopo === EXTERIOR ? "exterior" : "brasil",
       semAbrir: true,
@@ -489,6 +497,7 @@ export function mountAoVivo(el: HTMLElement) {
     return { numeros: n, par, pesquisas: par ? pesquisas2t(corrida, par, d) : null, caminho: caminho(prev?.previsao), falta: ondeFalta(nacPrev, restantesModelo), onda: par ? onda(nacPrev, par) : null };
   };
   const paint = () => {
+    if (hero.snap?.dados) fixarCores(cor, hero.snap.dados.candidatos);
     if (!ctx) return;
     const prev = previsaoProps();
     const dois = doisProps(prev);
@@ -507,7 +516,9 @@ export function mountAoVivo(el: HTMLElement) {
       ...Object.entries(nacPrev?.ufs ?? {}).map(([uf, u]) => ({ cargo: "Presidente" as Cargo, uf, dados: u.dados })),
       ...(nac?.cargo ? Object.entries(nac.ufs).map(([uf, u]) => ({ cargo: nac!.cargo as Cargo, uf, dados: u.dados })) : []),
     ]);
-    const html = renderAoVivo({ noticias: noticias.itens, hero, linhas, escopo, ufCartoes: ufCartoes(), nac, nacPrev, cargoTodos, mapa, agora: new Date(), avatar: ctx.avatar, cor, esperado, fx, turno, prev, dois });
+    const indice = munis.indice();
+    const segundos = indice ? new Set(indice.disputas.map((d) => `${d.cargo}|${d.uf}`)) : null;
+    const html = renderAoVivo({ noticias: noticias.itens, hero, linhas, escopo, ufCartoes: ufCartoes(), nac, nacPrev, cargoTodos, segundos, mapa, agora: new Date(), avatar: ctx.avatar, cor, esperado, fx, turno, prev, dois });
     if (hero.snap?.dados) intro = false;
     if (decidida && !koTocou) { koTocou = true; tocarKo(); }
     const key = semRelogio(html);

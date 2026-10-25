@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { AVANCO_MINIMO, COLUNAS, contagemLideres, ESTADO_GRANDE, eventosNoite, intensidade, posicoes, resumoUf, TILES, topoNacional } from "./apuracao-noite.js";
+import { AVANCO_MINIMO, cartaoExterior, COLUNAS, contagemLideres, ESTADO_GRANDE, eventosNoite, intensidade, posicoes, resumoUf, TILES, topoNacional } from "./apuracao-noite.js";
 import { caixaDe } from "./apuracao-fx.js";
 import { linhasUf } from "./apuracao-nacional.js";
 import { parseApuracao } from "./apuracao-tse.js";
@@ -130,5 +130,17 @@ describe("noite: a faixa de cima", () => {
     expect(intensidade(0.9)).toBeCloseTo(1, 10);
     expect(intensidade(-0.1)).toBeCloseTo(0.28, 10);
     expect(intensidade(0.1)).toBeGreaterThan(intensidade(0.05));
+  });
+});
+
+describe("cartão do exterior", () => {
+  test("sem cidades (2º turno) o cartão explica a ausência em vez de ficar vazio, e nunca promete círculos", () => {
+    const html = cartaoExterior({ semCidades: true, cor: () => "#000" });
+    expect(html).toContain("2º turno");
+    expect(html).toContain("1º turno");
+    expect(html).not.toMatch(/vencedor|vai ganhar|será eleito/i);
+  });
+  test("sem dados e sem aviso devolve vazio (o cartão fica escondido)", () => {
+    expect(cartaoExterior({ cor: () => "#000" })).toBe("");
   });
 });

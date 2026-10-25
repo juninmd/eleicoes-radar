@@ -116,8 +116,9 @@ async function route(req: Request, root: string): Promise<Response> {
   const html = file.endsWith(".html");
   const headers = new Headers({
     "Content-Type": html ? "text/html; charset=utf-8" : Bun.file(file).type,
-    // Data changes on each deploy; a short cache keeps repeat visits fast without going stale.
-    "Cache-Control": html ? "no-cache" : "public, max-age=300",
+    // Data changes on each deploy; a short cache keeps repeat visits fast without going stale. Pages and modules revalidate (the ETag
+    // makes it a 304): tabs load lazily, and a cached dependency next to a fresh dependant fails with "does not provide an export".
+    "Cache-Control": html || file.endsWith(".js") ? "no-cache" : "public, max-age=300",
     Vary: "Accept-Encoding",
   });
   const etag = `W/"${Bun.file(source).lastModified.toString(36)}-${BOOT}"`;

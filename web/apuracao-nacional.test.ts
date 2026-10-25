@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { contraPesquisa, createCores, linhasUf, rotulosComp, totalNacional } from "./apuracao-nacional.js";
+import { contraPesquisa, createCores, fixarCores, linhasUf, rotulosComp, totalNacional } from "./apuracao-nacional.js";
 import type { Corrida, LinhaUf } from "./apuracao-nacional.js";
 import type { Apuracao, Candidato } from "./apuracao-tse.js";
 import type { UfEstado } from "./apuracao-uf.js";
@@ -213,5 +213,22 @@ describe("linhasUf, races no split of the remaining votes can change", () => {
 
   test("state fixtures that carry no electorate fields are simply not claimed", () => {
     expect(linhasUf({ SP: uf({ cands: dois }) }, "Governador")[0].dec.size).toBe(0);
+  });
+});
+
+describe("fixarCores", () => {
+  const c = (num: string, partido: string) => ({ num, partido }) as Candidato;
+  const abre = (candidatos: Candidato[]) => { const cor = createCores(["#a", "#b", "#c"], "#z"); fixarCores(cor, candidatos); return cor; };
+
+  test("a cor de um partido não depende de quem lidera quando a aba abre", () => {
+    const lulaNaFrente = abre([c("13", "PT"), c("22", "PL")]);
+    const flavioNaFrente = abre([c("22", "PL"), c("13", "PT")]);
+    expect(flavioNaFrente("PT")).toBe(lulaNaFrente("PT"));
+    expect(flavioNaFrente("PL")).toBe(lulaNaFrente("PL"));
+    expect(lulaNaFrente("PT")).not.toBe(lulaNaFrente("PL"));
+  });
+  test("ordena pelo número como número (9 antes de 10) e ignora número ilegível", () => {
+    const cor = abre([c("10", "X"), c("9", "Y"), c("", "W")]);
+    expect([cor("Y"), cor("X")]).toEqual(["#a", "#b"]);
   });
 });
