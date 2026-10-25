@@ -385,6 +385,7 @@ async function abrirLink() {
   if (i < 0) return;
   state.ballot = i;
   state.modo = "apuracao";
+  apuracao.baixar(); // the link's tab starts downloading now, not when the data is in
   if (v.uf !== "BR") state.uf = v.uf; // loadUf() below falls back to SP when the state does not exist
   linkPendente = v;
 }
@@ -395,8 +396,10 @@ sobre();
 
 async function main() {
   renderWeights(); // needs no data: render it before the downloads so the rail does not grow under the reader
-  await abrirLink(); // before the first render: the deep link picks the tab
-  const [meta, agenda, exp, rede, pan] = await Promise.all([loadJson<Meta>("data/meta.json"), loadJson<AppState["agenda"]>("data/agenda.json"), loadJson<AppState["exp"]>("data/expectativa.json").catch(() => null), loadJson<AppState["rede"]>("data/rede.json").catch(() => null), loadJson<AppState["pan"]>("data/panorama.json").catch(() => null)]);
+  abaDo(state.modo)?.baixar(); // the saved heavy tab downloads beside the data, not after it
+  const link = abrirLink(); // beside the data: it only has to settle the tab before the first render
+  const dados = Promise.all([loadJson<Meta>("data/meta.json"), loadJson<AppState["agenda"]>("data/agenda.json"), loadJson<AppState["exp"]>("data/expectativa.json").catch(() => null), loadJson<AppState["rede"]>("data/rede.json").catch(() => null), loadJson<AppState["pan"]>("data/panorama.json").catch(() => null)]);
+  const [, [meta, agenda, exp, rede, pan]] = await Promise.all([link, dados]);
   state.rede = rede;
   state.pan = pan;
   state.agenda = agenda;
