@@ -49,7 +49,10 @@ export async function loadResultado(url: string, signal?: AbortSignal | null, ti
   const relay = () => ctl.abort();
   signal?.addEventListener("abort", relay);
   try {
-    const r = await fetch(url, { signal: ctl.signal, cache: "no-cache" }); // revalidates by ETag: cheap when nothing changed
+    // Revalidates on every poll (the TSE sends max-age=52, which would show numbers up to a minute old). It answers 304 to If-Modified-Since, not
+    // to If-None-Match (its ETag changes with the compression), so an unchanged file costs no body. Parsing is 0,3 ms (President) to ~3 ms (a state's
+    // deputies), so the parsed object is not cached.
+    const r = await fetch(url, { signal: ctl.signal, cache: "no-cache" });
     if (!r.ok) throw new HttpError(r.status);
     const parsed = parseApuracao(await r.json());
     if (!parsed) throw new Error("formato do arquivo do TSE não reconhecido");
