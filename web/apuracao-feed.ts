@@ -97,15 +97,17 @@ export function createFeed({ load = loadResultado, onChange, every, timers = { s
     if (!visible()) { timer = timers.set(tick, espera()); return; } // background tab: no request
     ctl = new AbortController();
     let patch: Partial<FeedSnapshot>;
+    let falhou = false;
     try {
       patch = { status: "ok", dados: maisRecente(await load(url!, ctl.signal), snap.dados), buscadoEm: now(), erro: null };
-      falhas = 0;
     } catch (e) {
       // 404: the TSE has not published this file (now). Either way the last good numbers stay on screen.
       patch = e instanceof HttpError && e.status === 404 ? { status: "ausente", erro: null } : { status: "erro", erro: (e as Error | null | undefined)?.message || "falha ao consultar o TSE" };
-      if (patch.status === "erro") falhas++;
+      falhou = patch.status === "erro";
     }
-    if (mine !== token) return;
+    if (mine !== token) return; // a cancelled request answers with AbortError: that is not a failure of the TSE
+    if (falhou) falhas++;
+    else if (patch.status === "ok") falhas = 0;
     emit(patch);
     timer = timers.set(tick, proxima());
   }
@@ -114,6 +116,7 @@ export function createFeed({ load = loadResultado, onChange, every, timers = { s
     follow(next) {
       if (next === url) return;
       cancel();
+      falhas = 0;
       url = next;
       snap = { url, status: "carregando", dados: null, buscadoEm: null, erro: null };
       notify();
@@ -126,6 +129,7 @@ export function createFeed({ load = loadResultado, onChange, every, timers = { s
     },
     stop() {
       cancel();
+      falhas = 0;
       url = null;
     },
   };

@@ -120,6 +120,34 @@ describe("createFeed", () => {
     expect(r.timers[0].ms).toBe(POLL_MS);
   });
 
+  test("a request cancelled by follow() or refresh() is not a failure of the TSE", async () => {
+    const r = rig();
+    const abortada = (i: number) => r.calls[i].reject(Object.assign(new Error("The operation was aborted."), { name: "AbortError" }));
+    r.feed.follow("a");
+    r.feed.follow("b"); abortada(0); await flush();
+    r.feed.follow("c"); abortada(1); await flush();
+    r.calls[2].reject(new TypeError("Failed to fetch")); await flush();
+    expect(r.timers[0].ms).toBe(120_000); // one real failure only: the two cancelled requests do not count
+  });
+
+  test("refresh() cancels the request in flight without counting it as a failure", async () => {
+    const r = rig();
+    r.feed.follow("u1");
+    r.feed.refresh();
+    r.calls[0].reject(Object.assign(new Error("The operation was aborted."), { name: "AbortError" })); await flush();
+    r.calls[1].reject(new TypeError("Failed to fetch")); await flush();
+    expect(r.timers[0].ms).toBe(120_000);
+  });
+
+  test("a new race starts with a clean count of failures", async () => {
+    const r = rig();
+    r.feed.follow("a");
+    r.calls[0].reject(new TypeError("Failed to fetch")); await flush();
+    r.feed.follow("b");
+    r.calls[1].reject(new TypeError("Failed to fetch")); await flush();
+    expect(r.timers[0].ms).toBe(120_000); // the failure of "a" does not double the wait of "b"
+  });
+
   test("a 404 means the TSE has not published this file, and is not a failure", async () => {
     const r = rig();
     r.feed.follow("u1");
