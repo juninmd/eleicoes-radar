@@ -1,2 +1,3 @@
-// Classic script, runs before first paint: the saved view decides which controls exist, so the layout does not jump when app.js loads.
-try { document.body.dataset.visao = JSON.parse(localStorage.getItem("radar:modo") as string) || "radar"; } catch { document.body.dataset.visao = "radar"; }
+// Classic script, runs before first paint: the view decides which controls exist, so the layout does not jump when app.js loads.
+// The link opens on Ao vivo (the saved tab is not restored); deep links keep their own screen. Keep in step with `state.modo` in app.ts.
+document.body.dataset.visao = location.hash.startsWith("#cand=") ? "radar" : location.hash.startsWith("#apuracao") ? "apuracao" : "aovivo";

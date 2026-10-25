@@ -17,12 +17,18 @@ test("the CSS that hides radar-only controls reads the same attribute the script
   expect(css).toContain('body[data-visao]:not([data-visao="radar"]) #radar-view');
 });
 
-// boot.js is a classic script that runs before first paint: run it for real against a fake storage.
-test("the saved view is used, and an empty, corrupt or blocked storage falls back to the radar", async () => {
+// boot.js is a classic script that runs before first paint: run it for real against fake globals.
+// The link opens on Ao vivo whatever tab was saved (and with no storage access at all); deep links keep their own screen.
+test("the link opens on Ao vivo, not on the tab saved by an earlier visit", async () => {
   const src = new Bun.Transpiler({ loader: "ts" }).transformSync(await read("boot.ts")); // same transpile the server applies
-  const run = (storage: unknown) => { const body = { dataset: {} as Record<string, string> }; new Function("document", "localStorage", src)({ body }, storage); return body.dataset.visao; };
-  expect(run({ getItem: () => '"rede"' })).toBe("rede");
-  expect(run({ getItem: () => null })).toBe("radar");
-  expect(run({ getItem: () => "{oops" })).toBe("radar");
-  expect(run({ getItem: () => { throw new Error("blocked"); } })).toBe("radar");
+  const run = (hash: string) => { const body = { dataset: {} as Record<string, string> }; new Function("document", "location", src)({ body }, { hash }); return body.dataset.visao; };
+  expect(run("")).toBe("aovivo");
+  expect(run("#sobre")).toBe("aovivo"); // an overlay: Ao vivo stays underneath
+  expect(run("#cand=280002551544&uf=SP")).toBe("radar");
+  expect(run("#apuracao/Presidente/BR")).toBe("apuracao");
+});
+
+test("boot.ts and app.ts agree on the first screen", async () => {
+  expect(await read("app.ts")).toMatch(/modo: "aovivo"/);
+  expect(await read("boot.ts")).not.toContain("localStorage"); // a saved tab would make the two disagree and the layout jump
 });
