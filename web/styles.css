@@ -447,7 +447,7 @@ body.menu-aberto .menu-toggle, body.menu-fixado .menu-toggle { display: none; }
 @media (max-width: 860px) { .menu-toggle { top: auto; bottom: 18px; translate: none; width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 999px; } /* a thumb reaches the bottom corner; it covers less of the content there */ }
 
 /* Ao vivo em tela cheia: sem hero, sem rail e sem dossiê; o conteúdo ocupa as laterais. */
-body[data-visao="aovivo"] { padding-inline: 0; padding-bottom: 0; }
+body[data-visao="aovivo"] { padding: 0; }
 body[data-visao="aovivo"] .hero, body[data-visao="aovivo"] .rail, body[data-visao="aovivo"] #dossie { display: none !important; }
 body[data-visao="aovivo"] .layout { display: block; max-width: none; margin: 0; }
 body[data-visao="aovivo"] #principal, body[data-visao="aovivo"] #painel { width: 100%; max-width: none; }
