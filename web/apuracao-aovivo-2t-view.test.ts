@@ -206,12 +206,14 @@ describe("Ao vivo: os painéis entram na tela do 2º turno", () => {
     expect(html.indexOf("Quem foi eleito")).toBeGreaterThan(html.indexOf("live-rodape"));
   });
 
-  test("before the first vote the polls take the duel's column, because there are no figures of the count yet", () => {
+  test("before the first vote the two finalists take the duel's column and the polls stay collapsed in the side column", () => {
     const antes = parseApuracao(file({ s: { ts: "100", st: "0" }, v: { tv: "0", vv: "0", vvc: "0" }, cands: [cand(A, "13", "ANA", "1", "0", "0,00"), cand(B, "22", "BETO", "2", "0", "0,00")] }))!;
     const zerado = { ...base, hero: { ...hero, snap: { ...hero.snap, dados: antes } } };
     const html = renderAoVivo({ ...zerado, dois: { numeros: numeros(antes), par, pesquisas: pesquisas2t(corrida, par, antes) } });
-    expect(html.indexOf("live-pq")).toBeGreaterThan(html.indexOf("live-col-hero"));
-    expect(html.indexOf("live-pq")).toBeLessThan(html.indexOf("live-col-mapa"));
+    expect(html.indexOf("live-fin")).toBeGreaterThan(html.indexOf("live-col-hero"));
+    expect(html.indexOf("live-fin")).toBeLessThan(html.indexOf("live-col-mapa"));
+    expect(html.indexOf("live-pq")).toBeGreaterThan(html.indexOf("live-col-prev"));
+    expect(html).toContain("pq-det-lista");
     expect(html).not.toContain("live-kpis");
   });
 

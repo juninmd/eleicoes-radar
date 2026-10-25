@@ -4,7 +4,7 @@
 import { h, int, pct, titleName } from "./format.js";
 import { createFeed } from "./apuracao-feed.js";
 import { createBrasilFeed, EXTERIOR, ufsDo } from "./apuracao-uf.js";
-import { tseUrl, TSE_BASE, turnoDe } from "./apuracao-tse.js";
+import { tseUrl, TSE_BASE, TEM_SEGUNDO_TURNO, turnoDe } from "./apuracao-tse.js";
 import { gravarTurno, lerTurno, seletorTurno } from "./apuracao-turno.js";
 import { createCores, linhasUf } from "./apuracao-nacional.js";
 import { PALETA, RESTO, legenda, mapaSvg } from "./apuracao-mapa.js";
@@ -29,7 +29,7 @@ import { chanceProps, criarMunicipais, exteriorProps } from "./apuracao-mount-pr
 import { deChance, deProjecao, registrarPrev } from "./apuracao-previsao.js";
 import { renderPrevisao } from "./apuracao-previsao-view.js";
 import { caminho, numeros, ondeFalta, parDe, pesquisas2t } from "./apuracao-aovivo-2t.js";
-import { renderCaminho, renderNumeros, renderOndeFalta, renderPesquisas2t } from "./apuracao-aovivo-2t-view.js";
+import { renderCaminho, renderFinalistas, renderNumeros, renderOndeFalta, renderPesquisas2t } from "./apuracao-aovivo-2t-view.js";
 import type { Caminho, Numeros, OndeFalta, Par, Pesquisas2T } from "./apuracao-aovivo-2t.js";
 import type { Apuracao, Candidato, Cargo, Fase, Turno } from "./apuracao-tse.js";
 import type { BrasilSnapshot } from "./apuracao-uf.js";
@@ -143,6 +143,7 @@ export function disputaDecidida(d: Apuracao | null | undefined): { eleito: Candi
 export type Avatar = (c: { id: string; nome: string }, size: string) => string;
 export interface Hero { uf: string; snap: FeedSnapshot | null; hist: Ponto[]; eleitos: EstadoEleitos }
 const CARGOS_TODOS = ["Presidente", "Governador", "Senador"] as const;
+const cargosDe = (turno: Turno) => CARGOS_TODOS.filter((c) => turno === 1 || TEM_SEGUNDO_TURNO.has(c));
 const curto = (nome: string) => titleName(nome).split(" ").slice(0, 2).join(" ");
 
 // The President's race as a head-to-head: the two leaders side by side with their photos (when the reader keeps photos on), the
@@ -205,8 +206,8 @@ export function renderHero({ hero, avatar, cor, esperado = {}, fx = EFEITOS_PADR
 }
 
 // Every state at once for one office: leader, runner-up and how much of the count is in.
-function todosOsEstados(nac: BrasilSnapshot | null, cargo: Cargo, mapa?: UfMap | null, cor?: Cores, semMapa = false): string {
-  const abas = `<div class="apu-vistas" role="group" aria-label="Cargo">${CARGOS_TODOS.map((c) => `<button type="button" data-live-cargo="${c}" aria-pressed="${c === cargo}">${c}</button>`).join("")}</div>`;
+function todosOsEstados(nac: BrasilSnapshot | null, cargo: Cargo, mapa?: UfMap | null, cor?: Cores, semMapa = false, turno: Turno = 1): string {
+  const abas = `<div class="apu-vistas" role="group" aria-label="Cargo">${cargosDe(turno).map((c) => `<button type="button" data-live-cargo="${c}" aria-pressed="${c === cargo}">${c}</button>`).join("")}</div>`;
   if (!nac || nac.cargo !== cargo) return `${abas}<p class="muted small">Consultando os arquivos de todos os estados…</p>`;
   const linhas = linhasUf(nac.ufs, cargo);
   const mapaHtml = !semMapa && mapa && cor ? `<div class="live-mapa">${mapaSvg({ mapa, linhas, modo: "lider", cor, sel: null, corridas: null, cargo })}${legenda({ modo: "lider", linhas, cor, cargo })}</div>` : "";
@@ -286,7 +287,7 @@ export function renderAoVivo(p: AoVivoProps): string {
   const hora = quando?.toLocaleTimeString("pt-BR") ?? "";
   // Before the first vote the polls are the only figures there are: they take the column the count's panels will fill.
   const pesquisas = dois?.par && dois.pesquisas ? renderPesquisas2t(dois.pesquisas, dois.par, p.cor) : "";
-  const antes = !dois?.numeros && !!pesquisas;
+  const antes = false; // the polls are collapsed and live in the third column, so no empty block waits for the count
   // The third column exists only where there is a Previsão or polls to put in it (not in a state's scope): without it the other two share the width.
   const colPrev = `${p.prev ? renderPrevisao({ ...p.prev, compacto: true }) : ""}${antes ? "" : pesquisas}`;
   const dupla = !!p.prev && !antes && !!pesquisas; // two panels share the column: only then does it split in two on a laptop
@@ -317,7 +318,8 @@ export function renderAoVivo(p: AoVivoProps): string {
     <div class="live-palco${colPrev ? "" : " sem-prev"}">
       <div class="live-col live-col-hero">
         ${renderHero({ hero, avatar: p.avatar, cor: p.cor, esperado: p.esperado, fx: p.fx, turno })}
-        ${antes ? pesquisas : renderNumeros(dois?.numeros ?? null)}
+        ${turno === 2 && dois?.par && !dois.numeros ? renderFinalistas(dois.par, p.avatar, p.cor, dois.pesquisas?.media ?? null) : ""}
+        ${renderNumeros(dois?.numeros ?? null)}
         ${renderCaminho(dois?.caminho ?? null, p.cor)}
       </div>
       <div class="live-col live-col-mapa">
@@ -335,7 +337,7 @@ export function renderAoVivo(p: AoVivoProps): string {
       </div>
     </div>
     </div>
-    ${escopo === TODOS ? `<h3>Todos os estados</h3>${todosOsEstados(nac, p.cargoTodos, p.mapa, p.cor, true)}` : ""}
+    ${escopo === TODOS ? `<h3>Todos os estados</h3>${todosOsEstados(nac, p.cargoTodos, p.mapa, p.cor, true, turno)}` : ""}
     ${cartoes}
   </section>`;
 }
@@ -410,7 +412,7 @@ export function mountAoVivo(el: HTMLElement) {
     if (!ctx || !alvo || !f) { noite.parar(); return; }
     if (noite.raiz) noite.adotar(alvo); else noite.montar(alvo);
     carregarMundo();
-    const exterior = f.cargo === "Presidente" ? exteriorProps({ ctx: ctxPres(), turno, snap: hero.snap, nac: f.nac, indice: munis.indice(), disputa: munis.disputa(ctxPres()), arquivo: munis.arquivo(ctxPres()), simulado: false, idSim: () => null }) : null;
+    const exterior = f.cargo === "Presidente" && turno === 1 ? exteriorProps({ ctx: ctxPres(), turno, snap: hero.snap, nac: f.nac, indice: munis.indice(), disputa: munis.disputa(ctxPres()), arquivo: munis.arquivo(ctxPres()), simulado: false, idSim: () => null }) : null;
     noite.atualizar({
       nac: f.nac, cargo: f.cargo, mapa: mapa ?? (mapaFalhou ? null : undefined), mundo, exterior,
       byId: byId(f.nac), avatar: ctx.avatar, cor, efeitos: efeitos && !movimentoReduzido(), som,
@@ -536,7 +538,7 @@ export function mountAoVivo(el: HTMLElement) {
     feeds.push(fHero);
     fHero.follow(tseUrl("Presidente", heroUf, TSE_BASE, turnoDe("Presidente", turno)));
     if (escopo !== BRASIL && escopo !== EXTERIOR) {
-      linhas = corridasDe(ufCartoes()).map((c) => ({ ...c, snap: null, eleitos: vazio() }));
+      linhas = corridasDe(ufCartoes()).filter((c) => turno === 1 || TEM_SEGUNDO_TURNO.has(c.cargo)).map((c) => ({ ...c, snap: null, eleitos: vazio() }));
       linhas.forEach((l, i) => {
         const f = createFeed({
           onChange: (s) => {
@@ -568,7 +570,7 @@ export function mountAoVivo(el: HTMLElement) {
     const t = (e.target as Element).closest<HTMLElement>("[data-abrir-corrida], [data-abrir-uf], [data-uf], [data-live-total], [data-live-escopo], [data-live-cargo], [data-live-fx], [data-live-som], [data-turno]");
     if (!t || !ctx) return;
     if ("liveTotal" in t.dataset) { escopo = BRASIL; ligar(); return; }
-    if (t.dataset.turno) { const novo: Turno = t.dataset.turno === "2" ? 2 : 1; if (novo !== turno) { turno = novo; gravarTurno(turno); ligar(); } return; }
+    if (t.dataset.turno) { const novo: Turno = t.dataset.turno === "2" ? 2 : 1; if (novo !== turno) { turno = novo; if (turno === 2 && !TEM_SEGUNDO_TURNO.has(cargoTodos)) cargoTodos = "Presidente"; gravarTurno(turno); ligar(); } return; }
     if ("liveSom" in t.dataset) { somLigado = !somLigado; try { localStorage.setItem("radar:som", somLigado ? "on" : "off"); } catch { /* private window */ } som.desbloquear(); paint(); return; }
     if ("liveFx" in t.dataset) { efeitos = !efeitos; try { localStorage.setItem("radar:fx", efeitos ? "on" : "off"); } catch { /* private window: the choice lasts until the tab closes */ } paint(); return; }
     if (t.dataset.abrirUf) { escopo = t.dataset.abrirUf; ligar(); return; } // "Abrir X" of the live map: the Ao vivo of that state
