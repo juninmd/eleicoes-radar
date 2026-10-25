@@ -496,7 +496,7 @@ export function mountAoVivo(el: HTMLElement) {
       { cargo: "Presidente", uf: hero.uf, dados: hero.snap?.dados },
       ...linhas.map((l) => ({ cargo: l.cargo, uf: l.uf, dados: l.snap?.dados })),
       ...Object.entries(nacPrev?.ufs ?? {}).map(([uf, u]) => ({ cargo: "Presidente" as Cargo, uf, dados: u.dados })),
-      ...(nac ? Object.entries(nac.ufs).map(([uf, u]) => ({ cargo: nac!.cargo, uf, dados: u.dados })) : []),
+      ...(nac?.cargo ? Object.entries(nac.ufs).map(([uf, u]) => ({ cargo: nac!.cargo as Cargo, uf, dados: u.dados })) : []),
     ]);
     const html = renderAoVivo({ noticias: noticias.itens, hero, linhas, escopo, ufCartoes: ufCartoes(), nac, nacPrev, cargoTodos, mapa, agora: new Date(), avatar: ctx.avatar, cor, esperado, fx, turno, prev, dois });
     if (hero.snap?.dados) intro = false;
