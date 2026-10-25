@@ -1,7 +1,7 @@
 // Polls the results file of every state for one office (the map and the national tally need all of
 // them). Same rules as createFeed: injected clock/network/visibility, a token against stale answers,
 // a failing state keeps its last numbers, and a renderer error never stops the cycle.
-import { HttpError, loadResultado, maisRecente, POLL_MS } from "./apuracao-feed.js";
+import { esperaComRecuo, HttpError, loadResultado, maisRecente, POLL_MS } from "./apuracao-feed.js";
 import type { FeedStatus, Loader, Timers } from "./apuracao-feed.js";
 import { tseUrl } from "./apuracao-tse.js";
 import type { Apuracao, Cargo } from "./apuracao-tse.js";
@@ -34,6 +34,7 @@ export function createBrasilFeed({ load = loadResultado, url = tseUrl, onChange,
   let timer: unknown = null;
   let ctl: AbortController | null = null;
   let snap: BrasilSnapshot = { cargo: null, ciclo: 0, buscadoEm: null, ufs: {} };
+  let falhas = 0; // consecutive cycles in which the TSE failed every state that was asked (a 404 is not a failure)
 
   const notify = () => {
     try { onChange({ ...snap, ufs: { ...snap.ufs } }); } catch (e) { console.error("apuração: falha ao desenhar", e); }
@@ -41,7 +42,7 @@ export function createBrasilFeed({ load = loadResultado, url = tseUrl, onChange,
   const cancel = () => { token++; ctl?.abort(); timers.clear(timer); timer = null; };
   const patch = (uf: string, p: Partial<UfEstado>) => { snap = { ...snap, ufs: { ...snap.ufs, [uf]: { ...snap.ufs[uf], ...p } } }; notify(); };
 
-  async function one(uf: string, mine: number) {
+  async function one(uf: string, mine: number): Promise<FeedStatus | null> {
     let p: Partial<UfEstado>;
     try {
       p = { status: "ok", dados: maisRecente(await load(url(cargo!, uf), ctl!.signal), snap.ufs[uf]?.dados), erro: null, buscadoEm: now() };
@@ -50,6 +51,7 @@ export function createBrasilFeed({ load = loadResultado, url = tseUrl, onChange,
       p = e instanceof HttpError && e.status === 404 ? { status: "ausente", erro: null } : { status: "erro", erro: (e as Error | null | undefined)?.message || "falha ao consultar o TSE" };
     }
     if (mine === token) patch(uf, p);
+    return p.status ?? null;
   }
 
   async function tick() {
@@ -57,18 +59,22 @@ export function createBrasilFeed({ load = loadResultado, url = tseUrl, onChange,
     if (!visible()) { timer = timers.set(tick, every); return; } // background tab: no request
     ctl = new AbortController();
     const fila = [...ufsDo(cargo)];
-    const worker = async () => { while (fila.length && mine === token) await one(fila.shift()!, mine); };
+    const estados: (FeedStatus | null)[] = [];
+    const worker = async () => { while (fila.length && mine === token) estados.push(await one(fila.shift()!, mine)); };
     await Promise.all(Array.from({ length: Math.min(concurrency, fila.length) }, worker));
     if (mine !== token) return;
+    // A cycle with no answer at all, and some errors, counts as one failure of the TSE; any answer resets the wait.
+    falhas = !estados.includes("ok") && estados.includes("erro") ? falhas + 1 : 0;
     snap = { ...snap, ciclo: snap.ciclo + 1, buscadoEm: now() };
     notify();
-    timer = timers.set(tick, every);
+    timer = timers.set(tick, esperaComRecuo(every, falhas));
   }
 
   return {
     follow(next) {
       if (next === cargo) return;
       cancel();
+      falhas = 0;
       cargo = next;
       snap = { cargo, ciclo: 0, buscadoEm: null, ufs: Object.fromEntries(ufsDo(cargo).map((uf): [string, UfEstado] => [uf, vazio()])) };
       notify();
@@ -81,6 +87,7 @@ export function createBrasilFeed({ load = loadResultado, url = tseUrl, onChange,
     },
     stop() {
       cancel();
+      falhas = 0;
       cargo = null;
     },
   };

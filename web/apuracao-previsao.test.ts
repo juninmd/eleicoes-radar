@@ -93,28 +93,44 @@ describe("previsão do 2º turno (da Chance ao vivo)", () => {
 
 describe("curva da noite", () => {
   const p = (fav: string, out: string, chanceFav: number): Previsao => ({ favorito: { id: fav, chance: chanceFav } as LadoPrev, outro: { id: out, chance: 1 - chanceFav } as LadoPrev } as Previsao);
+  // The file's own date and time, as registrarPrev reads them.
+  const at = (hora: string, data = "04/10/2026") => ({ versao: { data, hora } });
 
   test("one point per version of the file; the same version again, or an older one, changes nothing", () => {
-    let h = registrarPrev([], p("A", "B", 0.6), "19:00:00");
-    expect(registrarPrev(h, p("A", "B", 0.7), "19:00:00")).toBe(h);
-    h = registrarPrev(h, p("A", "B", 0.7), "19:01:00");
-    expect(registrarPrev(h, p("A", "B", 0.1), "18:59:00")).toBe(h);
+    let h = registrarPrev([], p("A", "B", 0.6), at("19:00:00"));
+    expect(registrarPrev(h, p("A", "B", 0.7), at("19:00:00"))).toBe(h);
+    h = registrarPrev(h, p("A", "B", 0.7), at("19:01:00"));
+    expect(registrarPrev(h, p("A", "B", 0.1), at("18:59:00"))).toBe(h);
     expect(h.map((x) => x.pa)).toEqual([0.6, 0.7]);
   });
 
+  test("the curve keeps going past midnight: 00:05 of the next day is newer than 23:58 of the day before", () => {
+    let h = registrarPrev([], p("A", "B", 0.6), at("23:58:00", "04/10/2026"));
+    h = registrarPrev(h, p("A", "B", 0.7), at("00:05:00", "05/10/2026"));
+    expect(h.map((x) => x.pa)).toEqual([0.6, 0.7]);
+  });
+
+  test("a file without a usable date is compared by its hour: the same hour again changes nothing, an older hour is ignored", () => {
+    const semData = (hora: string) => ({ versao: { hora } });
+    let h = registrarPrev([], p("A", "B", 0.6), semData("19:00:00"));
+    h = registrarPrev(h, p("A", "B", 0.7), semData("19:00:00"));
+    h = registrarPrev(h, p("A", "B", 0.8), semData("18:00:00"));
+    expect(h.map((x) => x.pa)).toEqual([0.6]);
+  });
+
   test("the curve is the chance of the current favourite: when the lead changes hands the old points are turned around", () => {
-    let h = registrarPrev([], p("A", "B", 0.7), "19:00:00");
-    h = registrarPrev(h, p("B", "A", 0.55), "19:01:00");
+    let h = registrarPrev([], p("A", "B", 0.7), at("19:00:00"));
+    h = registrarPrev(h, p("B", "A", 0.55), at("19:01:00"));
     const c = curva(h, p("B", "A", 0.55));
     expect(c.map((x) => x.p)).toEqual([expect.closeTo(0.3, 10), 0.55]);
   });
 
   test("another pair of leaders is another curve, and the memory is bounded", () => {
-    let h = registrarPrev([], p("A", "B", 0.7), "19:00:00");
-    h = registrarPrev(h, p("A", "C", 0.9), "19:01:00");
+    let h = registrarPrev([], p("A", "B", 0.7), at("19:00:00"));
+    h = registrarPrev(h, p("A", "C", 0.9), at("19:01:00"));
     expect(curva(h, p("A", "C", 0.9))).toHaveLength(1);
     let longo: ReturnType<typeof registrarPrev> = [];
-    for (let i = 0; i < 300; i++) longo = registrarPrev(longo, p("A", "B", 0.5), `${String(10 + Math.floor(i / 60)).padStart(2, "0")}:${String(i % 60).padStart(2, "0")}:00`);
+    for (let i = 0; i < 300; i++) longo = registrarPrev(longo, p("A", "B", 0.5), at(`${String(10 + Math.floor(i / 60)).padStart(2, "0")}:${String(i % 60).padStart(2, "0")}:00`));
     expect(longo.length).toBe(240);
   });
 });
@@ -188,7 +204,7 @@ describe("view da Previsão", () => {
 
   test("the curve of the night: a hint until there are two points, then the line with its end", () => {
     expect(renderPrevisao(props())).toContain("segunda atualização do TSE");
-    const h = [{ hora: "19:00:00", a: "a1", b: "b2", pa: 0.6 }, { hora: "19:01:00", a: "a1", b: "b2", pa: 0.82 }];
+    const h = [{ hora: "19:00:00", t: 1, a: "a1", b: "b2", pa: 0.6 }, { hora: "19:01:00", t: 2, a: "a1", b: "b2", pa: 0.82 }];
     const html = renderPrevisao(props({ hist: h }));
     expect(html).toContain('aria-label="Chance de Ana Souza terminar à frente, de 60% às 19:00 a 82% às 19:01"');
     expect(html).toContain('class="linha"');

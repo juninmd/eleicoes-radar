@@ -12,6 +12,8 @@ import type { LeituraChance } from "./apuracao-chance.js";
 import type { Quem } from "./apuracao-chance-view.js";
 import type { Turno } from "./apuracao-tse.js";
 import type { Prev } from "../src/radar/expectativa";
+import { epochDe } from "./apuracao-ritmo.js";
+import type { Versionado } from "./apuracao-feed.js";
 
 export interface Leit { media: number; lo?: number; hi?: number }
 export interface LadoPrev { id: string; nome: string; partido: string; chance: number; pesquisa: Leit | null; apuracao: number | null; mc: Faixa }
@@ -76,13 +78,19 @@ export function deChance(l: LeituraChance | null | undefined, a: Quem, b: Quem):
 
 // The chance of the leader over the night, kept in memory while the tab is open. A point per version of the file; the pair is kept
 // because a different pair of leaders is another curve (the chance is of one finishing ahead of the other).
-export interface PontoPrev { hora: string; a: string; b: string; pa: number }
+export interface PontoPrev { hora: string; t: number; a: string; b: string; pa: number }
 const MAX_PONTOS = 240;
-export function registrarPrev(hist: PontoPrev[], p: Previsao, hora: string): PontoPrev[] {
+// Ordered by the file's date and time (epoch), not by the "HH:MM:SS" text: 00:05 of the next day is newer than 23:58.
+export function registrarPrev(hist: PontoPrev[], p: Previsao, arquivo: Versionado): PontoPrev[] {
   const f = p.favorito, o = p.outro, ult = hist.at(-1);
-  if (ult && ult.hora === hora && ult.a === f.id && ult.b === o.id) return hist;
-  if (ult && hora < ult.hora) return hist; // the TSE sometimes answers with an older file: it never rewinds the curve
-  return [...hist, { hora, a: f.id, b: o.id, pa: f.chance }].slice(-MAX_PONTOS);
+  const t = epochDe(arquivo), hora = arquivo?.versao?.hora ?? "";
+  // Without a usable date (NaN epoch) the hour text decides: otherwise every poll would add a copy of the same point.
+  const datado = Number.isFinite(t) && !!ult && Number.isFinite(ult.t);
+  const igual = ult && (Number.isFinite(t) ? ult.t === t : ult.hora === hora);
+  const velho = ult && (datado ? t < ult.t : hora < ult.hora);
+  if (igual && ult.a === f.id && ult.b === o.id) return hist;
+  if (velho) return hist; // the TSE sometimes answers with an older file: it never rewinds the curve
+  return [...hist, { hora, t, a: f.id, b: o.id, pa: f.chance }].slice(-MAX_PONTOS);
 }
 // The chance of the current favourite, over the points of the same pair.
 export const curva = (hist: PontoPrev[], p: Previsao): { hora: string; p: number }[] =>

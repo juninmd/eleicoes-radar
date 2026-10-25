@@ -86,6 +86,16 @@ describe("Ao vivo", () => {
     expect(html).toContain("Presidente <small>Exterior</small>");
   });
 
+  test("the timeline is newest first across midnight: 00:05 of the next day is above 23:58 of the day before", () => {
+    const eleito = (uf: string, dg: string, hg: string) => {
+      const d = { ...parseApuracao(file({ cands: [cand("a1", "10", "ANA SOUZA", "1", "6000", "60,00", "s", "Eleito")] }))!, versao: { data: dg, hora: hg } };
+      return { cargo: "Governador" as const, uf, snap: snap(d), eleitos: atualizar(vazio(), d, { cargo: "Governador", uf }) };
+    };
+    const html = renderAoVivo(props({ linhas: [eleito("SP", "04/10/2026", "23:58:00"), eleito("RJ", "05/10/2026", "00:05:00")] }));
+    const horas = [...html.matchAll(/<time>([^<]+)<\/time>/g)].map((m) => m[1]);
+    expect(horas.slice(0, 2)).toEqual(["00:05", "23:58"]);
+  });
+
   test("cartões e a linha do tempo reúnem as disputas; arquivo velho é avisado; ninguém é chamado de vencedor", () => {
     const l = linhaDe("Governador", "SP");
     const velha = { ...l, snap: { ...l.snap!, status: "erro" as const, erro: "sem conexão com o TSE" } };

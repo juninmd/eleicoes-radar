@@ -4,12 +4,14 @@
 // first file seen (the Radar does not know when it happened).
 import { h, int, pct, titleName } from "./format.js";
 import { avancoDe } from "./apuracao-nacional.js";
+import { epochDe } from "./apuracao-ritmo.js";
 import { decididos, eleitoTse } from "./apuracao-eleito.js";
 import type { Apuracao, Cargo } from "./apuracao-tse.js";
 
 const MOSTRAR = 40;
 
-export interface Eleito { id: string; nome: string; partido: string; hora: string; avanco: number; tipo: "tse" | "radar"; ja: boolean }
+// `t` is the file's epoch: the hour alone ("23:58") cannot tell one night's order from the next day's.
+export interface Eleito { id: string; nome: string; partido: string; hora: string; t: number; avanco: number; tipo: "tse" | "radar"; ja: boolean }
 export interface EstadoEleitos { itens: Eleito[]; chave: string; vistos: Set<string>; vagas: number; primeira: boolean }
 
 export const vazio = (): EstadoEleitos => ({ itens: [], chave: "", vistos: new Set(), vagas: 0, primeira: true });
@@ -21,6 +23,7 @@ export function atualizar(est: EstadoEleitos, d: Apuracao | null | undefined, { 
   if (chave.trim() && chave === est.chave) return est;
   const dec = decididos(d, cargo, uf);
   const hora = d.versao.hora.slice(0, 5);
+  const t = epochDe(d);
   const avanco = avancoDe(d.secoes);
   const vistos = new Set(est.vistos);
   const novos: Eleito[] = [];
@@ -31,7 +34,7 @@ export function atualizar(est: EstadoEleitos, d: Apuracao | null | undefined, { 
     const k = `${tipo}:${c.id}`;
     if (vistos.has(k)) continue;
     vistos.add(k);
-    novos.push({ id: c.id, nome: c.nome, partido: c.partido, hora, avanco, tipo, ja: est.primeira });
+    novos.push({ id: c.id, nome: c.nome, partido: c.partido, hora, t, avanco, tipo, ja: est.primeira });
   }
   return { itens: [...novos, ...est.itens], chave, vistos, vagas: d.cargo?.vagas ?? est.vagas, primeira: false };
 }

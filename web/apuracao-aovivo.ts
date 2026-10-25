@@ -103,10 +103,10 @@ function card({ cargo, uf, snap, eleitos }: Linha, turno: Turno = 1): string {
     ${abrir}</article>`;
 }
 
-// One timeline across the races: newest hour on top. Hours are "HH:MM" of the same night, so a string sort is enough.
+// One timeline across the races: newest first, by the file's epoch (an "HH:MM" text sort breaks after midnight).
 function linhaGeral(linhas: Linha[]): string {
   const itens = linhas.flatMap((l) => l.eleitos.itens.map((e) => ({ ...e, onde: `${l.cargo}${l.uf === "BR" ? "" : ` · ${l.uf}`}` })));
-  itens.sort((a, b) => b.hora.localeCompare(a.hora));
+  itens.sort((a, b) => (b.t || 0) - (a.t || 0));
   if (!itens.length) return `<p class="empty">Ninguém tem situação de eleito ainda em nenhuma disputa. Esta linha preenche sozinha a cada arquivo novo do TSE.</p>`;
   return `<ol class="apu-linha" aria-label="Quem foi eleito, do mais recente ao mais antigo">${itens.slice(0, MAX_LINHA).map((e) => `<li class="${e.tipo}"><time>${h(e.hora)}</time>
     <span><b>${h(titleName(e.nome))}</b> <small>${h(e.partido)} · ${h(e.onde)}</small>
@@ -368,13 +368,13 @@ export function mountAoVivo(el: HTMLElement) {
       if (r.estado === "sem-disputa") return { ...base, estado: "sem-disputa" };
       if (r.concluida) return { ...base, estado: "concluida" };
       const p = deChance(r.leitura, r.a!, r.b!);
-      if (p && d) histPrev = registrarPrev(histPrev, p, d.versao.hora);
+      if (p && d) histPrev = registrarPrev(histPrev, p, d);
       return { ...base, estado: "ok", previsao: p, hist: histPrev };
     }
     if (!(nacPrev && nacPrev.ciclo >= 1)) return { ...base, estado: "carregando", arquivos: { chegaram, esperados } };
     const fontes: Fonte[] = Object.entries(nacPrev.ufs).map(([id, u]) => [id, u.dados, velha(u.status)]);
     const p = deProjecao(projecao.ler(fontes), (id) => ctx?.prev?.(id));
-    if (p && d) histPrev = registrarPrev(histPrev, p, d.versao.hora);
+    if (p && d) histPrev = registrarPrev(histPrev, p, d);
     return { ...base, estado: "ok", previsao: p, hist: histPrev };
   };
   const ufCartoes = () => (escopo === BRASIL || escopo === TODOS ? ctx!.uf : escopo);
@@ -473,6 +473,7 @@ export function mountAoVivo(el: HTMLElement) {
   });
   document.addEventListener("pointerdown", () => som.desbloquear());
   document.addEventListener("visibilitychange", () => { if (!document.hidden) { feeds.forEach((f) => f.refresh()); brasil?.refresh(); nacFeed?.refresh(); } });
+  window.addEventListener("online", () => { feeds.forEach((f) => f.refresh()); brasil?.refresh(); nacFeed?.refresh(); }); // back online: skip the wait the backoff set
 
   return {
     show(next: Contexto) {

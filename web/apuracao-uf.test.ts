@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { HttpError, POLL_MS } from "./apuracao-feed.js";
+import { POLL_LENTO_MS } from "./apuracao-ritmo.js";
 import { createBrasilFeed, EXTERIOR, UFS, ufsDo } from "./apuracao-uf.js";
 import type { BrasilFeed, BrasilSnapshot } from "./apuracao-uf.js";
 import type { Apuracao } from "./apuracao-tse.js";
@@ -51,6 +52,37 @@ describe("ufsDo", () => {
 });
 
 describe("createBrasilFeed", () => {
+  test("a cycle where the TSE fails everywhere backs off: one failure is tolerated, then the wait doubles up to 2 min, and one good state restores it", async () => {
+    const r = rig();
+    const ciclo = async (resposta: (c: Call) => void) => { while (r.inflight().length) { resposta(r.inflight()[0]); await flush(); } };
+    r.feed.follow("Governador");
+    await flush();
+    const esperas: number[] = [];
+    for (let i = 0; i < 3; i++) {
+      await ciclo((c) => { c.done = true; c.reject(new TypeError("Failed to fetch")); });
+      esperas.push(r.timers[0].ms);
+      await r.fire();
+    }
+    expect(esperas).toEqual([POLL_MS, POLL_LENTO_MS, POLL_LENTO_MS]);
+    // One state answers, the other 26 fail: a cycle with any answer is not a failure of the TSE.
+    let primeiro = true;
+    await ciclo((c) => { c.done = true; if (primeiro) { primeiro = false; c.resolve({ fase: "parcial", n: 1 } as unknown as Apuracao); } else c.reject(new TypeError("Failed to fetch")); });
+    expect(r.timers[0].ms).toBe(POLL_MS);
+  });
+
+  test("a cycle where every state answers 404 is not a failure of the TSE and does not extend the wait", async () => {
+    const r = rig();
+    const ciclo = async (resposta: (c: Call) => void) => { while (r.inflight().length) { resposta(r.inflight()[0]); await flush(); } };
+    r.feed.follow("Governador");
+    await flush();
+    for (let i = 0; i < 2; i++) {
+      await ciclo((c) => { c.done = true; c.reject(new TypeError("Failed to fetch")); });
+      await r.fire();
+    }
+    await ciclo((c) => { c.done = true; c.reject(new HttpError(404)); });
+    expect(r.timers[0].ms).toBe(POLL_MS);
+  });
+
   test("starts every state as loading and never has more requests in flight than the limit", async () => {
     const r = rig({ concurrency: 3 });
     r.feed.follow("Governador");

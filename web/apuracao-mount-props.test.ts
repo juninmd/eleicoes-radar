@@ -66,6 +66,30 @@ describe("arquivos municipais", () => {
     expect(m.arquivo(ctx)).toBe(arq);
   });
 
+  test("a failed race file is asked again on the next visit, and not while the failure is still in place", async () => {
+    const pedidos: string[] = [];
+    let falhar = true;
+    const getJson = <T>(url: string): Promise<T> => {
+      pedidos.push(url);
+      if (url.endsWith("index.json")) return Promise.resolve(indice as T);
+      return falhar ? Promise.reject(new Error("HTTP 503")) : Promise.resolve(arq as T);
+    };
+    const m = criarMunicipais(getJson, () => {});
+    m.carregar(ctx);
+    await flush();
+    expect(m.arquivo(ctx)).toBeNull();
+    m.carregar(ctx);
+    await flush();
+    expect(pedidos.filter((u) => u.endsWith("Governador-AC.json"))).toHaveLength(2);
+    falhar = false;
+    m.carregar(ctx);
+    await flush();
+    expect(m.arquivo(ctx)).toBe(arq);
+    m.carregar(ctx);
+    await flush();
+    expect(pedidos.filter((u) => u.endsWith("Governador-AC.json"))).toHaveLength(3);
+  });
+
   test("a failed index is not asked again in a loop, only on the next visit", async () => {
     const pedidos: string[] = [];
     const getJson = <T>(url: string): Promise<T> => { pedidos.push(url); return Promise.reject(new Error("HTTP 404")); };

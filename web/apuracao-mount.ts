@@ -359,6 +359,7 @@ export function mountApuracao(el: HTMLElement) {
     if (t && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); escolher(t.dataset.uf!); }
   });
   document.addEventListener("visibilitychange", () => { if (!document.hidden && !simAtivo()) { feed.refresh(); if (nacional()) brasil.refresh(); } });
+  window.addEventListener("online", () => { if (!simAtivo()) { feed.refresh(); if (nacional()) brasil.refresh(); } }); // back online: skip the wait the backoff set
 
   return {
     // A link opened on page load: view and round now, the simulated moment once the race is on screen.

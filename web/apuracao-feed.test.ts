@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { createFeed, HttpError, maisRecente, POLL_MS } from "./apuracao-feed.js";
+import { POLL_LENTO_MS } from "./apuracao-ritmo.js";
 import type { Feed, FeedSnapshot } from "./apuracao-feed.js";
 import type { Apuracao } from "./apuracao-tse.js";
 
@@ -104,6 +105,50 @@ describe("createFeed", () => {
     expect(r.events.at(-1)).toMatchObject({ status: "ok", dados: data(3), erro: null });
   });
 
+  test("consecutive failures back off (tolerates one, then doubling, capped at 2 min) and the first good answer restores the rhythm", async () => {
+    const r = rig();
+    r.feed.follow("u1");
+    const esperas: number[] = [];
+    for (let i = 0; i < 3; i++) {
+      r.calls[i].reject(new TypeError("Failed to fetch"));
+      await flush();
+      esperas.push(r.timers[0].ms);
+      await r.fire();
+    }
+    expect(esperas).toEqual([POLL_MS, POLL_LENTO_MS, POLL_LENTO_MS]); // the first failure is tolerated; then doubled, capped at 2 min
+    r.calls[3].resolve(data(1));
+    await flush();
+    expect(r.timers[0].ms).toBe(POLL_MS);
+  });
+
+  test("a request cancelled by follow() or refresh() is not a failure of the TSE", async () => {
+    const r = rig();
+    const abortada = (i: number) => r.calls[i].reject(Object.assign(new Error("The operation was aborted."), { name: "AbortError" }));
+    r.feed.follow("a");
+    r.feed.follow("b"); abortada(0); await flush();
+    r.feed.follow("c"); abortada(1); await flush();
+    r.calls[2].reject(new TypeError("Failed to fetch")); await flush();
+    expect(r.timers[0].ms).toBe(POLL_MS); // one real failure only: the two cancelled requests do not count
+  });
+
+  test("refresh() cancels the request in flight without counting it as a failure", async () => {
+    const r = rig();
+    r.feed.follow("u1");
+    r.feed.refresh();
+    r.calls[0].reject(Object.assign(new Error("The operation was aborted."), { name: "AbortError" })); await flush();
+    r.calls[1].reject(new TypeError("Failed to fetch")); await flush();
+    expect(r.timers[0].ms).toBe(POLL_MS);
+  });
+
+  test("a new race starts with a clean count of failures", async () => {
+    const r = rig();
+    r.feed.follow("a");
+    r.calls[0].reject(new TypeError("Failed to fetch")); await flush();
+    r.feed.follow("b");
+    r.calls[1].reject(new TypeError("Failed to fetch")); await flush();
+    expect(r.timers[0].ms).toBe(POLL_MS); // the failure of "a" does not double the wait of "b"
+  });
+
   test("a 404 means the TSE has not published this file, and is not a failure", async () => {
     const r = rig();
     r.feed.follow("u1");
@@ -111,6 +156,15 @@ describe("createFeed", () => {
     await flush();
     expect(r.events.at(-1)).toMatchObject({ status: "ausente", dados: null });
     expect(r.timers).toHaveLength(1);
+    expect(r.timers[0].ms).toBe(POLL_MS);
+  });
+
+  test("any answer from the TSE that is not an error ends the wait: a 404 after three failures goes back to the normal rhythm", async () => {
+    const r = rig();
+    r.feed.follow("u1");
+    for (let i = 0; i < 3; i++) { r.calls[i].reject(new TypeError("Failed to fetch")); await flush(); await r.fire(); }
+    r.calls[3].reject(new HttpError(404)); await flush();
+    expect(r.timers[0].ms).toBe(POLL_MS);
   });
 
   test("a hidden tab skips the request but keeps the schedule, and refresh() catches up at once", async () => {
