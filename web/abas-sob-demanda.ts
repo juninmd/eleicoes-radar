@@ -15,16 +15,19 @@ export function abaSobDemanda<M, T>(importar: () => Promise<M>, montar: (m: M) =
   };
 }
 
-// Runs `usar` once the tab is ready. A callback that arrives after the user left the tab does nothing; a failed download shows a retry in the tab's view.
-export function quandoPronta<T>(a: Aba<T>, el: HTMLElement, visivel: () => boolean, usar: (x: T) => void, tentar: () => void): void {
+// Runs `usar` once the tab is ready. A hidden tab does nothing at all, so it neither downloads nor repaints. A failed download shows a reload: the browser caches the failed import, so an in-page retry cannot succeed.
+export function quandoPronta<T>(a: Aba<T>, el: HTMLElement, visivel: () => boolean, usar: (x: T) => void): void {
+  if (!visivel()) return;
   const pronta = a.get();
   if (pronta !== null) { usar(pronta); return; }
   a.carregar().then(
     (x) => { if (visivel()) usar(x); },
     () => {
       if (!visivel()) return;
-      el.innerHTML = `<p class="empty">Não foi possível abrir esta aba. <button type="button">Tentar de novo</button></p>`;
-      el.querySelector("button")!.addEventListener("click", tentar);
+      el.innerHTML = `<p class="empty" role="status">Não foi possível abrir esta aba. <button type="button">Recarregar a página</button></p>`;
+      const botao = el.querySelector<HTMLButtonElement>("button");
+      botao?.addEventListener("click", () => location.reload());
+      botao?.focus(); // the reader lands on the only control, not on BODY
     },
   );
 }

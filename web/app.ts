@@ -243,25 +243,25 @@ function renderModo() {
     quandoPronta(apuracao, $("#apu-view"), () => state.modo === "apuracao", (ap) => {
       if (linkPendente) { ap.restaurar(linkPendente); linkPendente = null; }
       ap.show({ ...raceOf(), ufEleitor: state.uf, byId: new Map(state.cands.map((c) => [c.id, c] as const)), avatar, exp: state.exp, abrirUf });
-    }, renderModo);
+    });
   } else apuracao.get()?.hide();
-  if (state.modo in PAN_MODES) { quandoPronta(panorama, $("#pan-view"), () => state.modo in PAN_MODES, (p) => p.show({ modo: state.modo, pan: state.pan, ...raceOf(), cands: state.cands }), renderModo); return; }
+  if (state.modo in PAN_MODES) { quandoPronta(panorama, $("#pan-view"), () => state.modo in PAN_MODES, (p) => p.show({ modo: state.modo, pan: state.pan, ...raceOf(), cands: state.cands })); return; }
   if (state.modo === "rede") {
     const cand = state.redeFoco && state.cands.find((x) => x.id === state.redeFoco);
     quandoPronta(redeAba, $("#rede-view"), () => state.modo === "rede", (renderRede) => {
       keepFocus($("#rede-view"), () => { $("#rede-view").innerHTML = renderRede({ rede: state.rede, cand: cand || null, sel: state.redeSel }); });
-    }, renderModo);
+    });
     return;
   }
   if (state.modo !== "expectativa") return;
   quandoPronta(expectativa, $("#exp-view"), () => state.modo === "expectativa", (renderExpectativa) => {
     $("#exp-view").innerHTML = renderExpectativa({ exp: state.exp, ...raceOf(), cands: state.cands, avatar, limit: state.limit });
-  }, renderModo);
+  });
 }
 
 // Ao vivo redraws on its own (feed, photos); the callback is a no-op once the user has left the tab.
 function mostrarAoVivo() {
-  quandoPronta(aoVivo, $("#live-view"), () => state.modo === "aovivo", (ao) => ao.show({ uf: state.uf, abrir: abrirCorrida, avatar, prev: prevDe, exp: state.exp }), renderModo);
+  quandoPronta(aoVivo, $("#live-view"), () => state.modo === "aovivo", (ao) => ao.show({ uf: state.uf, abrir: abrirCorrida, avatar, prev: prevDe, exp: state.exp }));
 }
 
 function render() {
@@ -385,6 +385,7 @@ async function abrirLink() {
   if (i < 0) return;
   state.ballot = i;
   state.modo = "apuracao";
+  apuracao.baixar(); // the link's tab starts downloading now, not when the data is in
   if (v.uf !== "BR") state.uf = v.uf; // loadUf() below falls back to SP when the state does not exist
   linkPendente = v;
 }
@@ -395,8 +396,10 @@ sobre();
 
 async function main() {
   renderWeights(); // needs no data: render it before the downloads so the rail does not grow under the reader
-  await abrirLink(); // before the first render: the deep link picks the tab
-  const [meta, agenda, exp, rede, pan] = await Promise.all([loadJson<Meta>("data/meta.json"), loadJson<AppState["agenda"]>("data/agenda.json"), loadJson<AppState["exp"]>("data/expectativa.json").catch(() => null), loadJson<AppState["rede"]>("data/rede.json").catch(() => null), loadJson<AppState["pan"]>("data/panorama.json").catch(() => null)]);
+  abaDo(state.modo)?.baixar(); // the saved heavy tab downloads beside the data, not after it
+  const link = abrirLink(); // beside the data: it only has to settle the tab before the first render
+  const dados = Promise.all([loadJson<Meta>("data/meta.json"), loadJson<AppState["agenda"]>("data/agenda.json"), loadJson<AppState["exp"]>("data/expectativa.json").catch(() => null), loadJson<AppState["rede"]>("data/rede.json").catch(() => null), loadJson<AppState["pan"]>("data/panorama.json").catch(() => null)]);
+  const [, [meta, agenda, exp, rede, pan]] = await Promise.all([link, dados]);
   state.rede = rede;
   state.pan = pan;
   state.agenda = agenda;
