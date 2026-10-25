@@ -26,7 +26,7 @@ Rollback: `docker push` da tag anterior como `:latest` e `rollout restart`. Saú
 > construída aqui como `:latest`. No rollback, use uma tag construída aqui (sha curto, do `git rev-parse --short`):
 > as tags de sha longo vêm do CI e também não têm `web/data`.
 
-## Ao vivo: segredos e deploy por tag imutável
+## Ao vivo: segredos do push
 
 O push precisa de chaves VAPID num Secret (sem elas o push fica desligado e o resto funciona):
 
@@ -39,13 +39,23 @@ kubectl -n apps set env deploy/eleicoes-radar --from=secret/eleicoes-radar-vapid
 
 Trocar a chave pública invalida as inscrições push. Presença, torcida e inscrições ficam só em memória: todo deploy as zera.
 
-Para não depender de `:latest` (o CI o sobrescreve sem `web/data` a cada merge), implante pela tag do sha:
+## Deploy com o ArgoCD e o CI (ordem importa)
+
+Existe um Application do ArgoCD (`argocd/eleicoes-radar`, `juninmd/app-charts`, `eleicoes-radar/`, com `selfHeal` e `prune`) e a imagem no git é `:latest`. Dois efeitos:
+
+- `kubectl set image` para uma tag de sha é **revertido pelo Argo em ~1 s**. Não use.
+- O CI (`Build and Push Docker Image`) publica `:latest` **sem `web/data`** logo depois de cada merge em `main`.
+
+Ordem que funciona: faça o merge, **espere o job de Docker do CI terminar** (`gh run list --branch main`), então publique a sua imagem (com dados) como `:latest`, reinicie e confira que não é a imagem do CI:
 
 ```sh
-docker push ghcr.io/juninmd/eleicoes-radar:<sha>
-kubectl -n apps set image deploy/eleicoes-radar eleicoes-radar=ghcr.io/juninmd/eleicoes-radar:<sha>
-kubectl -n apps rollout status deploy/eleicoes-radar
+docker build --platform linux/amd64 -t ghcr.io/juninmd/eleicoes-radar:<sha> -t ghcr.io/juninmd/eleicoes-radar:latest .
+docker push ghcr.io/juninmd/eleicoes-radar:<sha> && docker push ghcr.io/juninmd/eleicoes-radar:latest
+kubectl -n apps rollout restart deploy/eleicoes-radar && kubectl -n apps rollout status deploy/eleicoes-radar
+curl -s https://eleicoes-radar.antonio-code.duckdns.org/data/meta.json | head -3   # 404 = imagem do CI, sem dados
 ```
+
+Qualquer reinício do pod depois de um merge sem esse passo sobe a imagem do CI e o site perde os dados. O envio (`set env --from=secret`) do Secret VAPID não vem do git: se o Argo o podar, o push se desliga (a página esconde o botão) até reaplicar.
 
 O servidor (`src/radar/serve.ts`) envia `Content-Security-Policy` restritiva (`default-src 'none'`, scripts só da própria origem,
 `connect-src` só a origem e `resultados.tse.jus.br`), `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` e afins em toda
