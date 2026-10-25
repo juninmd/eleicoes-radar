@@ -3,13 +3,14 @@
 // Behind the cluster's load balancer every client may share ONE source address, so the address limits are high ceilings (they only
 // bound a flood) and the real per-visitor limits are keyed by the visitor's own code.
 import { ID_VALIDO, type Presenca } from "./presenca.js";
+import { criarCartoes, PASSOS_DUELO, PASSOS_SECOES } from "./cartao.js";
 import { criarLimite } from "./limite.js";
 import type { Monitor } from "./monitor.js";
 import type { Push } from "./push.js";
 
 export interface ApiDeps { presenca: Presenca; push: Push; monitor: Monitor; persistente?: boolean }
 const MAX_CORPO = 1024;
-const GET = new Set(["/api/aovivo/estado", "/api/aovivo/ultimo", "/api/push/chave"]);
+const GET = new Set(["/api/aovivo/estado", "/api/aovivo/ultimo", "/api/aovivo/cartao.png", "/api/push/chave"]);
 const POST = new Set(["/api/aovivo/ping", "/api/aovivo/torcida", "/api/push/inscrever", "/api/push/cancelar"]);
 
 const json = (dados: unknown, status = 200) => new Response(JSON.stringify(dados), { status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
@@ -21,6 +22,7 @@ export function criarApi({ presenca, push, monitor, persistente = false }: ApiDe
   const ipLer = minuto(6000), ipPing = minuto(20_000), ipVoto = minuto(1200), ipPush = minuto(1200);
   const idPing = minuto(8, 100_000), idVoto = minuto(10, 100_000);
 
+  const cartoes = criarCartoes();
   const estado = (id?: string) => ({ ...presenca.resumo(), meu: id ? presenca.meuVoto(id) : null, eventos: monitor.eventos().slice(0, 5), push: push.ativo(), persistente });
 
   async function corpo(req: Request): Promise<Record<string, unknown> | Response> {
@@ -50,6 +52,13 @@ export function criarApi({ presenca, push, monitor, persistente = false }: ApiDe
       // Everyone gets the same answer: no limit on what a woken service worker asks for after a fan-out.
       if (pathname === "/api/aovivo/ultimo") return monitor.ultimo() ? json(monitor.ultimo()) : erro(404, "sem eventos");
       if (!ipLer(ip)) return MUITAS();
+      if (pathname === "/api/aovivo/cartao.png") {
+        // The picture of a notification: a pure function of two small integers, so it can be cached for good.
+        const q = new URL(req.url).searchParams;
+        const [d, s] = [q.get("a") ?? "", q.get("s") ?? ""];
+        if (!/^\d{1,3}$/.test(d) || !/^\d{1,3}$/.test(s) || +d > PASSOS_DUELO || +s > PASSOS_SECOES) return erro(400, "parâmetros inválidos");
+        return new Response(cartoes(+d, +s), { headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400, immutable" } });
+      }
       return pathname === "/api/aovivo/estado" ? json(estado()) : push.chave() ? json({ chave: push.chave() }) : erro(404, "push desligado");
     }
     const ipOk = pathname === "/api/aovivo/ping" ? ipPing : pathname === "/api/aovivo/torcida" ? ipVoto : ipPush;

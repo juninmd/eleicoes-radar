@@ -17,6 +17,17 @@ function arq(o: { a: number; b: number; st?: number; apurado?: number; sitA?: st
 const seed = (d = arq({ a: 40, b: 35 }), disp = PRES) => detectar(null, d, disp, 0).estado;
 const ids = (es: { id: string }[]) => es.map((e) => e.id.split(":").slice(1).join(":"));
 
+describe("cartão do evento", () => {
+  test("a fact with two front-runners carries the picture of their share and of the sections; the start does not", () => {
+    const vazio = parseApuracao(file({ s: { ts: "100", st: "0" }, v: { tv: "0", vv: "0", vvc: "0" }, cands: [cand("a1", "13", "ANA SOUZA", "1", "0", "0"), cand("b2", "22", "BETO LIMA", "2", "0", "0")] }))!;
+    const s0 = detectar(null, vazio, PRES, 0).estado;
+    const r1 = detectar(s0, arq({ a: 5, b: 4, st: 3 }), PRES, 1);
+    expect(r1.eventos.find((e) => e.tipo === "inicio")?.cartao).toBeUndefined();
+    const r2 = detectar(r1.estado, arq({ a: 50, b: 40, st: 55 }), PRES, 2);
+    expect(r2.eventos[0]?.cartao).toBe("/api/aovivo/cartao.png?a=111&s=55"); // 50 of 90 = 55,6% of the two, 55% of the sections
+  });
+});
+
 describe("detectar", () => {
   test("first sight announces nothing, even a race the TSE already marked: a restart must not replay the night", () => {
     const r = detectar(null, arq({ a: 60, b: 30, sitA: "Eleito", st: 100 }), PRES, 0);

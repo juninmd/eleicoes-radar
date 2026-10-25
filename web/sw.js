@@ -11,12 +11,21 @@ self.addEventListener("push", (e) => {
       if (r.ok) ev = await r.json();
     } catch { /* offline: the generic text below */ }
     // A browser demands a visible notification for every push, so there is always one.
-    await self.registration.showNotification(ev?.titulo || "Radar do Voto", {
-      body: ev?.texto || "Há novidade na apuração. Abra o Radar para ver.",
-      tag: ev?.id || "radar",
-      lang: "pt-BR",
-      data: { url: "/#aovivo" },
-    });
+    const titulo = ev?.titulo || "Radar do Voto";
+    const base = { body: ev?.texto || "Há novidade na apuração. Abra o Radar para ver.", tag: ev?.id || "radar", lang: "pt-BR", data: { url: "/#aovivo" } };
+    const cartao = typeof ev?.cartao === "string" && ev.cartao.startsWith("/api/aovivo/cartao.png?") ? ev.cartao : null;
+    try {
+      await self.registration.showNotification(titulo, {
+        ...base,
+        ...(cartao ? { image: cartao } : {}), // browsers that cannot show a banner (Firefox, Safari) simply ignore it
+        vibrate: [90, 50, 90],
+        renotify: true, // if the same event is pushed twice it replaces itself and still alerts
+        timestamp: ev?.t || Date.now(),
+        actions: [{ action: "abrir", title: "Abrir a apuração" }],
+      });
+    } catch {
+      await self.registration.showNotification(titulo, base); // a browser that rejects an option must still show the notice
+    }
   })());
 });
 

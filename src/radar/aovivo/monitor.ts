@@ -1,5 +1,6 @@
 // Reads the TSE result files on the server so a push can go out with every tab closed. One request per race per round, with the same
 // out-of-order guard as the live tab (the TSE sometimes serves a file older than one already seen) and a back-off while it fails.
+import { cartaoUrl } from "./cartao.js";
 import { parseApuracao, tseUrl, TSE_BASE, type Apuracao, type Turno } from "../../../web/apuracao-tse.js";
 import { maisRecente } from "../../../web/apuracao-feed.js";
 import { titleName } from "../../../web/format.js";
@@ -86,7 +87,7 @@ export function criarMonitor({ turno, disputas = DISPUTAS_2026_T2, base = TSE_BA
     // Operator test (SIGUSR2 in runtime.ts): the service worker shows this instead of the latest real event for a couple of minutes.
     // It is not a result and never enters the panel's list; a real event that arrives meanwhile replaces it.
     testar(): Evento {
-      const e: Evento = { id: `teste:${agora()}`, t: agora(), tipo: "teste", titulo: "Teste de aviso do Radar", texto: "Se você viu isto, os avisos deste navegador funcionam. Não é um evento da apuração.", rotulo: "Teste" };
+      const e: Evento = { id: `teste:${agora()}`, t: agora(), tipo: "teste", titulo: "Teste de aviso do Radar", texto: "Se você viu isto, os avisos deste navegador funcionam. Não é um evento da apuração; a barra é só um exemplo.", rotulo: "Teste", cartao: cartaoUrl(0.5, 0.5) };
       const anterior = ultimoDestaque;
       ultimoDestaque = e;
       const t = setTimeout(() => { if (ultimoDestaque === e) ultimoDestaque = anterior; }, testeMs);
