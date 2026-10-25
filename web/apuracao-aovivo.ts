@@ -93,14 +93,17 @@ function resumo(d: Apuracao, cargo: Cargo): string {
   return b ? `Diferença de <b>${((a.pct - b.pct) * 100).toFixed(1).replace(".", ",")} p.p.</b> entre os dois primeiros${a.pct < 0.5 ? `; faltam ${((0.5 - a.pct) * 100).toFixed(1).replace(".", ",")} p.p. para o 1º chegar a 50%` : ""}.` : "";
 }
 
-function card({ cargo, uf, snap, eleitos }: Linha, turno: Turno = 1): string {
+// `segundos` = "cargo|uf" of the runoffs that exist (the municipal index), null while it is not loaded: only then is a missing file known to
+// mean "decided in the 1st round" instead of "not published yet".
+function card({ cargo, uf, snap, eleitos }: Linha, turno: Turno = 1, segundos: ReadonlySet<string> | null = null): string {
   const t = turnoDe(cargo, turno);
   const d = snap?.dados;
   const local = uf === "BR" ? "Brasil" : uf;
   const chave = `${cargo}|${uf}`;
   const abrir = `<button type="button" class="ghost live-abrir" data-abrir-corrida="${h(chave)}">Abrir a apuração</button>`;
   if (!d) {
-    const msg = snap?.status === "ausente" ? `O TSE ainda não publicou o arquivo desta disputa.${t === 2 ? " Se não houve 2º turno nela, o arquivo não existe." : ""}` : snap?.status === "erro" ? `Não foi possível consultar o TSE: ${h(snap.erro)}.` : "Consultando o TSE…";
+    const semSegundo = t === 2 && !!segundos && !segundos.has(chave);
+    const msg = snap?.status === "ausente" && semSegundo ? "Não houve 2º turno nesta disputa: ela foi decidida no 1º turno." : snap?.status === "ausente" ? `O TSE ainda não publicou o arquivo desta disputa.${t === 2 ? " Se não houve 2º turno nela, o arquivo não existe." : ""}` : snap?.status === "erro" ? `Não foi possível consultar o TSE: ${h(snap.erro)}.` : "Consultando o TSE…";
     return `<article class="live-card" aria-label="${h(cargo)} ${h(local)}"><header><h3>${h(cargo)} <small>${h(local)}${t === 2 ? " · 2º turno" : ""}</small></h3></header><p class="muted small">${msg}</p>${abrir}</article>`;
   }
   const velha = snap!.status === "erro" || snap!.status === "ausente";
@@ -273,7 +276,7 @@ function resultadoVisual(itens: ResultadoTse[]): string {
 // and where the votes to come are.
 export interface Dois { numeros: Numeros | null; par?: Par | null; pesquisas?: Pesquisas2T | null; caminho?: Caminho | null; falta?: OndeFalta | null; onda?: Onda | null }
 
-export interface AoVivoProps { noticias?: Noticia[]; prev?: PrevProps | null; dois?: Dois | null; nacPrev?: BrasilSnapshot | null; hero: Hero; linhas: Linha[]; escopo: string; ufCartoes: string; nac: BrasilSnapshot | null; cargoTodos: Cargo; mapa?: UfMap | null; agora: Date; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado>; fx?: Efeitos; turno?: Turno }
+export interface AoVivoProps { noticias?: Noticia[]; prev?: PrevProps | null; dois?: Dois | null; nacPrev?: BrasilSnapshot | null; hero: Hero; linhas: Linha[]; escopo: string; ufCartoes: string; nac: BrasilSnapshot | null; cargoTodos: Cargo; segundos?: ReadonlySet<string> | null; mapa?: UfMap | null; agora: Date; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado>; fx?: Efeitos; turno?: Turno }
 
 export function renderAoVivo(p: AoVivoProps): string {
   const { hero, linhas, escopo, nac, agora, dois } = p;
@@ -292,7 +295,7 @@ export function renderAoVivo(p: AoVivoProps): string {
   const consolidado = escopo === BRASIL || escopo === TODOS ? renderConsolidado(consolidar(nacPres, hero.snap?.dados), (partido) => p.cor(partido)) : "";
   const mapaTempoReal = `<section class="live-noite" aria-labelledby="live-noite-t"><h3 id="live-noite-t">Mapa em tempo real <small>${h(cargoMapa)}${turno === 2 && cargoMapa !== "Senador" ? " · 2º turno" : ""}</small> ${dica(DICA_MAPA, "Como filtrar pelo mapa")}</h3>
     <div class="fx-host" data-fx-host></div></section>`;
-  const cartoes = escopo === BRASIL || escopo === EXTERIOR ? "" : `<h3>Disputas de ${h(p.ufCartoes)}</h3><div class="live-grid">${linhas.map((l) => card(l, turno)).join("")}</div>`;
+  const cartoes = escopo === BRASIL || escopo === EXTERIOR ? "" : `<h3>Disputas de ${h(p.ufCartoes)}</h3><div class="live-grid">${linhas.map((l) => card(l, turno, p.segundos)).join("")}</div>`;
   const fxLigado = (p.fx ?? EFEITOS_PADRAO).ligado;
   const somLigado = (p.fx ?? EFEITOS_PADRAO).som !== false;
   const hora = quando?.toLocaleTimeString("pt-BR") ?? "";
@@ -424,7 +427,7 @@ export function mountAoVivo(el: HTMLElement) {
     carregarMundo();
     const exterior = f.cargo === "Presidente" && turno === 1 ? exteriorProps({ ctx: ctxPres(), turno, snap: hero.snap, nac: f.nac, indice: munis.indice(), disputa: munis.disputa(ctxPres()), arquivo: munis.arquivo(ctxPres()), simulado: false, idSim: () => null }) : null;
     noite.atualizar({
-      nac: f.nac, cargo: f.cargo, mapa: mapa ?? (mapaFalhou ? null : undefined), mundo, exterior,
+      nac: f.nac, cargo: f.cargo, mapa: mapa ?? (mapaFalhou ? null : undefined), mundo, exterior, semCidades: turno === 2,
       byId: byId(f.nac), avatar: ctx.avatar, cor, efeitos: efeitos && !movimentoReduzido(), som,
       lugar: escopo === EXTERIOR ? "exterior" : "brasil",
       semAbrir: true,
@@ -511,7 +514,9 @@ export function mountAoVivo(el: HTMLElement) {
       ...Object.entries(nacPrev?.ufs ?? {}).map(([uf, u]) => ({ cargo: "Presidente" as Cargo, uf, dados: u.dados })),
       ...(nac?.cargo ? Object.entries(nac.ufs).map(([uf, u]) => ({ cargo: nac!.cargo as Cargo, uf, dados: u.dados })) : []),
     ]);
-    const html = renderAoVivo({ noticias: noticias.itens, hero, linhas, escopo, ufCartoes: ufCartoes(), nac, nacPrev, cargoTodos, mapa, agora: new Date(), avatar: ctx.avatar, cor, esperado, fx, turno, prev, dois });
+    const indice = munis.indice();
+    const segundos = indice ? new Set(indice.disputas.map((d) => `${d.cargo}|${d.uf}`)) : null;
+    const html = renderAoVivo({ noticias: noticias.itens, hero, linhas, escopo, ufCartoes: ufCartoes(), nac, nacPrev, cargoTodos, segundos, mapa, agora: new Date(), avatar: ctx.avatar, cor, esperado, fx, turno, prev, dois });
     if (hero.snap?.dados) intro = false;
     if (decidida && !koTocou) { koTocou = true; tocarKo(); }
     const key = semRelogio(html);
