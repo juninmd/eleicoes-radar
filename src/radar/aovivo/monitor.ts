@@ -21,6 +21,7 @@ export interface MonitorOpts {
   onOpcoes?: (corrida: string, opcoes: Opcao[]) => void;
   agora?: () => number;
   guardar?: number;
+  testeMs?: number; // how long a test notice stays what the service worker reads
 }
 
 const buscarJson = async (url: string): Promise<unknown> => {
@@ -29,7 +30,7 @@ const buscarJson = async (url: string): Promise<unknown> => {
   return r.json();
 };
 
-export function criarMonitor({ turno, disputas = DISPUTAS_2026_T2, base = TSE_BASE, buscar = buscarJson, onEventos, onOpcoes, agora = Date.now, guardar = 50 }: MonitorOpts) {
+export function criarMonitor({ turno, disputas = DISPUTAS_2026_T2, base = TSE_BASE, buscar = buscarJson, onEventos, onOpcoes, agora = Date.now, guardar = 50, testeMs = 120_000 }: MonitorOpts) {
   const estados = new Map<string, EstadoDisputa>();
   const vistos = new Map<string, Apuracao>();
   const recentes: Evento[] = [];
@@ -82,6 +83,16 @@ export function criarMonitor({ turno, disputas = DISPUTAS_2026_T2, base = TSE_BA
     parar() { parado = true; if (timer) clearTimeout(timer); timer = null; },
     eventos: (): Evento[] => [...recentes].reverse(),
     ultimo: (): Evento | null => ultimoDestaque,
+    // Operator test (SIGUSR2 in runtime.ts): the service worker shows this instead of the latest real event for a couple of minutes.
+    // It is not a result and never enters the panel's list; a real event that arrives meanwhile replaces it.
+    testar(): Evento {
+      const e: Evento = { id: `teste:${agora()}`, t: agora(), tipo: "teste", titulo: "Teste de aviso do Radar", texto: "Se você viu isto, os avisos deste navegador funcionam. Não é um evento da apuração.", rotulo: "Teste" };
+      const anterior = ultimoDestaque;
+      ultimoDestaque = e;
+      const t = setTimeout(() => { if (ultimoDestaque === e) ultimoDestaque = anterior; }, testeMs);
+      t.unref?.();
+      return e;
+    },
   };
 }
 export type Monitor = ReturnType<typeof criarMonitor>;

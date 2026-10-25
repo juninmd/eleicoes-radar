@@ -17,5 +17,11 @@ export async function criarRuntime(env: Record<string, string | undefined> = pro
   });
   if (env.RADAR_MONITOR !== "off") monitor.iniciar(Number(env.RADAR_MONITOR_MS) || 40_000);
   console.log(`ao vivo: monitor ${env.RADAR_MONITOR === "off" ? "desligado" : "ligado"} (turno ${turno}), push ${vapid ? "ligado" : "desligado (sem chaves VAPID)"}`);
+  // `kubectl exec deploy/eleicoes-radar -- kill -USR2 1`: sends a clearly labelled test notice to every subscriber. No HTTP route does this.
+  process.on("SIGUSR2", () => {
+    const e = monitor.testar();
+    console.log(`teste de push ${e.id}`);
+    void push.notificar().then((x) => console.log(`push de teste: ${x.enviados} enviados, ${x.removidos} removidos, ${x.falhas} falhas (de ${push.total() + x.removidos} inscritos)`));
+  });
   return { api: criarApi({ presenca, push, monitor }), parar: () => monitor.parar() };
 }

@@ -74,4 +74,19 @@ describe("monitor", () => {
     try { for (let i = 0; i < 3; i++) await m3.rodada(); } finally { console.error = erros; }
     expect(chamadas).toBe(2);
   });
+
+  test("the operator test replaces what a woken worker reads for a while, stays out of the panel list, and gives way to the previous event", async () => {
+    const fila = [arq("0", "0", "0", "17:00:00"), arq("3", "5", "4", "19:01:00")];
+    const m4 = criarMonitor({ turno: 2, disputas: [PRES], testeMs: 30, buscar: async () => fila.shift(), onEventos: () => {} });
+    await m4.rodada();
+    await m4.rodada();
+    const real = m4.ultimo();
+    const e = m4.testar();
+    expect(e.titulo).toBe("Teste de aviso do Radar");
+    expect(e.texto).toContain("Não é um evento da apuração");
+    expect(m4.ultimo()).toBe(e);
+    expect(m4.eventos().some((x) => x.tipo === "teste")).toBe(false);
+    await new Promise((ok) => setTimeout(ok, 80));
+    expect(m4.ultimo()).toBe(real);
+  });
 });
