@@ -452,6 +452,6 @@ body[data-visao="aovivo"] .hero, body[data-visao="aovivo"] .rail, body[data-visa
 body[data-visao="aovivo"] .layout { display: block; max-width: none; margin: 0; }
 body[data-visao="aovivo"] #principal, body[data-visao="aovivo"] #painel { width: 100%; max-width: none; }
 body[data-visao="aovivo"] #live-view { min-height: 100dvh; }
-body[data-visao="aovivo"] #live-view > .live { max-width: none; min-height: 100dvh; margin: 0; padding: 8px clamp(12px, 2.2vw, 32px) 8px; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+body[data-visao="aovivo"] #live-view > .live { max-width: none; min-height: 100dvh; display: flex; flex-direction: column; margin: 0; padding: 8px clamp(12px, 2.2vw, 32px) 12px; border: 0; border-radius: 0; background: transparent; box-shadow: none; box-sizing: border-box; }
 @media (min-width: 1101px) { body.menu-fixado[data-visao="aovivo"] { padding-left: min(280px, 86vw); } }
 
