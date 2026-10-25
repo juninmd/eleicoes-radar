@@ -213,6 +213,11 @@
   .apu-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .apu-stats b { font-size: 16px; overflow-wrap: anywhere; }
   .apu-vistas, .apu-modos { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+  /* the views of a race (up to nine): three per row, so no label runs into the next one */
+  .apu-vistas.apu-nav { grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .apu-nav button { white-space: normal; line-height: 1.2; }
+  .apu-nav button:nth-child(3n + 1) { border-left: 0; }
+  .apu-nav button:nth-child(n + 4) { border-top: 1px solid var(--line); }
   .apu-vistas button, .apu-modos button { min-height: 44px; padding: 8px 4px; font-size: 13px; }
   .apu-chips .chip { min-height: 36px; }
   .apu-duelo-leg li { display: flex; flex-wrap: wrap; width: 100%; row-gap: 0; }
@@ -656,4 +661,38 @@
 @media (prefers-reduced-motion: reduce) {
   .fx, .fx *, .fx *::before { animation: none !important; }
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}
+
+/* Above the redrawn views (apuracao-sim-mount.ts): where the numbers come from, fullscreen, and the player of the simulated night */
+.apu-topo { display: flex; flex-direction: column; gap: 10px; margin: 0 0 12px; }
+.apu-topo-linha { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; }
+.apu-fonte { display: flex; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; background: var(--surface); }
+.apu-fonte button { font: 600 13px var(--body); background: transparent; color: var(--ink); border: 0; padding: 8px 16px; min-height: 40px; cursor: pointer; }
+.apu-fonte button + button { border-left: 1px solid var(--line); }
+.apu-fonte button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.apu-fonte button:focus-visible, .apu-topo [data-tela-cheia]:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
+.apu-topo [data-tela-cheia] { min-height: 40px; }
+
+/* Chance ao vivo: the chance is the number to read from afar */
+.apu-chance li { grid-template-columns: minmax(120px, 200px) minmax(0, 1fr) 112px; }
+.apu-chance li > b { font: 700 20px var(--mono); }
+
+/* Fullscreen panel (apuracao-painel.ts). The class alone fills the window when the browser refuses its own fullscreen. */
+#apu-view.apu-cheia { position: fixed; inset: 0; z-index: 40; overflow: auto; background: var(--ground); padding: 16px clamp(16px, 3vw, 40px); }
+#apu-view:fullscreen { background: var(--ground); }
+.apu-painel .painel-topo { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 20px; }
+.apu-painel .painel-topo h2 { margin: 0; }
+.painel-secoes { margin: 0; display: flex; align-items: baseline; gap: 8px; }
+.painel-secoes b { font: 700 clamp(32px, 5vw, 56px) var(--display); font-variant-numeric: tabular-nums; }
+.painel-grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 14px; margin-top: 12px; }
+.painel-bloco { display: flex; flex-direction: column; gap: 10px; min-width: 0; background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 12px 14px; }
+.painel-bloco h3 { margin: 0; font-size: 15px; }
+.painel-placar { grid-column: 1 / -1; }
+.painel-mapa .apu-mapa { width: 100%; max-height: 60vh; }
+.painel-proj { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 18px; }
+.painel-proj small { font: 500 12px var(--mono); color: var(--muted); }
+@media (max-width: 520px) {
+  .apu-fonte { width: 100%; }
+  .apu-fonte button { flex: 1 1 0; }
+  .apu .apu-chance li { grid-template-columns: minmax(0, 1fr) auto; }
 }

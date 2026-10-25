@@ -4,6 +4,21 @@ Volta para o [README](../README.md). Descoberta dos arquivos do TSE e armadilhas
 
 As visões **Corrida** (os mais votados como uma corrida: linhas que trocam de lugar, votos que rolam, ultrapassagens) e **Noite no mapa** (os estados acendem e viram, com cartograma e faixa de duelo) são acréscimos à aba, com fotos, efeitos e som opcionais e uma simulação para ver o movimento antes da apuração (`web/apuracao-corrida.ts`, `apuracao-noite.ts`, `apuracao-fx*.ts`, `apuracao-demo.ts`; AGENTS.md, seção "Visões animadas da Apuração").
 
+Acima das visões ficam a chave **Dados reais / Simulação** e o botão **Tela cheia** (`web/apuracao-sim*.ts`, `apuracao-painel.ts`,
+`apuracao-tela-cheia.ts`):
+
+- **Simulação** vale para todas as visões, cargos, estados e os dois turnos (menos Cidades, que usa as candidaturas reais). Cada
+  disputa termina no resultado final real do 1º turno no TSE, lido dos arquivos públicos; o 2º turno sai desse arquivo pelo modelo
+  da visão Cidades (com um desvio inventado dos eleitores dos demais candidatos, para a chance ter o que medir). Nomes, partidos,
+  listas, horários e o caminho da noite (quando cada arquivo começa, para que lado pendem as primeiras seções) são inventados, então
+  nenhuma candidatura real aparece com número inventado: sem fotos, dossiês ou médias de pesquisa. Os feeds do TSE param enquanto
+  ela está ligada. O player toca, pausa, muda a velocidade (×1, ×3, ×8) e salta para qualquer momento da noite (72 passos de 3 min
+  a partir das 17h); um salto refaz o histórico da sessão (gráficos, últimas atualizações, linha do tempo) como se a aba estivesse
+  aberta desde o começo. "Dados reais" volta aos arquivos do TSE sem nada da simulação.
+- **Tela cheia** (Fullscreen API; Esc ou o botão saem; sem a API, o painel ocupa a janela): a disputa aberta para acompanhar de
+  longe. Seções em destaque, duelo (ou os mais votados), chance ao vivo no 2º turno ou resumo da Projeção no 1º, mapa e exterior
+  (Presidente), seções e votos e últimas atualizações. Funciona com dados reais e com a simulação.
+
 No 2º turno de Presidente e Governador, a vista **Cidades** estima os votos válidos de cada finalista em cada município a partir
 do 1º turno de 2026 e do comportamento dos segundos turnos de 2002 a 2022 (`web/apuracao-municipios*.ts`,
 `web/municipio-modelo.ts`, `src/radar/municipal/`). O total da disputa é escolha do leitor (sem âncora, média das pesquisas ou
@@ -42,7 +57,7 @@ enquanto a aba está aberta e visível.
   tela diz que a diferença pode refletir quais urnas já entraram, além do erro da pesquisa ("dentro/fora da faixa por
   enquanto"). No Senado cada eleitor vota em até 2 nomes: a nota avisa que as % são de votos, não de eleitores.
   Deputados não têm pesquisa.
-- **Visões** (botões Placar / Mapa / Projeção / Cadeiras / Câmara / Gráficos dentro da aba):
+- **Visões** (botões Placar / Mapa / Projeção / Chance ao vivo / Exterior / Cadeiras / Câmara / Gráficos dentro da aba):
   - *Placar*: a tabela de candidatos da disputa aberta, com a comparação com as pesquisas. Mostra a idade do arquivo do TSE
     ("há 2 min") e, com a apuração aberta e mais de 10 min sem arquivo novo, um aviso de que a pausa é do TSE (`apuracao-ritmo.ts`).
     Em Presidente e Governador traz o **duelo** (`apuracao-duelo.ts`): os dois mais votados numa barra com a linha dos 50% dos
@@ -56,6 +71,18 @@ enquanto a aba está aberta e visível.
     por estado e a conta aberta do 2º turno (quanto dos votos dos demais o segundo colocado precisaria; sem probabilidade de
     vencer, de propósito). As fórmulas estão na tela ("Como calculamos") e a tela diz que é estimativa do Radar, não resultado.
     O Presidente soma os 28 arquivos (precisa de todos terem respondido uma vez e avisa quando usa menos).
+  - *Chance ao vivo* (2º turno de Presidente e Governador; `apuracao-chance.ts`, `apuracao-chance-view.ts`): a chance de cada finalista
+    **terminar à frente**, nunca "vencer". Antes do primeiro voto, o modelo dos 2º turnos de 2002 a 2022 (o da visão Cidades) aplicado
+    ao 1º turno desta eleição, ancorado na média das pesquisas do par quando ela existe. Com a apuração, o desvio entre o apurado e o
+    modelo nas mesmas partes (estados, no Presidente) passa a valer para o que falta, com peso que cresce com os votos apurados
+    (metade em 5%). 2.000 sorteios com semente fixa: ruído comum do tamanho do erro medido do modelo (nunca abaixo de ~1,5 p.p.
+    enquanto falta voto, porque as urnas não chegam em ordem aleatória) e ruído por estado. Fórmulas e tabela por estado na tela;
+    "Estimativa do Radar, não é resultado" no topo; com a apuração concluída a chance some e vale o TSE. A calibração dessa chance
+    *durante* uma apuração não foi testada (o teste do modelo é sobre o resultado final).
+  - *Exterior* (Presidente, 1º e 2º turno; `apuracao-exterior.ts`): o arquivo `zz` ao vivo (seções, eleitorado, comparecimento,
+    os mais votados ao lado da % no país e o peso no total) e o resultado final do 1º turno por cidade do exterior (145 cidades,
+    do arquivo de votação por município que o build já usa). Não há mapa-múndi nem arquivo por cidade ao vivo: o TSE publica o
+    exterior como um total só. Na simulação a tabela por cidade fica de fora (traz as candidaturas reais).
   - *Cadeiras* (Deputado Federal, Estadual e Distrital): quem ocupa cada vaga de cada lista com os votos de agora, os dois primeiros
     de fora e as listas em que a última vaga está apertada (`apuracao-cadeiras.ts`). Leitura da contagem, não resultado: vale o "Eleito" do TSE.
   - *Mapa* (Presidente, Governador, Senador): 27 estados em SVG (`apuracao-mapa.ts`; Presidente soma também o arquivo do
@@ -67,7 +94,7 @@ enquanto a aba está aberta e visível.
     nos 27 estados; vagas ainda sem lista ficam em cinza. Não há comparação com pesquisa (deputado não tem).
   - *Gráficos*: eleitorado das seções apuradas (válidos, brancos, nulos, abstenção), apuração × faixa de 90% das pesquisas
     por candidato e evolução das parcelas desde que a aba foi aberta (só em memória, um ponto por versão de arquivo do TSE).
-- **Custo de rede:** o mapa, a Câmara e a Projeção do Presidente leem 27 arquivos (28 com o exterior) a cada 60 s, no máximo 6 ao mesmo tempo e só com a
+- **Custo de rede:** o mapa, a Câmara e, no Presidente, a Projeção, a Chance, o Exterior e a tela cheia leem 27 arquivos (28 com o exterior) a cada 60 s, no máximo 6 ao mesmo tempo e só com a
   aba visível; fora dessas visões é um arquivo só. Os arquivos têm cache de 20 a 45 s e vão com revalidação por ETag.
 - **Pesquisa por estado:** `expectativa.json` traz `lideres` (3 primeiros por média) em cada corrida, gerado no `radar:build`.
   Sem esse campo (build antigo) o modo "Contra a pesquisa" some. Presidente só tem pesquisa nacional: não há modo por estado.

@@ -108,7 +108,7 @@ export function deriva(mem: Memoria | null | undefined, { minimo = 50_000 }: { m
   return { mu, sigmaUf, peso, n: mem!.amostras.length };
 }
 
-function mulberry32(seed: number): () => number {
+export function mulberry32(seed: number): () => number {
   let s = seed >>> 0;
   return () => {
     s = (s + 0x6d2b79f5) >>> 0;

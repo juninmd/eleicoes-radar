@@ -126,7 +126,7 @@ Nada disso entra na nota além dos indicadores.
 </table>
 
 - **Ao vivo:** todas as disputas da cédula numa tela, por estado ou Brasil, com quem o TSE já marcou como eleito.
-- **Apuração:** "Matematicamente eleito" e "Segundo turno garantido" são provas no pior caso, nunca projeção; o texto do TSE sempre vale mais ([docs/apuracao.md](docs/apuracao.md)).
+- **Apuração:** "Matematicamente eleito" e "Segundo turno garantido" são provas no pior caso, nunca projeção; o texto do TSE sempre vale mais ([docs/apuracao.md](docs/apuracao.md)). A chave **Simulação** toca uma noite fictícia em todas as visões (resultado real do 1º turno, nomes e caminho inventados), a **Tela cheia** junta a disputa num painel, o **Exterior** mostra o arquivo `zz` e o 1º turno por cidade, e no 2º turno a **Chance ao vivo** dá a chance de cada finalista terminar à frente (estimativa rotulada, nunca "vencedor").
 - **Panorama:** Partidos, Dinheiro e Perfil agregados por estado ou Brasil, sem nome nem id, com mínimos de privacidade por célula; Alianças é montada no navegador com as candidaturas do estado aberto.
 - **Nota sem dado:** se nenhum indicador escolhido tem dado para a candidatura (ex.: governador com pesos de mandato), a nota
   aparece como "–" e a lista oferece os pesos de Campanha em um clique. A busca ignora acentos.
@@ -234,7 +234,7 @@ Antes de abrir um PR: `bun test src/radar web`, `bun run typecheck` e, se mexeu 
 - **Mandatos fora da Câmara:** mandatos no Senado e nas assembleias estaduais ainda não entram nos indicadores; reeleição e estreia só são verificáveis para mandato federal.
 - **Presença:** usa `/deputados/{id}/historico` para descontar licenças, mas líderes que só orientam a bancada têm presença medida menor.
 - **Cruzamento TSE × Câmara:** por CPF do cadastro do TSE × cota parlamentar, com nome civil + UF como reserva; homônimo ambíguo fica sem vínculo.
-- **Expectativa:** não é pesquisa eleitoral. A faixa da Projeção da Apuração usa ruídos que não foram calibrados contra eleições passadas.
+- **Expectativa:** não é pesquisa eleitoral. A faixa da Projeção da Apuração usa ruídos que não foram calibrados contra eleições passadas, e a Chance ao vivo do 2º turno nunca foi testada durante uma apuração (só o resultado final do modelo).
 - **Contas parciais:** a prestação de contas é o retrato do TSE de uma data, mostrada na interface.
 - **Dados fora do CI:** os zips do TSE não estão no git e o WAF bloqueia downloads automáticos, então `web/data` só é gerado numa máquina que rodou o pipeline.
 - **Só tema escuro:** a interface não oferece modo claro.
