@@ -34,15 +34,15 @@ function regua(l: LadoPrev, cor: PrevProps["cor"]): string {
   const p = l.pesquisa, [mlo, mmed, mhi] = l.mc;
   const tem50 = lo < 0.5 && hi > 0.5;
   const meio = tem50 ? `<span class="prev-50" style="left:${pos(0.5)}%"></span>` : "";
-  const ticks = (() => { const passo = hi - lo > 0.3 ? 0.1 : hi - lo > 0.16 ? 0.04 : 0.02; const t: string[] = []; for (let x = Math.ceil(lo / passo - 1e-9) * passo; x <= hi + 1e-9; x += passo) if (Math.abs(x - 0.5) > passo * 0.45) t.push(`<span style="left:${pos(x)}%">${Math.round(x * 100)}</span>`); if (tem50) t.push(`<span class="m" style="left:${pos(0.5)}%">50%</span>`); return t.join(""); })();
+  const ticks = (() => { const passo = hi - lo > 0.3 ? 0.1 : hi - lo > 0.16 ? 0.04 : 0.02; const t: string[] = []; for (let x = Math.ceil(lo / passo - 1e-9) * passo; x <= hi + 1e-9; x += passo) if (Math.abs(x - 0.5) > passo * 0.45) t.push(`<span style="left:${pos(x)}%">${Math.round(x * 100)}%</span>`); if (tem50) t.push(`<span class="m" style="left:${pos(0.5)}%">50%</span>`); return t.join(""); })();
   return `<article class="prev-leit" style="--lado:${h(cor(l.partido))}" aria-label="${h(titleName(l.nome))}: três leituras">
     <h5><i class="key" style="background:${h(cor(l.partido))}"></i>${h(titleName(l.nome))} <small>${h(l.partido)}</small></h5>
     <div class="prev-rg">
-      <div class="prev-linha"><p><span class="prev-rot"><i class="ic pq"></i>Pesquisas</span> <b>${p ? pct(p.media, 1) : "–"}</b> <small>${p ? (p.lo !== undefined && p.hi !== undefined ? `faixa ${virgula(p.lo * 100)} a ${virgula(p.hi * 100)}` : "sem faixa") : "sem média de pesquisas"}</small></p>
+      <div class="prev-linha"><p><span class="prev-rot"><i class="ic pq"></i>Pesquisas</span> <b>${p ? pct(p.media, 1) : "–"}</b> <small>${p ? (p.lo !== undefined && p.hi !== undefined ? `faixa ${virgula(p.lo * 100)} a ${virgula(p.hi * 100)}` : "sem margem informada") : "sem média de pesquisas"}</small></p>
         <div class="prev-trk pq">${meio}${p && p.lo !== undefined && p.hi !== undefined ? `<span class="faixa" style="${faixa(p.lo, p.hi)}"></span>` : ""}${p ? `<span class="pt" style="left:${pos(p.media)}%"></span>` : ""}</div></div>
       <div class="prev-linha"><p><span class="prev-rot"><i class="ic ap"></i>Apuração</span> <b>${l.apuracao === null ? "–" : pct(l.apuracao, 1)}</b> <small>${l.apuracao === null ? "sem votos" : "o que já foi contado"}</small></p>
         <div class="prev-trk ap">${meio}${l.apuracao === null ? "" : `<span class="pt" style="left:${pos(l.apuracao)}%"></span>`}</div></div>
-      <div class="prev-linha"><p><span class="prev-rot"><i class="ic mc"></i>Monte Carlo</span> <b>${pct(mmed, 1)}</b> <small>faixa ${virgula(mlo * 100)} a ${virgula(mhi * 100)}</small></p>
+      <div class="prev-linha"><p><span class="prev-rot"><i class="ic mc"></i>Monte Carlo</span> <b>${pct(mmed, 1)}</b> <small>${l.apuracao === null ? "sem votos: é a pesquisa, com a margem de erro típica · " : ""}faixa ${virgula(mlo * 100)} a ${virgula(mhi * 100)} (90% dos sorteios)</small></p>
         <div class="prev-trk mc">${meio}<span class="faixa" style="${faixa(mlo, mhi)}"></span><span class="pt" style="left:${pos(mmed)}%"></span></div></div>
       <div class="prev-eixo" aria-hidden="true">${ticks}</div>
     </div></article>`;
