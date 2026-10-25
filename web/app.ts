@@ -153,8 +153,8 @@ function renderList() {
       <span class="num">${h(c.num.padStart(ballot.digits, " "))}</span>
       ${avatar(c, "sm")}
       <span class="who"><b>${h(displayName(c))}</b><small>${h(c.partido)}${STATUS[c.perfil?.status as string]?.curto ? ` · <em class="tag st-${h(c.perfil!.status)}">${h(STATUS[c.perfil!.status].curto)}</em>` : ""}${seen.get(c.num)! > 1 ? ` · <em class="tag st-reeleicao">número repetido no TSE</em>` : ""}${isPicked(state.cola, c) ? ` · <em class="tag ok">na cola</em>` : ""}</small></span>
-      <span class="money">${moneyShort(c.fin.total)}</span>
-      <span class="score"><b>${s.nota ?? "–"}</b><span class="ev" aria-label="Evidência ${pct(s.cobertura)}">${[0.01, 0.5, 0.99].map((t) => `<i class="${s.cobertura >= t ? "on" : ""}"></i>`).join("")}</span></span>
+      <span class="money"><span class="sr">Arrecadação </span>${moneyShort(c.fin.total)}</span>
+      <span class="score"><span class="sr">Nota </span><b>${s.nota ?? "–"}</b><span class="ev"><span class="sr">Evidência ${pct(s.cobertura)}</span>${[0.01, 0.5, 0.99].map((t) => `<i class="${s.cobertura >= t ? "on" : ""}"></i>`).join("")}</span></span>
     </button></li>`).join("") : `<li class="empty">Nenhuma candidatura encontrada com esses filtros.</li>`;
   $("#mais").hidden = list.length <= state.limit;
   $("#mais").textContent = `Mostrar mais ${Math.min(PAGE, list.length - state.limit)} de ${int(list.length - state.limit)} restantes`;
