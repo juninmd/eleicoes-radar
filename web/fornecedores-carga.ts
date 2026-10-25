@@ -45,7 +45,14 @@ export function createFornecedores(get: (url: string) => Promise<Response> = (ur
     for (const c of cands) if (c.uf === uf && c.fornecedores === undefined) c.fornecedores = Object.hasOwn(mapa, c.id) ? mapa[c.id]! : null;
   }
 
-  return { carregar, tentar, estado, aplicar };
+  // The dossier's view of one candidate: merges the sidecar first if it arrived after the candidate was created, so "pronto" always means the field is set.
+  function estadoDe(c: Candidatura): FornEstado {
+    if (c.fornecedores !== undefined) return "pronto";
+    if (prontos.has(c.uf)) { aplicar([c], c.uf); return "pronto"; }
+    return estado(c.uf);
+  }
+
+  return { carregar, tentar, estado, estadoDe, aplicar };
 }
 
 // Only UFs with a candidate still missing the field need the sidecar; old-format data never does.

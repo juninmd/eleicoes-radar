@@ -69,6 +69,18 @@ describe("supplier sidecar client", () => {
     expect(pedidos).toHaveLength(2);
   });
 
+  test("estadoDe heals a candidate that loaded after its UF's sidecar: 'pronto' only once the field is really there", async () => {
+    const { get } = rede({ "data/uf/SP-forn.json": Response.json({ "10": [forn] }) });
+    const f = createFornecedores(get);
+    await f.carregar("SP");
+    const tarde = cand("10", "SP"); // came in after the sidecar was read (e.g. a list reloaded from a new UF file)
+    expect(f.estadoDe(tarde)).toBe("pronto");
+    expect(tarde.fornecedores).toEqual([forn] as never);
+    const semUf = cand("11", "AC");
+    expect(f.estadoDe(semUf)).toBe("carregando"); // not asked yet: says loading, never pronto without the field
+    expect(semUf.fornecedores).toBeUndefined();
+  });
+
   test("concurrent requests for one UF share a single download", async () => {
     const { get, pedidos } = rede({ "data/uf/SP-forn.json": Response.json({}) });
     const f = createFornecedores(get);
