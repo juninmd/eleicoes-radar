@@ -67,7 +67,8 @@ física não aparece (há teste de regressão para os dois).
 </details>
 
 <sub>Capturas do app real com os dados públicos de 2026 (`bun run screenshots`): estado SP, fotos desligadas e o conjunto de
-pesos que abre por padrão (Economia e liberdade). Mudar os pesos muda a ordem.</sub>
+pesos que abre por padrão (Economia e liberdade). Mudar os pesos muda a ordem. A Apuração lê os arquivos do TSE na hora
+da captura, então ela muda a cada execução.</sub>
 
 ## Início rápido
 
@@ -138,7 +139,7 @@ Nada disso entra na nota além dos indicadores.
 |---|---|
 | <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> <kbd>Home</kbd> <kbd>End</kbd> | troca de aba de visão e de cédula (padrão WAI-ARIA, uma parada de <kbd>Tab</kbd>, painéis ligados por `aria-controls`) |
 | <kbd>Enter</kbd> / <kbd>Espaço</kbd> | abre o nó focado no grafo da Rede; escolhe o estado focado no mapa da Apuração |
-| <kbd>Esc</kbd> | fecha o dossiê e devolve o foco a quem o abriu |
+| <kbd>Esc</kbd> | fecha o dossiê (que recebe o foco ao abrir) e devolve o foco a quem o abriu |
 
 ## Como funciona
 

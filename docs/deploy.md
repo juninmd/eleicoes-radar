@@ -23,7 +23,8 @@ Rollback: `docker push` da tag anterior como `:latest` e `rollout restart`. Saú
 > está no git, ou seja, sem `web/data`, e marca essa imagem como `:latest` (`juninmd/base-actions`,
 > `docker-build-push`). Como o Deployment usa `:latest` com `imagePullPolicy: Always`, o próximo reinício
 > depois de um merge serve o site sem dados. Depois de cada merge em `main`, publique de novo a imagem
-> construída aqui como `:latest`.
+> construída aqui como `:latest`. No rollback, use uma tag construída aqui (sha curto, do `git rev-parse --short`):
+> as tags de sha longo vêm do CI e também não têm `web/data`.
 
 O servidor (`src/radar/serve.ts`) envia `Content-Security-Policy` restritiva (`default-src 'none'`, scripts só da própria origem,
 `connect-src` só a origem e `resultados.tse.jus.br`), `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` e afins em toda
