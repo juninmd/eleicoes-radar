@@ -36,4 +36,21 @@ describe("mapa-múndi do exterior", () => {
     expect(svg.indexOf('fill="#b"')).toBeLessThan(svg.indexOf('fill="#a"')); // Tóquio (B ahead, 120 votes) is drawn before Lisboa (A ahead, 100)
     expect(svg).toContain("votos válidos");
   });
+  test("each city is painted on its own: the colour of the one ahead, as strong as its margin, and the title says both shares", () => {
+    const pontos = [
+      { nome: "EMPATE", lat: 0, lon: 0, votos: 100, a: 40, b: 40, o: 20 },
+      { nome: "APERTADA", lat: 10, lon: 10, votos: 100, a: 50, b: 40, o: 10 },
+      { nome: "LARGA", lat: 20, lon: 20, votos: 100, a: 10, b: 80, o: 10 },
+    ];
+    const svg = bolhasMundo(pontos, mundo.viewBox, "#a", "#b", 16, ["Ana", "Beto"]);
+    const por = (nome: string) => svg.split("<circle").find((c) => c.includes(`<title>${nome[0]}${nome.slice(1).toLowerCase()}:`))!;
+    expect(por("EMPATE")).toContain('fill="var(--vazio)"'); // a dead heat has no colour to give
+    expect(por("APERTADA")).toContain('fill="#a"');
+    expect(por("LARGA")).toContain('fill="#b"');
+    const opac = (c: string) => Number(/fill-opacity:([\d.]+)/.exec(c)![1]);
+    expect(opac(por("APERTADA"))).toBeLessThan(opac(por("LARGA"))); // 10 p.p. against 70 p.p.
+    expect(opac(por("LARGA"))).toBe(1);
+    expect(por("APERTADA")).toContain("Ana 50,0% · Beto 40,0% · outros 10,0%");
+    expect(svg).not.toMatch(/vencedor|vencer|eleit/i);
+  });
 });

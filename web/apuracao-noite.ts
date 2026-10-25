@@ -113,12 +113,14 @@ export const intensidade = (margem: number): number => 0.28 + 0.72 * Math.min(Ma
 export interface MundoMap { fonte: string; viewBox: [number, number, number, number]; d: string }
 export const LAT_TOPO_MUNDO = 84;
 export const pontoNoMundo = (lat: number, lon: number, vb: readonly [number, number, number, number]): [number, number] => { const k = vb[2] / 360; return [(lon + 180) * k, (LAT_TOPO_MUNDO - lat) * k]; };
-// Area-true bubbles (radius by the square root of the valid votes), the biggest first so the small ones stay on top; coloured by the finalist ahead.
-export function bolhasMundo(pontos: PontoMundo[], vb: readonly [number, number, number, number], corA: string, corB: string, rMax = 22): string {
+// Area-true bubbles (radius by the square root of the valid votes), the biggest first so the small ones stay on top. Each city is painted on its
+// own: the colour of the finalist ahead there, as strong as the margin in that city (`intensidade`, the scale of the states), and the title says both shares.
+export function bolhasMundo(pontos: PontoMundo[], vb: readonly [number, number, number, number], corA: string, corB: string, rMax = 16, nomes: readonly [string, string] = ["A", "B"]): string {
   const maior = Math.max(1, ...pontos.map((x) => x.votos));
   return pontos.map((x) => {
     const [cx, cy] = pontoNoMundo(x.lat, x.lon, vb), r = Math.max(2.5, rMax * Math.sqrt(x.votos / maior)), lider = x.a === x.b ? "var(--vazio)" : x.a > x.b ? corA : corB;
-    return `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r.toFixed(1)}" fill="${h(lider)}"><title>${h(titleName(x.nome))}: ${int(x.votos)} votos válidos</title></circle>`;
+    const parte = (v: number) => pct1(x.votos > 0 ? v / x.votos : 0), forca = x.votos > 0 ? intensidade(Math.abs(x.a - x.b) / x.votos) : 0.28;
+    return `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r.toFixed(1)}" fill="${h(lider)}" style="fill-opacity:${forca.toFixed(2)}"><title>${h(`${titleName(x.nome)}: ${int(x.votos)} votos válidos no 1º turno · ${nomes[0]} ${parte(x.a)} · ${nomes[1]} ${parte(x.b)} · outros ${parte(x.o)}`)}</title></circle>`;
   }).join("");
 }
 
@@ -156,7 +158,7 @@ const ESQUELETO = `<section class="nt-duelo" aria-label="Os dois mais votados no
       </div>
       <p class="empty nt-msg" hidden></p>
       <div class="nt-mapa" role="group" aria-label="Mapa interativo: arraste para mover; use os botões, a rolagem do mouse ou a pinça para ampliar">
-        <div class="nt-cena"><div class="nt-mundo"></div></div>
+        <div class="nt-cena"><div class="nt-mundo"></div><div class="nt-bolhas"></div></div>
         <canvas class="nt-fx" aria-hidden="true"></canvas>
         <div class="nt-zoom" role="group" aria-label="Zoom do mapa"><button type="button" data-nt-zoom="mais" aria-label="Ampliar o mapa">+</button><button type="button" data-nt-zoom="menos" aria-label="Reduzir o mapa">−</button><button type="button" data-nt-zoom="ajustar" aria-label="Voltar ao enquadramento">⤢</button></div>
       </div>
@@ -277,8 +279,9 @@ export function criarNoite(): Painel<NoiteProps> & { raiz: HTMLElement | null; a
     else vt.call(document, aplica);
   }
 
-  // Brazil or abroad: the choice only exists for the President (the vote abroad is only in that race). It is one map: this only changes
-  // what the zoom frames and what is lit; the reader's own zoom and pan are left alone until the choice changes.
+  // Brazil or abroad: the choice only exists for the President (the vote abroad is only in that race). It is one map and everything on it stays
+  // lit (the states by the live count, the cities abroad by the 1st round): this only changes what the zoom frames and which card is beside it;
+  // the reader's own zoom and pan are left alone until the choice changes.
   function aplicarLugar(p: NoiteProps) {
     const ext = p.cargo === "Presidente" && lugar === "exterior";
     q<HTMLElement>(".nt-lugar").hidden = p.cargo !== "Presidente";
@@ -286,27 +289,29 @@ export function criarNoite(): Painel<NoiteProps> & { raiz: HTMLElement | null; a
     raiz!.classList.toggle("exterior", ext);
     q<HTMLElement>(".nt-mapa").classList.toggle("exterior", ext);
     for (const [s, v] of [[".nt-forma", !ext], [".nt-foco", !ext], [".nt-ext", ext]] as const) q<HTMLElement>(s).hidden = !v;
-    ufs.forEach(({ b }) => { b.inert = ext; }); // faded states are out of the Tab order and the reader's tree too
     const alvo = ext ? "mundo" : "brasil";
     if (zoom && enquadrado !== alvo && (ext || caixaBr)) { zoom.irPara(ext ? MUNDO_RETANGULO : caixaBr!, enquadrado !== ""); enquadrado = alvo; }
     const msg = q<HTMLElement>(".nt-msg"), leg = q<HTMLElement>(".nt-leg");
-    const vb = p.mundo?.viewBox, arq = p.exterior?.mun, pts = pontosMundo(arq && !p.simulado && ext ? arq : null);
+    const vb = p.mundo?.viewBox, arq = p.exterior?.mun, pts = pontosMundo(arq && !p.simulado && p.cargo === "Presidente" ? arq : null);
     if (vb && p.mundo) {
       const corA = arq ? corDoPartido(p.cor, arq.a.partido) : "", corB = arq ? corDoPartido(p.cor, arq.b.partido) : "";
-      const html = `<svg viewBox="${vb.join(" ")}" role="img" aria-label="Mapa-múndi: contornos dos países e, no Exterior, os votos do 1º turno por cidade"><path class="terra" d="${p.mundo.d}"/><g class="bolhas">${arq && ext ? bolhasMundo(pts.pontos, vb, corA, corB) : ""}</g></svg>`;
-      const alvoHtml = q<HTMLElement>(".nt-mundo");
-      if (alvoHtml.dataset.h !== html) { alvoHtml.innerHTML = html; alvoHtml.dataset.h = html; }
+      const terra = `<svg viewBox="${vb.join(" ")}" role="img" aria-label="Mapa-múndi: contornos dos países"><path class="terra" d="${p.mundo.d}"/></svg>`;
+      const cidades = arq && pts.pontos.length ? `<svg viewBox="${vb.join(" ")}" role="img" aria-label="Cidades do exterior: votos do 1º turno por cidade"><g class="bolhas">${bolhasMundo(pts.pontos, vb, corA, corB, undefined, [titleName(arq.a.nome), titleName(arq.b.nome)])}</g></svg>` : "";
+      for (const [s, html] of [[".nt-mundo", terra], [".nt-bolhas", cidades]] as const) {
+        const alvoHtml = q<HTMLElement>(s);
+        if (alvoHtml.dataset.h !== html) { alvoHtml.innerHTML = html; alvoHtml.dataset.h = html; }
+      }
     }
     if (!ext) {
       msg.hidden = !!p.mapa;
       if (!p.mapa) msg.textContent = p.mapa === null ? "Não foi possível carregar a malha dos estados." : "Carregando o mapa…";
-      leg.textContent = LEGENDA_BRASIL;
+      leg.textContent = pts.pontos.length && !p.simulado ? `${LEGENDA_BRASIL} Os círculos fora do Brasil são as cidades do exterior: cor do finalista à frente no 1º turno, tão mais forte quanto maior a diferença, área pelos votos válidos. Exterior enquadra o mundo; o mapa é o mesmo.` : LEGENDA_BRASIL;
       return;
     }
     msg.hidden = !!p.mundo;
     if (!msg.hidden) msg.textContent = p.mundo === null ? "Não foi possível carregar o mapa-múndi." : "Carregando o mapa-múndi…";
     leg.textContent = p.simulado ? "Na simulação o mapa-múndi fica sem as cidades: elas trazem as candidaturas reais."
-      : `Cada círculo é uma cidade com seções eleitorais no exterior, com área proporcional aos votos válidos do 1º turno (resultado final) e a cor do finalista mais votado ali. Os estados ficam esmaecidos.${pts.semPosicao ? ` ${int(pts.semPosicao)} cidades sem posição conhecida ficam só na tabela.` : ""}`;
+      : `Cada círculo é uma cidade com seções eleitorais no exterior, com área proporcional aos votos válidos do 1º turno (resultado final) e a cor do finalista mais votado ali, tão mais forte quanto maior a diferença na cidade. Os estados seguem coloridos pela apuração ao vivo.${pts.semPosicao ? ` ${int(pts.semPosicao)} cidades sem posição conhecida ficam só na tabela.` : ""}`;
     q<HTMLElement>(".nt-ext").innerHTML = p.exterior ? renderExterior({ ...p.exterior, cor: (k) => corDoPartido(p.cor, k), turno: 1, compacto: true }) : "";
   }
 

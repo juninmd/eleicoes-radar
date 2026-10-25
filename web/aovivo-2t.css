@@ -1,0 +1,148 @@
+/* Ao vivo, 2º turno: a contagem em números, o caminho para a frente, onde falta apurar e as pesquisas do par.
+   Mesmo vocabulário visual dos blocos da previsão (tokens da urna, cartões --surface, números em mono). */
+.live-pq, .live-cm, .live-fa { padding: 9px 11px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); min-width: 0; }
+.live-pq h3, .live-cm h3, .live-fa h3 { margin: 0 0 6px; font: 900 18px/1 var(--display); text-transform: uppercase; }
+.live-pq h3 small, .live-cm h3 small, .live-fa h3 small { display: block; margin-top: 3px; font: 500 10px var(--mono); color: var(--muted); text-transform: none; letter-spacing: 0; }
+.live-pq .key, .live-fa .key { background: var(--c); }
+
+/* contagem em números */
+.live-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 0; }
+.live-kpis > div { padding: 6px 8px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); min-width: 0; }
+.live-kpis dt { font: 500 9.5px var(--mono); letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+.live-kpis dd { margin: 2px 0 0; font: 900 clamp(16px, 1.5vw, 21px)/1 var(--display); font-variant-numeric: tabular-nums; }
+.live-kpis dd small { display: block; margin-top: 3px; font: 500 10px/1.2 var(--mono); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* caminho para a frente */
+.cm-txt { margin: 0 0 8px; font-size: 13px; line-height: 1.4; color: var(--ink-2); }
+.cm-txt b { color: var(--ink); }
+.cm-prog { height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--ink) 10%, var(--sunk)); overflow: hidden; }
+.cm-prog i { display: block; height: 100%; background: linear-gradient(90deg, #7c3aed, #c4b5fd); }
+.cm-prog-t { display: flex; justify-content: space-between; gap: 8px; margin: 0; font: 500 11px var(--mono); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.cm-prog-t b { color: var(--ink); }
+.cm-trk { position: relative; height: 24px; border-radius: 8px; background: var(--sunk); border: 1px solid var(--line); overflow: hidden; }
+.cm-basta { position: absolute; top: 0; bottom: 0; background: color-mix(in srgb, var(--c) 26%, transparent); }
+.cm-50 { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--ink); opacity: 0.4; }
+.cm-m { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; }
+.cm-tem { border: 3px solid var(--c); border-radius: 50%; background: var(--surface); }
+.cm-prec { background: var(--c); transform: rotate(45deg) scale(0.85); border-radius: 2px; }
+.cm-esp { background: #8b5cf6; border: 3px solid var(--surface); border-radius: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; }
+.cm-eixo { position: relative; height: 15px; font: 500 10px var(--mono); color: var(--muted); }
+.cm-eixo span { position: absolute; translate: -50% 0; white-space: nowrap; }
+.cm-leg { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 4px 0 6px; padding: 0; list-style: none; font: 500 11px var(--mono); color: var(--ink-2); }
+.cm-leg li { display: inline-flex; align-items: center; gap: 6px; }
+.cm-leg i { position: static; margin: 0; flex: none; width: 12px; height: 12px; }
+.cm-leg .cm-esp { width: 14px; height: 14px; }
+.live-cm .muted.small { margin: 0; font-size: 10.5px; line-height: 1.35; }
+
+/* onde falta apurar */
+.fa-placar { display: flex; flex-wrap: wrap; gap: 3px 14px; margin: 0 0 6px; padding: 0; list-style: none; font: 500 11px var(--mono); color: var(--ink-2); }
+.fa-placar li { display: inline-flex; align-items: center; gap: 5px; }
+.fa-placar b { color: var(--ink); }
+.fa-bar { display: flex; gap: 1px; height: 16px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); background: var(--sunk); }
+.fa-bar span { display: block; min-width: 3px; }
+.fa-lista { display: grid; gap: 0; margin: 6px 0 4px; padding: 0; list-style: none; }
+.fa-lista li { display: grid; grid-template-columns: 34px minmax(0, 1.5fr) minmax(36px, 0.7fr) 62px; gap: 8px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
+.fa-lista li:last-child { border-bottom: 0; }
+.fa-uf { font: 900 16px/1 var(--display); letter-spacing: 0.02em; }
+.fa-uf abbr { text-decoration: none; }
+.fa-lid { display: inline-flex; align-items: center; gap: 5px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.fa-lid .key { flex: none; }
+.fa-av { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.fa-av i { display: block; height: 100%; background: linear-gradient(90deg, #7c3aed, #c4b5fd); }
+.fa-n { text-align: right; font: 700 12px var(--mono); font-variant-numeric: tabular-nums; }
+.fa-lista li.vel { opacity: 0.72; }
+.fa-lista li.vel .fa-uf::after { content: "*"; color: var(--muted); }
+.fa-vel-txt { margin: 6px 0 0; font-size: 11.5px; }
+.fa-n small { display: block; font: 500 9.5px var(--mono); color: var(--muted); }
+.live-fa .muted.small { margin: 0; font-size: 10.5px; line-height: 1.35; }
+
+/* pesquisas do par: uma linha por instituto, todas na mesma régua de 0 a 100% do primeiro nome */
+.live-pq { --pq-cols: minmax(96px, 128px) minmax(0, 1fr) 100px; }
+.pq-resumo { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0; font: 700 clamp(14px, 1.3vw, 17px)/1.1 var(--display); text-transform: uppercase; }
+.pq-lado { display: inline-flex; align-items: center; gap: 6px; min-width: 0; font-variant-numeric: tabular-nums; }
+.pq-lado b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pq-x { color: var(--muted); font: 500 12px var(--mono); }
+.pq-sub { margin: 3px 0 6px; font: 500 11px var(--mono); color: var(--ink-2); }
+.pq-sub b { color: var(--ink); }
+.pq-delta { position: relative; white-space: nowrap; } /* positioned so its .sr text is clipped here and cannot widen the page */
+.pq-eixo { display: grid; grid-template-columns: var(--pq-cols); column-gap: 8px; margin-bottom: 2px; font: 500 10px var(--mono); color: var(--muted); }
+.pq-ext { display: flex; justify-content: space-between; gap: 6px; text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }
+.pq-ext span { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.pq-ticks { position: relative; height: 13px; }
+.pq-ticks span { position: absolute; translate: -50% 0; white-space: nowrap; }
+.pq-ticks .m { color: var(--ink-2); font-weight: 700; }
+.pq-lista { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.pq-lista li { display: grid; grid-template-columns: var(--pq-cols); column-gap: 8px; align-items: center; min-height: 23px; }
+.pq-inst { display: flex; flex-wrap: wrap; align-items: baseline; gap: 1px 5px; min-width: 0; line-height: 1.1; }
+.pq-inst b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.pq-inst small { flex: none; }
+.pq-inst small { font: 500 9.5px var(--mono); color: var(--muted); white-space: nowrap; }
+.pq-inst .pq-det { flex: 1 0 100%; overflow: hidden; text-overflow: ellipsis; font-size: 9px; }
+.pq-trk { position: relative; height: 18px; border-radius: 6px; background: var(--sunk); border: 1px solid var(--line); }
+.pq-50, .pq-med, .pq-ap { position: absolute; top: -1px; bottom: -1px; width: 2px; margin-left: -1px; }
+.pq-50 { left: 50%; background: var(--ink); opacity: 0.3; }
+.pq-med { background: repeating-linear-gradient(180deg, #8b5cf6 0 4px, transparent 4px 7px); width: 3px; }
+.pq-ap { background: var(--ink); width: 3px; box-shadow: 0 0 0 1px var(--surface); }
+.pq-pt { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: var(--c, var(--muted)); border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--c, var(--muted)); }
+.pq-val { display: flex; justify-content: flex-end; align-items: baseline; gap: 5px; font: 700 12px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pq-val small { font: 500 9.5px var(--mono); color: var(--muted); }
+.pq-leg { display: flex; flex-wrap: wrap; gap: 3px 14px; margin: 6px 0 4px; padding: 0; list-style: none; font: 500 10.5px var(--mono); color: var(--ink-2); }
+.pq-leg li { display: inline-flex; align-items: center; gap: 6px; }
+.pq-leg i { position: static; display: inline-block; margin: 0; flex: none; }
+.pq-leg .pq-pt { background: var(--ink-2); box-shadow: none; }
+.pq-leg .pq-med, .pq-leg .pq-ap { height: 12px; top: auto; bottom: auto; }
+.pq-nota { margin: 2px 0 0; font-size: 10.5px; line-height: 1.35; }
+
+/* Colunas: os blocos novos dividem a altura do palco; a lista de estados estica as linhas em vez de deixar vazio. */
+.live-col-hero .live-kpis { flex: none; }
+.live-col-hero .live-cm { flex: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 6px; }
+.live-col-hero .live-cm > * { margin-block: 0; }
+.live-col-mapa .live-noite { flex: 0 0 auto; }
+.live-col-mapa .live-fa { flex: 1; display: flex; flex-direction: column; }
+.live-col-mapa .fa-lista { flex: 1; grid-auto-rows: minmax(0, 1fr); }
+.live-col-prev .live-pq, .live-col-hero .live-pq { flex: 1; display: flex; flex-direction: column; }
+.live-col-prev .pq-lista, .live-col-hero .pq-lista { flex: 1; align-content: space-between; }
+
+/* Rodape do palco: o carimbo do TSE e a linha de quem foi eleito, lado a lado, sem tomar altura das colunas. */
+.live-rodape { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: inherit; align-items: stretch; }
+.live-rodape .live-resultado, .live-rodape .live-noite-eleitos { min-height: 0; max-height: 230px; overflow: auto; }
+.live-rodape .live-resultado { display: flex; flex-direction: column; }
+.live-rodape .live-resultado ul { max-height: none; }
+@media (max-width: 980px) { .live-rodape { order: 3; grid-template-columns: minmax(0, 1fr); } }
+
+@media (max-width: 520px) {
+  .live-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .live-pq { --pq-cols: minmax(76px, 92px) minmax(0, 1fr) 58px; }
+  .pq-lista li { min-height: 32px; }
+  .pq-inst .pq-det { display: none; }
+  .pq-val { flex-direction: column; align-items: flex-end; gap: 0; }
+  .fa-lista li { grid-template-columns: 30px minmax(0, 1.4fr) minmax(28px, 0.5fr) 56px; gap: 6px; }
+}
+
+/* Curva da apuracao na coluna do duelo: legivel (com as linhas das pesquisas) e sem os paragrafos de ajuda, que ficam na aba Apuracao. */
+.live-col-hero .apu-evo { max-height: none; width: 100%; height: auto; }
+.live-col-hero .live-hero .apu-evo-txt ~ .muted.small { display: none; }
+.live-col-hero .live-hero .apu-evo-txt { margin: 2px 0 0; gap: 2px 10px; font-size: 11px; }
+.live-col-hero .live-hero .apu-evo-txt li { padding: 0; }
+
+/* Rodape enxuto: sem marcacao do TSE e sem eleitos ainda, cada caixa e uma linha. */
+.live-rodape .live-resultado, .live-rodape .live-noite-eleitos { padding: 8px 11px; }
+.live-rodape h3 { margin: 0 0 4px; }
+.live-rodape .live-resultado p, .live-rodape .live-noite-eleitos .empty { margin: 0; padding: 4px 8px; min-height: 0; font-size: 12.5px; line-height: 1.35; }
+
+/* Laptops e tablets (2 colunas): a previsao e as pesquisas dividem a faixa de baixo em vez de formar uma coluna estreita e comprida. */
+@media (min-width: 981px) and (max-width: 1250px) {
+  .live-col-prev.dupla { max-width: none; justify-self: stretch; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); align-items: stretch; gap: 10px; }
+  .live-col-prev.dupla .prev-compacto { max-width: none; }
+}
+
+/* Escopo de um estado (sem previsao nem pesquisas nacionais): duas colunas dividem a largura em vez de deixar a terceira vazia. */
+@media (min-width: 981px) {
+  .live-palco.sem-prev { grid-template-columns: minmax(320px, 1fr) minmax(340px, 1.1fr); }
+}
+
+/* O mapa ocupa a largura da coluna (antes encolhia para 440 px porque a altura vinha do flex) e a altura segue a proporcao, com teto. */
+@media (min-width: 641px) {
+  .live-col-mapa .live-noite .nt-mapa { flex: none; width: 100%; height: auto; aspect-ratio: 16 / 11; max-height: min(52vh, 440px); min-height: 280px; }
+}
+.live-noite .nt-palco { align-self: stretch; } /* .nt-corpo alinha ao inicio: sem isto o palco encolhia ao tamanho do mapa */

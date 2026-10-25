@@ -137,7 +137,7 @@ describe("curva da noite", () => {
 
 describe("view da Previsão", () => {
   const lado = (id: string, nome: string, chanceX: number, over: Partial<LadoPrev> = {}): LadoPrev => ({ id, nome, partido: `P${id}`, chance: chanceX, pesquisa: { media: 0.45, lo: 0.41, hi: 0.49 }, apuracao: 0.47, mc: [0.46, 0.48, 0.5], ...over });
-  const prev = (over: Partial<Previsao> = {}, f = lado("a1", "ANA SOUZA", 0.82), o = lado("b2", "BETO LIMA", 0.18)): Previsao => ({ turno: 1, favorito: f, outro: o, nivel: nivelDe(f.chance), n: 2000, contados: 0.6, faltam: 3_400_000, decideNoPrimeiro: 0.2, segundoTurno: 0.8, defasadas: [], ...over });
+  const prev = (over: Partial<Previsao> = {}, f = lado("a1", "ANA SOUZA", 0.82), o = lado("b2", "BETO LIMA", 0.18)): Previsao => ({ turno: 1, favorito: f, outro: o, nivel: nivelDe(f.chance), n: 2000, contados: 0.6, apurados: 5_100_000, faltam: 3_400_000, decideNoPrimeiro: 0.2, segundoTurno: 0.8, defasadas: [], ...over });
   const props = (over: Partial<PrevProps> = {}): PrevProps => ({ estado: "ok", previsao: prev(), hist: [], avatar, cor, ...over });
 
   test("compacto: cabe numa tela e guarda o detalhe em details", () => {

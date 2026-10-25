@@ -17,6 +17,11 @@ const DURACAO_MS = 700;
 const ROLAGEM_PX = 0.0018; // a wheel notch (deltaMode 0, ~100 px) gives about 1.2x
 const ROLAGEM_MAX = 160; // a fast flick zooms one step, not several at once
 
+// The stage is 1 css px per world unit at k = 1, so k is the pixels a unit takes on screen. Below K_ROTULO (the world framing) the labels of the
+// big states sit on top of each other; zooming in brings them back.
+export const K_ROTULO = 1.2;
+export const longe = (k: number): boolean => k < K_ROTULO;
+
 // Wheel delta in pixels, whatever the browser reports (pixels, lines or pages), clamped to one step.
 export function fatorRolagem(deltaY: number, deltaMode: number): number {
   const px = deltaY * (deltaMode === 1 ? 16 : deltaMode === 2 ? 400 : 1);
@@ -37,6 +42,7 @@ export function criarZoom({ vp, cena, reduzido }: OpcoesZoom): Zoom {
     cena.style.transform = `translate(${v.x.toFixed(2)}px, ${v.y.toFixed(2)}px) scale(${v.k.toFixed(5)})`;
     cena.style.setProperty("--inv", (1 / v.k).toFixed(5)); // labels keep their size while the stage grows
     vp.classList.toggle("ampliado", v.k > kAlvo * 1.02);
+    vp.classList.toggle("longe", longe(v.k));
     cena.dataset.k = v.k.toFixed(3);
   };
   const mudar = (nova: Vista, animar = false) => {

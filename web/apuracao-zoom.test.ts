@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { fatorRolagem } from "./apuracao-zoom.js";
+import { fatorRolagem, K_ROTULO, longe, MUNDO_RETANGULO } from "./apuracao-zoom.js";
+import { enquadrar } from "./apuracao-cena.js";
 
 describe("fatorRolagem: the mouse wheel zooms the map", () => {
   test("a plain wheel notch zooms in and out, symmetrical", () => {
@@ -32,4 +33,18 @@ test("apuracao-zoom listens to the wheel without waiting for Ctrl/⌘", () => {
   const code = readFileSync("web/apuracao-zoom.ts", "utf8");
   expect(code).toContain('vp.addEventListener("wheel", aoRolar, { passive: false })');
   expect(code).not.toContain("if (!e.ctrlKey && !e.metaKey) return;");
+});
+
+describe("longe: the state labels step aside when the whole world is in frame", () => {
+  test("the world framing of a card-sized map is far, the framing of Brazil is not", () => {
+    const quadro = { w: 640, h: 440 };
+    const mundo = enquadrar(MUNDO_RETANGULO, quadro);
+    const brasil = enquadrar({ x: 262, y: 160, w: 117, h: 117 }, quadro); // about 39 degrees of longitude, 3 units each
+    expect(longe(mundo.k)).toBe(true);
+    expect(longe(brasil.k)).toBe(false);
+  });
+  test("the threshold is where one world unit takes K_ROTULO pixels", () => {
+    expect(longe(K_ROTULO - 0.01)).toBe(true);
+    expect(longe(K_ROTULO)).toBe(false);
+  });
 });

@@ -613,12 +613,11 @@
 .nt-mundo svg { display: block; width: 100%; height: 100%; }
 /* the stage is scaled by CSS, which non-scaling-stroke does not undo: strokes carry the inverse scale */
 .nt-mundo .terra { fill: var(--vazio); stroke: var(--surface); stroke-width: calc(0.5px * var(--inv, 1)); stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-.nt-mundo .bolhas { opacity: 0; pointer-events: none; transition: opacity 0.5s; }
-.nt-mundo circle { fill-opacity: 0.78; stroke: var(--surface); stroke-width: calc(1px * var(--inv, 1)); vector-effect: non-scaling-stroke; }
-.nt-mapa.exterior .nt-mundo .bolhas { opacity: 1; pointer-events: auto; }
-.nt-mapa.exterior .nt-uf { opacity: 0.2; pointer-events: none; }
-.nt-mapa.exterior .nt-uf .lb { opacity: 0; }
-.nt-mapa.cartograma .nt-mundo { opacity: 0; }
+/* the cities abroad sit in a layer of their own above the states, always lit; only the cartogram (no geography) hides them */
+.nt-bolhas { position: absolute; inset: 0; z-index: 2; pointer-events: none; transition: opacity 0.5s; }
+.nt-bolhas svg { display: block; width: 100%; height: 100%; }
+.nt-bolhas circle { pointer-events: auto; stroke: var(--surface); stroke-width: calc(1px * var(--inv, 1)); vector-effect: non-scaling-stroke; }
+.nt-mapa.cartograma .nt-mundo, .nt-mapa.cartograma .nt-bolhas { opacity: 0; pointer-events: none; }
 .nt-mundo { transition: opacity 0.5s; }
 .nt-uf { transition: opacity 0.5s; }
 .nt-zoom { position: absolute; bottom: 8px; left: 8px; z-index: 2; display: flex; flex-direction: column; gap: 4px; }
@@ -642,6 +641,7 @@
 .nt-uf.grande .lb, .nt-mapa.cartograma .nt-uf .lb { opacity: 1; }
 .nt-uf .lb small { display: none; font: 500 9px var(--mono); }
 .nt-mapa.cartograma .nt-uf .lb small { display: block; }
+.nt-mapa.longe:not(.cartograma) .nt-uf .lb { opacity: 0; } /* the world framing: the labels would overlap */
 .nt-uf.pisca path { animation: nt-pisca 0.9s ease-out; }
 @keyframes nt-pisca { 0% { filter: brightness(2.4) saturate(1.4); } 100% { filter: none; } }
 .nt-fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
@@ -814,7 +814,7 @@
 
 /* Noite no mapa, escolha "Exterior": mapa-múndi com um círculo por cidade */
 .nt-forma[hidden], .nt-lugar[hidden], .nt-ext[hidden], .nt-foco[hidden] { display: none; }
-.nt-mundo circle:hover { fill-opacity: 1; stroke: var(--ink); }
+.nt-bolhas circle:hover { fill-opacity: 1 !important; stroke: var(--ink); }
 
 /* Mobile: ring beside the name, the explanation on the full row below (it used to be squeezed into the narrow column). */
 @media (max-width: 520px) {

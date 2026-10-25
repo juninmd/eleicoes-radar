@@ -125,7 +125,7 @@ Nada disso entra na nota além dos indicadores.
 </tr>
 </table>
 
-- **Ao vivo:** todas as disputas da cédula numa tela, por estado ou Brasil, com quem o TSE já marcou como eleito.
+- **Ao vivo:** todas as disputas da cédula numa tela, por estado ou Brasil, com quem o TSE já marcou como eleito. No 2º turno do Presidente soma, ao duelo, ao mapa e à Previsão, os valores das pesquisas do par (uma linha por instituto, na mesma régua da apuração), o caminho para a frente (quanto do que falta o segundo precisa) e onde estão os votos que faltam, por estado.
 - **Apuração:** "Matematicamente eleito" e "Segundo turno garantido" são provas no pior caso, nunca projeção; o texto do TSE sempre vale mais ([docs/apuracao.md](docs/apuracao.md)). A chave **Simulação** toca uma noite fictícia em todas as visões (resultado real do 1º turno, nomes e caminho inventados), a **Tela cheia** junta a disputa num painel, o **Exterior** mostra o arquivo `zz` e o 1º turno por cidade, e no 2º turno a **Chance ao vivo** dá a chance de cada finalista terminar à frente (estimativa rotulada, nunca "vencedor").
 - **Panorama:** Partidos, Dinheiro e Perfil agregados por estado ou Brasil, sem nome nem id, com mínimos de privacidade por célula; Alianças é montada no navegador com as candidaturas do estado aberto.
 - **Nota sem dado:** se nenhum indicador escolhido tem dado para a candidatura (ex.: governador com pesos de mandato), a nota

@@ -66,7 +66,8 @@ function variacao(diff: number) {
 }
 
 const W = 640;
-const H = 250;
+const ALTURA = 250;
+const ALTURA_LARGA = 170; // the compact columns of the Ao vivo: the same width, shorter, so the text keeps its size
 const M = { l: 44, r: 12, t: 12, b: 34 };
 
 type Leitura = Pick<Ponto, "rotulo" | "avanco" | "pcts">;
@@ -87,7 +88,8 @@ export function tendenciaFinal(hist: Leitura[], id: string): number | null {
   return Math.max(0, Math.min(1, b.pcts[id] + inclinacao * (1 - b.avanco)));
 }
 
-export function evolucao(hist: Leitura[], quem: Record<string, Pick<Candidato, "nome" | "partido">>, cor: (key: string) => string, esperado: Record<string, Esperado> = {}, opcoes: { tendencia?: boolean } = {}): string {
+export function evolucao(hist: Leitura[], quem: Record<string, Pick<Candidato, "nome" | "partido">>, cor: (key: string) => string, esperado: Record<string, Esperado> = {}, opcoes: { tendencia?: boolean; largo?: boolean } = {}): string {
+  const H = opcoes.largo ? ALTURA_LARGA : ALTURA;
   if (hist.length < 2) return `<p class="muted small">A evolução aparece conforme chegam novos arquivos do TSE enquanto esta aba está aberta. Nada fica guardado: ao fechar a aba, o histórico some.</p>`;
   const ultimo = hist.at(-1)!;
   const ids = Object.keys(ultimo.pcts).sort((a, b) => ultimo.pcts[b] - ultimo.pcts[a]).filter((id) => quem[id]).slice(0, 4);
