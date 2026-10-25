@@ -117,6 +117,7 @@ export function criarSocial() {
       botao = raiz.querySelector<HTMLElement>("[data-soc-abrir]");
       corpo = raiz.querySelector<HTMLElement>("#soc-painel");
       document.body.append(raiz);
+      document.body.classList.add("soc-on"); // room under the page so the fixed chip never sits on the last lines
       raiz.addEventListener("click", clique);
       document.addEventListener("keydown", teclado);
       document.addEventListener("pointerdown", fora);
@@ -132,6 +133,7 @@ export function criarSocial() {
       document.removeEventListener("pointerdown", fora);
       document.removeEventListener("visibilitychange", visivel);
       raiz.remove();
+      document.body.classList.remove("soc-on");
       raiz = botao = corpo = null;
       estado = null; aberto = false; ultimo = ""; falhas = 0; inscritoEm = 0; pingEm = 0;
     },

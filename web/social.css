@@ -49,3 +49,5 @@
 }
 
 @media print { .soc { display: none; } }
+/* The chip is fixed over the page: reserve its height (40px + gap) at the bottom so scrolling to the end shows the last lines clear of it. */
+body.soc-on { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 72px); }
