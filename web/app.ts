@@ -275,7 +275,13 @@ function bind() {
   $<HTMLInputElement>("#mostrarFotos").checked = state.mostrarFotos;
   $("#mostrarFotos").addEventListener("change", (e) => { state.mostrarFotos = (e.target as HTMLInputElement).checked; store.set("fotos", state.mostrarFotos); renderList(); renderDossierPanel(); if (state.modo === "aovivo") aoVivo.show({ uf: state.uf, abrir: abrirCorrida, avatar, prev: prevDe, exp: state.exp }); });
   $("#situacao").addEventListener("change", (e) => { state.situacao = (e.target as HTMLSelectElement).value; state.limit = PAGE; render(); });
-  $("#mais").addEventListener("click", () => { state.limit += PAGE; renderList(); });
+  $("#mais").addEventListener("click", () => {
+    const primeiroNovo = state.limit;
+    state.limit += PAGE;
+    renderList();
+    // The button hides at the end of the list and would drop focus to <body>.
+    if ($("#mais").hidden) document.querySelectorAll<HTMLElement>("#lista .cand")[primeiroNovo]?.focus();
+  });
   $("#pesos").addEventListener("input", (e) => {
     const k = (e.target as HTMLInputElement).dataset.weight as keyof AppState["weights"] | undefined;
     if (!k) return;
@@ -337,7 +343,14 @@ function abrirLink() {
 }
 abrirLink();
 
-const sobre = () => { const on = location.hash === "#sobre"; document.body.classList.toggle("sobre", on); if (on) scrollTo(0, 0); }; // the explanations are their own screen, available even before the data loads
+// The explanations are their own screen, available even before the data loads. Focus follows the screen: the heading in, the main landmark back.
+const sobre = () => {
+  const on = location.hash === "#sobre";
+  const estava = document.body.classList.contains("sobre");
+  document.body.classList.toggle("sobre", on);
+  if (on) { scrollTo(0, 0); $("#metodo-t").focus({ preventScroll: true }); }
+  else if (estava) $("#principal").focus({ preventScroll: true });
+};
 addEventListener("hashchange", sobre);
 sobre();
 
