@@ -172,6 +172,10 @@ describe("linking and output", () => {
     expect(json).not.toMatch(/cpf/i);
     expect(json).not.toContain("111");
   });
+
+  test("the UF file leaves the supplier lists out: they ship in the <UF>-forn.json sidecar", () => {
+    expect(JSON.stringify(toPublic({ c: cand, m: null, ind: {} }))).not.toContain("fornecedores");
+  });
 });
 
 describe("ceap tenure", () => {

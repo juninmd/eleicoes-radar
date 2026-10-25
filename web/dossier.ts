@@ -1,5 +1,6 @@
 import { INDICATORS } from "./score.js";
 import { fornecedoresBlock } from "./fornecedores.js";
+import type { FornEstado } from "./fornecedores-carga.js";
 import { prevBlock } from "./prev.js";
 import { canaisBlock } from "./dossier-canais.js";
 import type { ExpPrev } from "./prev.js";
@@ -153,7 +154,7 @@ function resumoBlock(bio: Candidatura["bio"]) {
   return r ? `<section><h3>Resumo <a class="ext" href="${h(r.url)}" target="_blank" rel="noopener noreferrer">Wikipédia ↗</a></h3><p>${h(r.texto)}</p><p class="muted small">Texto de enciclopédia colaborativa; confira no link.</p></section>` : "";
 }
 
-export function renderDossier(c: Candidatura, s: ReturnType<typeof score>, inCola: boolean, agenda: AgendaConfig | null, foto: string, exp: ExpPrev | null) {
+export function renderDossier(c: Candidatura, s: ReturnType<typeof score>, inCola: boolean, agenda: AgendaConfig | null, foto: string, exp: ExpPrev | null, forn: FornEstado = "pronto") {
   const f = c.fin;
   return `
     <header class="dhead">
@@ -189,7 +190,7 @@ export function renderDossier(c: Candidatura, s: ReturnType<typeof score>, inCol
       ${c.temContas === false ? `<p class="muted">Ainda sem prestação de contas no retrato do TSE.</p>` : ""}<p class="muted">${money(f.total)} arrecadados · ${int(f.doadoresPF)} doadores pessoa física · maior fonte única: ${pct(f.maiorDoador)} · ${money(f.gastos)} em gastos contratados</p>
       ${moneyBar(f)}
     </section>
-    ${fornecedoresBlock(c.fornecedores, c.id)}
+    ${fornecedoresBlock(c, forn)}
     ${mandateBlock(c.mandato)}
     ${canaisBlock(c)}`;
 }

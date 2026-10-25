@@ -19,6 +19,7 @@ import { loadMotivos } from "./enrich/cassacao";
 import { loadSuppliers } from "./suppliers/load";
 import { buildRede } from "./suppliers/graph";
 import { addressCounts, byPolitician, supplierView, type FornecedorView } from "./suppliers/view";
+import { sidecarOf } from "./suppliers/sidecar";
 import { loadCache } from "./suppliers/receita";
 import { loadPropostas, type Proposta } from "./enrich/propostas";
 import { canalDe, loadRedes, mergeCanais, type Canal } from "./enrich/redes";
@@ -27,7 +28,6 @@ export interface Enrich {
   proposta?: Proposta;
   bens?: Bens;
   motivos?: string[];
-  fornecedores?: FornecedorView[];
   canais?: Canal[];
 }
 
@@ -84,7 +84,6 @@ export function toPublic({ c, m, ind, perfil }: Scored, bio: Profile | null = nu
     canais: canaisDe(extra.canais, bio),
     patrimonio: extra.bens ?? null,
     motivos: extra.motivos?.length ? extra.motivos : null,
-    fornecedores: extra.fornecedores?.length ? extra.fornecedores : null,
     temContas: c.finance.dataRetrato !== "",
     num: c.numero,
     cargo: c.cargo,
@@ -168,11 +167,13 @@ async function main() {
   console.log(`[fornecedores] ${suppliers.size} fornecedores PJ, ${empresas.size} com registro da Receita em cache`);
   const { porCandidato, resumo } = buildExpectativa(cands);
   const byUf = new Map<string, ReturnType<typeof toPublic>[]>();
+  const fornByUf = new Map<string, [string, FornecedorView[]][]>();
   for (const s of items) {
     const list = byUf.get(s.c.uf) ?? [];
     const foto = photoOf(s.c.sq);
-    list.push(toPublic(s, profiles[s.c.sq] ?? null, foto?.credito ?? null, porCandidato.get(s.c.sq) ?? null, { proposta: propostas.get(s.c.sq), canais: redes.get(s.c.sq), bens: bens.get(s.c.sq), motivos: motivos.get(s.c.sq), fornecedores: supplierView(s.c.sq, paidBy.get(s.c.sq) ?? [], dir, empresas, addrN) }));
+    list.push(toPublic(s, profiles[s.c.sq] ?? null, foto?.credito ?? null, porCandidato.get(s.c.sq) ?? null, { proposta: propostas.get(s.c.sq), canais: redes.get(s.c.sq), bens: bens.get(s.c.sq), motivos: motivos.get(s.c.sq) }));
     byUf.set(s.c.uf, list);
+    fornByUf.set(s.c.uf, [...(fornByUf.get(s.c.uf) ?? []), [s.c.sq, supplierView(s.c.sq, paidBy.get(s.c.sq) ?? [], dir, empresas, addrN)]]);
   }
 
   mkdirSync(`${OUT}/uf`, { recursive: true });
@@ -182,6 +183,7 @@ async function main() {
   for (const uf of ufs) {
     const list = byUf.get(uf)!;
     writeFileSync(`${OUT}/uf/${uf}.json`, JSON.stringify(list));
+    writeFileSync(`${OUT}/uf/${uf}-forn.json`, JSON.stringify(sidecarOf(fornByUf.get(uf) ?? [])));
     // Photos ship per UF + office so the page only loads the open ballot's portraits.
     const fotos = new Map<string, Record<string, string>>();
     for (const c of list) {

@@ -8,6 +8,7 @@ import { colaHtml, mountColaButtons } from "./cola-view.js";
 import { candHash, isCandHash, parseCandLink } from "./cand-link.js";
 import { abaSobDemanda, quandoPronta } from "./abas-sob-demanda.js";
 import { PAN_MODES } from "./pan-modos.js";
+import { createFornecedores, ufsPendentes } from "./fornecedores-carga.js";
 import { matches, SORTS, semEvidencia } from "./lista.js";
 import { achados } from "./achados.js";
 import { LEVELS, presetsHtml, weightsHtml } from "./pesos.js";
@@ -124,9 +125,11 @@ async function loadUf() {
     }
   }
   $("#lista").classList.remove("carregando");
+  for (const uf of [state.uf, "BR"]) forn.aplicar(state.cands, uf); // a sidecar already read for this UF is merged before the first paint
   render();
   if (foco) $("#lista").focus({ preventScroll: true });
   loadFotos();
+  ocioso(() => pedirFornecedores(ufsPendentes(state.cands, [state.uf, "BR"])));
 }
 
 $("#lista").addEventListener("click", (e) => {
@@ -225,7 +228,31 @@ function renderDossierPanel() {
   const c = state.cands.find((x) => x.id === state.open);
   panel.hidden = !c;
   document.body.classList.toggle("has-dossie", !!c);
-  if (c) panel.innerHTML = renderDossier(c, score(c.ind, state.weights), isPicked(state.cola, c), state.agenda, avatar(c, "lg"), state.exp);
+  if (c) panel.innerHTML = renderDossier(c, score(c.ind, state.weights), isPicked(state.cola, c), state.agenda, avatar(c, "lg"), state.exp, estadoForn(c));
+}
+
+// The supplier sidecar is read only by the dossier and the network: it loads after the list, or at once when one of them asks first.
+const forn = createFornecedores();
+const estadoForn = (c: Candidatura) => forn.estadoDe(c);
+const ocioso = (fn: () => void) => ("requestIdleCallback" in window ? requestIdleCallback(fn) : setTimeout(fn, 200));
+
+function pedirFornecedores(ufs: string[]) {
+  for (const uf of ufs) if (forn.estado(uf) !== "pronto") forn.carregar(uf).catch(() => {}).then(() => atualizaFornecedores(uf));
+}
+
+// Redraws the open dossier only when its candidate is in that UF. After a retry the button is gone, so focus goes to the dossier.
+function redesenharDossie(uf: string, retomar: boolean) {
+  const aberto = state.cands.find((x) => x.id === state.open);
+  if (aberto?.uf !== uf) return;
+  keepFocus($("#dossie"), renderDossierPanel);
+  if (retomar && document.activeElement === document.body) $("#dossie").focus({ preventScroll: true });
+}
+
+// Merges a finished sidecar and redraws only what shows those fields: the open dossier and the network.
+function atualizaFornecedores(uf: string) {
+  forn.aplicar(state.cands, uf);
+  redesenharDossie(uf, false);
+  if (state.modo === "rede") renderModo();
 }
 
 // Opening moves focus into the dossier; closing gives it back to the candidate that opened it.
@@ -236,6 +263,8 @@ function setOpen(id: string | null) {
   renderDossierPanel();
   if (id) history.replaceState(null, "", `${location.pathname}${location.search}${candHash(id, state.uf)}`);
   else limparHashCand();
+  const c = id ? state.cands.find((x) => x.id === id) : undefined;
+  if (c && c.fornecedores === undefined) pedirFornecedores([c.uf]);
   if (id) { renderModo(); $("#dossie").focus({ preventScroll: true }); }
   else if (prev) (visibleOpener(document, "open", prev) ?? $('#modos [aria-selected="true"]'))?.focus(); // the opener may be in any tab, or filtered out
 }
@@ -335,7 +364,7 @@ function renderModo() {
   if (state.modo === "rede") {
     const cand = state.redeFoco && state.cands.find((x) => x.id === state.redeFoco);
     quandoPronta(redeAba, $("#rede-view"), () => state.modo === "rede", (renderRede) => {
-      keepFocus($("#rede-view"), () => { $("#rede-view").innerHTML = renderRede({ rede: state.rede, cand: cand || null, sel: state.redeSel }); });
+      keepFocus($("#rede-view"), () => { $("#rede-view").innerHTML = renderRede({ rede: state.rede, cand: cand || null, sel: state.redeSel, forn: cand ? estadoForn(cand) : "pronto" }); });
     });
     return;
   }
@@ -421,7 +450,7 @@ function bind() {
   $("#limpar-filtros")?.addEventListener("click", resetFiltros);
 
   document.addEventListener("click", (e) => {
-    const t = (e.target as Element).closest<HTMLElement>("[data-ballot],[data-open],[data-close],[data-cola],[data-modo],#exp-mais,[data-rede],[data-rede-geral],[data-rede-foco],[data-copy-cand],[data-limpar-filtros]");
+    const t = (e.target as Element).closest<HTMLElement>("[data-ballot],[data-open],[data-close],[data-cola],[data-modo],#exp-mais,[data-rede],[data-rede-geral],[data-rede-foco],[data-copy-cand],[data-forn-retry],[data-limpar-filtros]");
     if (!t) return;
     if (t.dataset.limparFiltros !== undefined) { resetFiltros(); return; }
     if (t.dataset.copyCand) {
@@ -434,7 +463,19 @@ function bind() {
       return;
     }
     if (t.dataset.modo) { state.modo = t.dataset.modo; state.limit = PAGE; store.set("modo", state.modo); renderModo(); return; }
-    if (t.dataset.redeFoco !== undefined) { state.redeFoco = t.dataset.redeFoco; state.redeSel = null; state.modo = "rede"; renderModo(); return; }
+    if (t.dataset.redeFoco !== undefined) {
+      state.redeFoco = t.dataset.redeFoco; state.redeSel = null; state.modo = "rede";
+      const c = state.cands.find((x) => x.id === state.redeFoco);
+      if (c && c.fornecedores === undefined) pedirFornecedores([c.uf]);
+      renderModo(); return;
+    }
+    if (t.dataset.fornRetry) {
+      const uf = t.dataset.fornRetry;
+      const nova = forn.tentar(uf);
+      redesenharDossie(uf, true); // shows "Carregando" now, in this click, instead of the old error until the download ends
+      nova.catch(() => {}).then(() => atualizaFornecedores(uf));
+      return;
+    }
     if ("redeGeral" in t.dataset) { state.redeFoco = null; state.redeSel = null; renderModo(); return; }
     if (t.dataset.rede) { state.redeSel = state.redeSel === t.dataset.rede ? null : t.dataset.rede; renderModo(); return; }
     if (t.id === "exp-mais") { state.limit += PAGE; renderModo(); return; }

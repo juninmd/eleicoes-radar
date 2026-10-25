@@ -207,7 +207,8 @@ export function aggregateAgenda(cands: Cand[], agenda: AgendaFile): AgendaAgg {
 export function build(dir = IN, agendaPath = AGENDA) {
   const escopos: Record<string, Record<string, CargoAgg>> = {};
   const all: Cand[] = [];
-  for (const f of readdirSync(dir).filter((x) => x.endsWith(".json"))) {
+  // Only <UF>.json and BR.json: the <UF>-forn.json sidecar is an object keyed by id, not a candidate list.
+  for (const f of readdirSync(dir).filter((x) => /^[A-Z]{2}\.json$/.test(x))) {
     const list: Cand[] = JSON.parse(readFileSync(`${dir}/${f}`, "utf8"));
     escopos[f.replace(/\.json$/, "")] = aggregate(list);
     all.push(...list);
