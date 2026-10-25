@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { aggregate, aggregateAgenda, cor, foldMap, genero, idade, instrucao, MIN_CELL, MIN_PERFIL, OUTRAS } from "./panorama";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { aggregate, aggregateAgenda, build, cor, foldMap, genero, idade, instrucao, MIN_CELL, MIN_PERFIL, OUTRAS } from "./panorama";
 
 const cand = (o: Record<string, unknown> = {}) => ({
   cargo: "Deputado Federal", partido: "AAA", genero: "Masculino", corRaca: "Branca",
@@ -184,5 +187,24 @@ describe("boosting spend", () => {
   test("an older UF file without the field counts as no boosting instead of failing", () => {
     const g = aggregate([cand({ fin: { total: 100 } })])["Deputado Federal"]!;
     expect(g.impuls).toEqual({ total: 0, gastos: 0, comGasto: 0 });
+  });
+});
+
+describe("build reads only the UF candidate files", () => {
+  // The sidecar <UF>-forn.json is an object keyed by candidate id; it must not reach the aggregate (it would throw on spread).
+  test("a <UF>-forn.json next to <UF>.json is skipped, BR.json still counts", () => {
+    const dir = mkdtempSync(join(tmpdir(), "panorama-"));
+    try {
+      writeFileSync(join(dir, "SP.json"), JSON.stringify([cand({ partido: "AAA" })]));
+      writeFileSync(join(dir, "SP-forn.json"), JSON.stringify({ "1": [{ nome: "EMPRESA LTDA", valor: 1 }] }));
+      writeFileSync(join(dir, "BR.json"), JSON.stringify([cand({ partido: "BBB" })]));
+      const agenda = join(dir, "agenda.json");
+      writeFileSync(agenda, JSON.stringify({ temas: {} }));
+      const out = build(dir, agenda);
+      expect(Object.keys(out.escopos).sort()).toEqual(["BR", "SP"]);
+      expect(out.escopos.BR!["Deputado Federal"]!.n).toBe(2); // SP and BR candidates, sidecar not counted
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
