@@ -140,6 +140,15 @@ describe("view da Previsão", () => {
   const prev = (over: Partial<Previsao> = {}, f = lado("a1", "ANA SOUZA", 0.82), o = lado("b2", "BETO LIMA", 0.18)): Previsao => ({ turno: 1, favorito: f, outro: o, nivel: nivelDe(f.chance), n: 2000, contados: 0.6, faltam: 3_400_000, decideNoPrimeiro: 0.2, segundoTurno: 0.8, defasadas: [], ...over });
   const props = (over: Partial<PrevProps> = {}): PrevProps => ({ estado: "ok", previsao: prev(), hist: [], avatar, cor, ...over });
 
+  test("compacto: cabe numa tela e guarda o detalhe em details", () => {
+    const html = renderPrevisao(props({ compacto: true }));
+    expect(html).toContain("prev prev-compacto");
+    expect(html).toContain("prev-tab");
+    expect(html).toContain("As três leituras e a curva");
+    expect(html).toContain("Estimativa do Radar, não é resultado");
+    expect(html).not.toContain("prev-main"); // o bloco grande fica no modo completo
+  });
+
   test("says it is the Radar's estimate, names who is likely to end ahead with the photo and the chance, and never says a winner", () => {
     const html = renderPrevisao(props());
     expect(html).toContain("Estimativa do Radar, não é resultado");
@@ -235,3 +244,4 @@ describe("view da Previsão", () => {
     expect(l2).toBeGreaterThanOrEqual(0);
   });
 });
+

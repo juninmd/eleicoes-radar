@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { BRASIL, TODOS, corridasDe, disputaDecidida, renderAoVivo, renderHero } from "./apuracao-aovivo.js";
+import { BRASIL, TODOS, corridasDe, disputaDecidida, renderAoVivo, renderHero, resultadoDe } from "./apuracao-aovivo.js";
 import { atualizar, vazio } from "./apuracao-eleitos.js";
 import { registrar } from "./apuracao-graficos.js";
 import { createCores } from "./apuracao-nacional.js";
@@ -89,6 +89,17 @@ describe("Ao vivo", () => {
     expect(html).toContain("Presidente <small>Exterior</small>");
   });
 
+  test("o resultado do TSE separa eleito, 2º turno e não eleito e anima o selo", () => {
+    const html = renderAoVivo(props());
+    expect(html).toContain("Resultado do TSE");
+    expect(html).toContain('class="res eleito"');
+    expect(html).toContain('class="res nao"');
+    const itens = resultadoDe(heroDe(), []);
+    expect(itens.map((x) => [x.tipo, x.situacao])).toEqual([["eleito", "Eleito"], ["nao", "Não eleito"]]);
+    const dt = parseApuracao(file({ cands: [cand("a1", "10", "ANA", "1", "6000", "48,00", "s", "2º turno"), cand("b2", "20", "BETO", "2", "4000", "40,00", "s", "2º turno")] }))!;
+    expect(resultadoDe({ uf: BRASIL, snap: snap(dt), hist: [], eleitos: vazio() }, []).map((x) => x.tipo)).toEqual(["turno", "turno"]);
+  });
+
   test("the timeline is newest first across midnight: 00:05 of the next day is above 23:58 of the day before", () => {
     const eleito = (uf: string, dg: string, hg: string) => {
       const d = { ...parseApuracao(file({ cands: [cand("a1", "10", "ANA SOUZA", "1", "6000", "60,00", "s", "Eleito")] }))!, versao: { data: dg, hora: hg } };
@@ -118,17 +129,18 @@ describe("Previsão do Radar na aba", () => {
 
   test("vem logo depois do duelo e antes da linha do tempo; sem ela a tela fica como era", () => {
     const html = renderAoVivo(props({ prev }));
-    expect(html.indexOf("live-hero")).toBeLessThan(html.indexOf('class="prev"'));
-    expect(html.indexOf('class="prev"')).toBeLessThan(html.indexOf("Quem foi eleito"));
+    expect(html.indexOf("live-hero")).toBeLessThan(html.indexOf('class="prev'));
+    expect(html.indexOf('class="prev')).toBeLessThan(html.indexOf("Quem foi eleito"));
     expect(html).toContain("Estimativa do Radar, não é resultado");
-    expect(renderAoVivo(props())).not.toContain('class="prev"');
+    expect(html).toContain("Estimativa do Radar, não é resultado");
+    expect(renderAoVivo(props())).not.toContain('class="prev');
   });
 
-  test("a previsão não chama ninguém de vencedor; o rodapé diz que só o TSE diz quem foi eleito", () => {
+  test("a previsão não chama ninguém de vencedor; o balão diz que só o TSE diz quem foi eleito", () => {
     const html = renderAoVivo(props({ prev }));
-    expect(html.split('<p class="muted small">Cada bloco')[0]).not.toMatch(/venceu|vencedor|vai vencer|vai ganhar|será eleit/i);
+    expect(html).not.toMatch(/venceu|vencedor|vai vencer|vai ganhar|será eleit/i);
     expect(html).toContain("deve terminar à frente");
-    expect(html).toContain("nunca quem foi eleito: isso é o texto do TSE");
+    expect(html).toContain("Só o texto do TSE diz quem foi eleito");
   });
 });
 
@@ -172,8 +184,8 @@ describe("efeitos de embate", () => {
     expect(renderHero({ hero: hero(), avatar, cor })).not.toContain(" intro");
     expect(renderHero({ hero: hero(), avatar, cor, fx: { ligado: true, intro: true, ko: false } })).toContain("live-hero intro");
     expect(renderHero({ hero: hero(), avatar, cor, fx: { ligado: false, intro: false, ko: false } })).toContain("live-hero sem-fx");
-    expect(renderAoVivo(props({ fx: { ligado: false, intro: false, ko: false } }))).toContain('data-live-fx aria-pressed="false">Efeitos: desligados');
-    expect(renderAoVivo(props())).toContain("Efeitos: ligados");
+    expect(renderAoVivo(props({ fx: { ligado: false, intro: false, ko: false } }))).toContain('data-live-fx aria-pressed="false" data-dica="Liga ou desliga as animações do duelo, do carimbo e do K.O.">Efeitos off');
+    expect(renderAoVivo(props())).toContain(">Efeitos</button>");
   });
 
   test("K.O. só quando o TSE marca um dos dois como Eleito e o outro não", () => {
@@ -207,9 +219,10 @@ describe("efeitos de embate", () => {
 
 describe("botão Som", () => {
   test("liga e desliga o som sem mexer nos efeitos", () => {
-    expect(renderAoVivo(props())).toContain('data-live-som aria-pressed="true">Som: ligado');
+    expect(renderAoVivo(props())).toContain('data-live-som aria-pressed="true" data-dica="Liga ou desliga os sons do duelo e do K.O.">Som</button>');
     const mudo = renderAoVivo(props({ fx: { ligado: true, intro: false, ko: false, som: false } }));
-    expect(mudo).toContain('data-live-som aria-pressed="false">Som: desligado');
-    expect(mudo).toContain("Efeitos: ligados");
+    expect(mudo).toContain('data-live-som aria-pressed="false" data-dica="Liga ou desliga os sons do duelo e do K.O.">Som off</button>');
+    expect(mudo).toContain(">Efeitos</button>");
   });
 });
+

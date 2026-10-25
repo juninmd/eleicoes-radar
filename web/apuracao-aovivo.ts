@@ -47,6 +47,13 @@ const FASES: Record<Fase, string> = { aguardando: "Aguardando", parcial: "Em and
 const proporcional = (c: Cargo) => /^Deputado/.test(c);
 const MAX_LINHA = 20;
 
+// Fixed texts now live in balloons; the screen itself keeps the live numbers.
+const DICA_TURNO = "1º turno em 04/10/2026 · 2º turno em 25/10/2026. Presidente e governador podem ter 2º turno; senador e deputados foram decididos no 1º.";
+const DICA_ATUALIZA = "Atualiza sozinho a cada 30 s a 2 min, conforme o ritmo do TSE, enquanto você estiver nesta aba.";
+const DICA_MEDIA = "Média das seções totalizadas nas disputas abertas. Cada arquivo do TSE é de um horário.";
+const DICA_MAPA = "Clique num estado para filtrar a tela. No Exterior, os votos de fora aparecem somados; as cidades são as do 1º turno. Arraste para mover e use a rolagem, os botões ou a pinça para ampliar. A cor é a do partido de quem está à frente no estado; quanto mais forte, maior a diferença para o segundo. Cinza: ainda sem arquivo. No cartograma todos os estados têm o mesmo tamanho.";
+const DICA_FONTE = "Fonte: resultados.tse.jus.br. Nada fica guardado ao fechar a aba. Fotos seguem a opção Mostrar fotos. Só o texto do TSE diz quem foi eleito; “Matematicamente eleito” é uma conta do Radar sobre os números do TSE.";
+
 // The races of one state besides the President's (the hero of the tab). The Federal District has no state deputies: it elects district ones.
 export const corridasDe = (uf: string): Corrida[] => [
   { cargo: "Governador", uf }, { cargo: "Senador", uf }, { cargo: "Deputado Federal", uf },
@@ -214,6 +221,37 @@ function todosOsEstados(nac: BrasilSnapshot | null, cargo: Cargo, mapa?: UfMap |
     <p class="muted small">Cada quadro é o arquivo do TSE do estado: o líder e o segundo de agora, não o resultado. Toque num estado para filtrar a tela.${cargo === "Presidente" ? " O exterior tem arquivo próprio." : ""}</p>`;
 }
 
+// What the TSE itself says about each candidate: only the published situation is used, never an inference from the count.
+export interface ResultadoTse { id: string; nome: string; partido: string; votos: number; pct: number; situacao: string; tipo: "eleito" | "nao" | "turno" }
+export function resultadoDe(hero: Hero, linhas: Linha[]): ResultadoTse[] {
+  const dados = [hero.snap?.dados, ...linhas.map((l) => l.snap?.dados)].filter((d): d is Apuracao => !!d);
+  const out = new Map<string, ResultadoTse>();
+  for (const d of dados) for (const c of d.candidatos) {
+    const s = c.situacao?.trim() ?? "";
+    if (!/^(Eleito|Não eleito|2º turno)/i.test(s)) continue;
+    const tipo = /^Eleito/i.test(s) ? "eleito" as const : /^Não eleito/i.test(s) ? "nao" as const : "turno" as const;
+    out.set(c.id, { id: c.id, nome: c.nome, partido: c.partido, votos: c.votos, pct: c.pct, situacao: s, tipo });
+  }
+  const peso = { eleito: 0, turno: 1, nao: 2 };
+  return [...out.values()].sort((a, b) => peso[a.tipo] - peso[b.tipo] || b.votos - a.votos).slice(0, 6);
+}
+
+const dica = (texto: string, rotulo = "Mais informação") => `<button type="button" class="dica info" data-dica="${h(texto)}" aria-label="${h(rotulo)}"><span aria-hidden="true">i</span></button>`;
+
+function resultadoVisual(itens: ResultadoTse[]): string {
+  const conta = { eleito: 0, turno: 0, nao: 0 };
+  for (const x of itens) conta[x.tipo]++;
+  const resumo = [conta.eleito ? `${int(conta.eleito)} eleito${conta.eleito === 1 ? "" : "s"}` : "", conta.turno ? `${int(conta.turno)} no 2º turno` : "", conta.nao ? `${int(conta.nao)} não eleito${conta.nao === 1 ? "" : "s"}` : ""].filter(Boolean).join(" · ");
+  const lista = itens.map((x) => `<li class="res ${x.tipo}">
+    <span class="res-selo">${x.tipo === "eleito" ? "Eleito" : x.tipo === "turno" ? "2º turno" : "Não eleito"}<small>TSE</small></span>
+    <span class="res-nome"><b>${h(titleName(x.nome))}</b><small>${h(x.partido)} · ${int(x.votos)} votos</small></span>
+    <b class="res-pct">${pct(x.pct, 1)}</b></li>`).join("");
+  return `<section class="live-resultado" aria-label="Resultado do TSE">
+    <h3>Resultado do TSE <small>${resumo || "sem marcação"}</small></h3>
+    ${itens.length ? `<ul>${lista}</ul>` : `<p class="muted small">O TSE ainda não marcou eleito nem não eleito nesta disputa. A etiqueta aparece quando ele publicar.</p>`}
+  </section>`;
+}
+
 export interface AoVivoProps { prev?: PrevProps | null; nacPrev?: BrasilSnapshot | null; hero: Hero; linhas: Linha[]; escopo: string; ufCartoes: string; nac: BrasilSnapshot | null; cargoTodos: Cargo; mapa?: UfMap | null; agora: Date; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado>; fx?: Efeitos; turno?: Turno }
 
 export function renderAoVivo(p: AoVivoProps): string {
@@ -226,34 +264,58 @@ export function renderAoVivo(p: AoVivoProps): string {
   const consultas = todas.map((l) => l.snap?.buscadoEm).filter((x): x is Date => !!x);
   const quando = consultas.length ? new Date(Math.max(...consultas.map((x) => x.getTime()))) : null;
   const onde = escopo === BRASIL ? "Brasil (total)" : escopo === TODOS ? "Todos os estados" : escopo === EXTERIOR ? "Exterior" : escopo;
-  const voltar = escopo === BRASIL ? "" : `<button type="button" class="ghost" data-live-total>Voltar ao Brasil (total)</button>`;
+  const voltar = escopo === BRASIL ? "" : `<button type="button" class="ghost live-voltar" data-live-total>Voltar ao Brasil (total)</button>`;
   // The live map is the way to pick a state or the exterior: it stays on every scope.
   const cargoMapa: Cargo = escopo === TODOS ? p.cargoTodos : "Presidente";
   const nacPres = escopo === BRASIL ? p.nacPrev ?? null : escopo === TODOS && p.cargoTodos === "Presidente" ? nac : null;
   const consolidado = escopo === BRASIL || escopo === TODOS ? renderConsolidado(consolidar(nacPres, hero.snap?.dados), (partido) => p.cor(partido)) : "";
-  const mapaTempoReal = `<section class="live-noite" aria-labelledby="live-noite-t"><h3 id="live-noite-t">Mapa em tempo real <small>${h(cargoMapa)}${turno === 2 && cargoMapa !== "Senador" ? " · 2º turno" : ""}</small></h3>
-    <p class="muted small">Clique num estado para filtrar a tela. No Exterior, os votos de fora aparecem somados; as cidades são as do 1º turno.</p>
+  const mapaTempoReal = `<section class="live-noite" aria-labelledby="live-noite-t"><h3 id="live-noite-t">Mapa em tempo real <small>${h(cargoMapa)}${turno === 2 && cargoMapa !== "Senador" ? " · 2º turno" : ""}</small> ${dica(DICA_MAPA, "Como filtrar pelo mapa")}</h3>
     <div class="fx-host" data-fx-host></div></section>`;
   const cartoes = escopo === BRASIL || escopo === EXTERIOR ? "" : `<h3>Disputas de ${h(p.ufCartoes)}</h3><div class="live-grid">${linhas.map((l) => card(l, turno)).join("")}</div>`;
+  const fxLigado = (p.fx ?? EFEITOS_PADRAO).ligado;
+  const somLigado = (p.fx ?? EFEITOS_PADRAO).som !== false;
+  const hora = quando?.toLocaleTimeString("pt-BR") ?? "";
+  const pctSecoes = pct(Math.floor(media * 1000) / 1000, 1);
   return `<section class="exp-card apu live" aria-labelledby="live-t">
-    <h2 id="live-t">Ao vivo <span class="rot aberta">${ativos.length} de ${todas.length} disputas com apuração</span></h2>
-    <div class="live-onde"><span>Mostrando <b>${h(onde)}</b></span>${voltar}</div>
-    <div class="live-filtro">${seletorTurno("Presidente", turno)}<button type="button" class="ghost" data-live-fx aria-pressed="${(p.fx ?? EFEITOS_PADRAO).ligado}">Efeitos: ${(p.fx ?? EFEITOS_PADRAO).ligado ? "ligados" : "desligados"}</button><button type="button" class="ghost" data-live-som aria-pressed="${(p.fx ?? EFEITOS_PADRAO).som !== false}">Som: ${(p.fx ?? EFEITOS_PADRAO).som !== false ? "ligado" : "desligado"}</button></div>
-    <p class="muted exp-meta">${quando ? `Consultado às <span id="apu-quando">${h(quando.toLocaleTimeString("pt-BR"))}</span> · ` : ""}atualiza sozinho (a cada 30 s a 2 min, conforme o ritmo da apuração) enquanto você estiver nesta aba. Média das seções totalizadas: <b>${pct(Math.floor(media * 1000) / 1000, 1)}</b>${pausa ? ` · arquivo mais recente <span id="apu-idade">(${idadeTxt(pausa.idadeMs)})</span>` : ""}.</p>
+    <header class="live-cabeca">
+      <div class="live-titulo">
+        <h2 id="live-t">Ao vivo</h2>
+        <span class="live-onde">Mostrando <b>${h(onde)}</b></span>
+        ${voltar}
+      </div>
+      <div class="live-acoes">
+        <span class="rot ${ativos.length ? "aberta" : "baixa"}">${ativos.length} de ${todas.length} ${todas.length === 1 ? "disputa" : "disputas"}</span>
+        ${seletorTurno("Presidente", turno)}${dica(DICA_TURNO, "Datas e regras do turno")}
+        <button type="button" class="ghost" data-live-fx aria-pressed="${fxLigado}" data-dica="Liga ou desliga as animações do duelo, do carimbo e do K.O.">${fxLigado ? "Efeitos" : "Efeitos off"}</button>
+        <button type="button" class="ghost" data-live-som aria-pressed="${somLigado}" data-dica="Liga ou desliga os sons do duelo e do K.O.">${somLigado ? "Som" : "Som off"}</button>
+        ${dica(DICA_FONTE, "Sobre esta tela")}
+      </div>
+    </header>
+    <div class="live-status">
+      ${quando ? `<span class="live-chip dica" tabindex="0" data-dica="${h(DICA_ATUALIZA)}" aria-label="${h(`${hora}. ${DICA_ATUALIZA}`)}">⏱ <span id="apu-quando">${h(hora)}</span></span>` : ""}
+      <span class="live-chip dica" tabindex="0" data-dica="${h(DICA_MEDIA)}" aria-label="${h(`${pctSecoes} das seções. ${DICA_MEDIA}`)}">${pctSecoes} das seções</span>
+      ${pausa ? `<span class="live-chip">arquivo de <span id="apu-idade">${idadeTxt(pausa.idadeMs)}</span></span>` : ""}
+    </div>
     ${pausa?.parado ? `<p class="apu-aviso apu-pausa"><b>Sem arquivo novo do TSE há mais de 10 minutos.</b> A pausa é do TSE, que publica em rodadas.</p>` : ""}
     <div class="live-palco">
-      <div class="live-centro">
+      <div class="live-col live-col-hero">
         ${renderHero({ hero, avatar: p.avatar, cor: p.cor, esperado: p.esperado, fx: p.fx, turno })}
+        ${resultadoVisual(resultadoDe(hero, linhas))}
       </div>
-      <div class="live-mapa-col">${mapaTempoReal}${consolidado}</div>
+      <div class="live-col live-col-mapa">
+        ${mapaTempoReal}
+        ${consolidado ? `<details class="live-detalhe"><summary>Total consolidado <small>27 estados + exterior</small></summary>${consolidado}</details>` : ""}
+      </div>
+      <div class="live-col live-col-prev">
+        ${p.prev ? renderPrevisao({ ...p.prev, compacto: true }) : ""}
+        <section class="live-noite-eleitos" aria-label="Quem foi eleito">
+          <h3>Quem foi eleito <small>desde que você abriu</small></h3>
+          ${linhaGeral(todas)}
+        </section>
+      </div>
     </div>
-    ${p.prev ? renderPrevisao(p.prev) : ""}
-    ${turno === 2 ? `<p class="muted small">2º turno: Presidente e Governador (só onde houve). Senador e deputados foram decididos no 1º turno e seguem com os arquivos dele. As pesquisas e a curva de expectativa são do 1º turno e não aparecem aqui.</p>` : ""}
     ${escopo === TODOS ? `<h3>Todos os estados</h3>${todosOsEstados(nac, p.cargoTodos, p.mapa, p.cor, true)}` : ""}
     ${cartoes}
-    <h3>Quem foi eleito <small>nas disputas acima, desde que você abriu a aba</small></h3>
-    ${linhaGeral(todas)}
-    <p class="muted small">Cada bloco mostra os números do TSE e o texto de situação que ele publica; a Previsão do Radar é estimativa e diz "deve terminar à frente", nunca quem foi eleito: isso é o texto do TSE. "Matematicamente eleito" é uma conta do Radar sobre os números do TSE (Presidente nacional, Governador e Senado). Fotos seguem a opção "Mostrar fotos". Nada fica guardado ao fechar a aba. Fonte: <a href="https://resultados.tse.jus.br/" rel="noopener noreferrer" target="_blank">resultados.tse.jus.br</a>.</p>
   </section>`;
 }
 
@@ -485,3 +547,4 @@ export function mountAoVivo(el: HTMLElement) {
     hide() { parar(); ctx = null; el.innerHTML = ""; },
   };
 }
+
