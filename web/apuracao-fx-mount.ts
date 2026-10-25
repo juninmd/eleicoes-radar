@@ -11,12 +11,14 @@ import type { Contexto } from "./apuracao-mount.js";
 import type { FeedSnapshot } from "./apuracao-feed.js";
 import type { BrasilSnapshot } from "./apuracao-uf.js";
 import type { Cores } from "./apuracao-nacional.js";
+import type { MundoMap } from "./apuracao-noite.js";
+import type { ExteriorProps } from "./apuracao-exterior.js";
 import type { Ponto } from "./apuracao-graficos.js";
 import type { UfMap } from "../src/radar/geo/uf-map";
 import type { Vista } from "./apuracao.js";
 
 // simulado: the tab's own simulation feeds snap and nac (the views label it like their local one)
-export interface FxEstado { ctx: Contexto | null; vista: Vista; snap: FeedSnapshot | null; nac: BrasilSnapshot | null; hist: Ponto[]; mapa: UfMap | null | undefined; cor: Cores; simulado?: boolean }
+export interface FxEstado { ctx: Contexto | null; vista: Vista; snap: FeedSnapshot | null; nac: BrasilSnapshot | null; hist: Ponto[]; mapa: UfMap | null | undefined; mundo?: MundoMap | null; exterior?: Omit<ExteriorProps, "cor" | "turno" | "compacto"> | null; cor: Cores; simulado?: boolean }
 export interface FxDeps { el: HTMLElement; anunciar(txt: string): void; estado(): FxEstado }
 
 export const PASSO_MS: Record<number, number> = { 1: 1300, 3: 450, 8: 170 };
@@ -105,7 +107,8 @@ export function criarFx({ el, anunciar, estado }: FxDeps) {
       noite.raiz?.style.setProperty("--dur", dur);
       noite.atualizar({
         nac: demo.ativo ? quadroNoite(demo.i) : e.nac,
-        cargo: demo.ativo ? "Presidente" : e.ctx.cargo, mapa: e.mapa, byId: demo.ativo ? new Map() : e.ctx.byId, avatar: e.ctx.avatar, cor: e.cor,
+        cargo: demo.ativo ? "Presidente" : e.ctx.cargo, mapa: e.mapa, mundo: e.mundo,
+        exterior: e.exterior && demo.ativo ? { ...e.exterior, nac: quadroNoite(demo.i), simulado: true } : e.exterior, byId: demo.ativo ? new Map() : e.ctx.byId, avatar: e.ctx.avatar, cor: e.cor,
         efeitos, salto, simulado: demo.ativo || !!e.simulado, anunciar, som,
       });
     }
