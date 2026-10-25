@@ -12,7 +12,7 @@ export interface Photo {
 }
 
 export async function thumbnail(key: string, url: string): Promise<string | null> {
-  const file = `${DIR}/${key}.jpg`;
+  const file = `${DIR}/${key}-hd.jpg`; // -hd: older 96x120 caches are not reused
   if (existsSync(file)) return file;
   mkdirSync(DIR, { recursive: true });
   const res = await fetch(url, { headers: { "User-Agent": UA }, redirect: "follow", signal: AbortSignal.timeout(60_000) });
@@ -21,7 +21,7 @@ export async function thumbnail(key: string, url: string): Promise<string | null
     return null;
   }
   const buf = Buffer.from(await res.arrayBuffer());
-  const out = await sharp(buf).resize(96, 120, { fit: "cover", position: "attention" }).jpeg({ quality: 72, mozjpeg: true }).toBuffer();
+  const out = await sharp(buf).resize(192, 240, { fit: "cover", position: "attention" }).jpeg({ quality: 78, mozjpeg: true }).toBuffer();
   writeFileSync(file, out);
   return file;
 }

@@ -30,7 +30,7 @@ describe("Ao vivo", () => {
   test("o destaque do Presidente é um duelo: dois lados com foto, diferença, barra dos 50% e curva", () => {
     const html = renderHero({ hero: heroDe(), avatar, cor });
     expect(html.match(/class="live-side /g)).toHaveLength(2);
-    expect(html.match(/data-foto="/g)).toHaveLength(2);
+    expect(html.match(/data-foto="/g)).toHaveLength(4);
     expect(html).toContain("live-vs");
     expect(html).toContain("apu-duelo");
     expect(html).toContain("Curva da apuração");

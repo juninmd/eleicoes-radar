@@ -18,10 +18,10 @@ export async function loadTsePhotos(): Promise<Map<string, string>> {
     const files = unzipSync(readFileSync(`${SRC}/${zip}`), { filter: (f) => sqFromPhotoName(f.name) !== null });
     for (const [name, data] of Object.entries(files)) {
       const sq = sqFromPhotoName(name)!;
-      const file = `${OUT}/tse-${sq}.jpg`;
+      const file = `${OUT}/tse-${sq}-hd.jpg`;
       if (!existsSync(file)) {
         try {
-          writeFileSync(file, await sharp(data).resize(72, 90, { fit: "cover", position: "attention" }).jpeg({ quality: 70, mozjpeg: true }).toBuffer());
+          writeFileSync(file, await sharp(data).resize(192, 240, { fit: "cover", position: "attention" }).jpeg({ quality: 78, mozjpeg: true }).toBuffer());
         } catch (e) {
           console.warn(`[fotos] ${zip}/${name} ilegível: ${(e as Error).message}`);
           continue;

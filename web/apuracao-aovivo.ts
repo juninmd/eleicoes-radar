@@ -7,7 +7,8 @@ import { createBrasilFeed, EXTERIOR, UFS, ufsDo } from "./apuracao-uf.js";
 import { tseUrl, TSE_BASE, turnoDe } from "./apuracao-tse.js";
 import { gravarTurno, lerTurno, seletorTurno } from "./apuracao-turno.js";
 import { createCores, linhasUf } from "./apuracao-nacional.js";
-import { PALETA, RESTO } from "./apuracao-mapa.js";
+import { PALETA, RESTO, legenda, mapaSvg } from "./apuracao-mapa.js";
+import type { UfMap } from "../src/radar/geo/uf-map";
 import { renderDuelo } from "./apuracao-duelo.js";
 import { criarSom } from "./apuracao-som.js";
 import { evolucao, registrar } from "./apuracao-graficos.js";
@@ -170,7 +171,12 @@ export function renderHero({ hero, avatar, cor, esperado = {}, fx = EFEITOS_PADR
       <polyline class="raio r1" points="0,62 34,34 58,78 92,26 120,84 154,30 186,80 220,36 250,72 300,58"/>
       <polyline class="raio r2" points="0,48 28,70 64,38 96,88 130,44 166,82 198,34 232,76 264,40 300,64"/>
       <polyline class="raio r3" points="0,70 40,50 70,92 108,40 140,70 176,28 208,66 244,44 300,52"/></svg></div>`;
+  // Compact strip (sticky on phones): both leaders, their shares and the split bar stay in view while the page scrolls.
+  const pa = Math.max(0, Math.min(100, (a.pct / ((a.pct + b.pct) || 1)) * 100));
+  const mini = (c: Candidato, cls: string) => `<span class="live-mini ${cls}" style="--lado:${cor(c.partido)}">${avatar({ id: c.id, nome: c.nome }, "sm")}<span class="live-mini-t"><b>${h(curto(c.nome))}</b><span>${pct(c.pct, 1)}</span></span></span>`;
+  const barra = `<div class="live-barra" aria-hidden="true">${mini(a, "a")}<span class="live-barra-bar"><i style="width:${pa.toFixed(1)}%;background:${cor(a.partido)}"></i><i style="width:${(100 - pa).toFixed(1)}%;background:${cor(b.partido)}"></i></span>${mini(b, "b")}</div>`;
   return `<section class="${classe}" aria-label="Presidente ${h(onde)}">${topo(fase)}${base}
+    ${barra}
     ${faixaEleito(d)}
     <div class="live-duel" style="--ca:${cor(a.partido)};--cb:${cor(b.partido)}">${raios}${lado(a, a.pct > b.pct ? "a lead" : "a", avatar, cor, esperado[a.id], d.fase, fim?.derrotado === a)}
       <div class="live-vs" aria-hidden="true"><span class="live-vs-x">VS</span><b>${dif.toFixed(1).replace(".", ",")}</b><small>p.p. de diferença</small></div>
@@ -182,10 +188,11 @@ export function renderHero({ hero, avatar, cor, esperado = {}, fx = EFEITOS_PADR
 }
 
 // Every state at once for one office: leader, runner-up and how much of the count is in.
-function todosOsEstados(nac: BrasilSnapshot | null, cargo: Cargo): string {
+function todosOsEstados(nac: BrasilSnapshot | null, cargo: Cargo, mapa?: UfMap | null, cor?: Cores): string {
   const abas = `<div class="apu-vistas" role="group" aria-label="Cargo">${CARGOS_TODOS.map((c) => `<button type="button" data-live-cargo="${c}" aria-pressed="${c === cargo}">${c}</button>`).join("")}</div>`;
   if (!nac || nac.cargo !== cargo) return `${abas}<p class="muted small">Consultando os arquivos de todos os estados…</p>`;
   const linhas = linhasUf(nac.ufs, cargo);
+  const mapaHtml = mapa && cor ? `<div class="live-mapa">${mapaSvg({ mapa, linhas, modo: "lider", cor, sel: null, corridas: null, cargo })}${legenda({ modo: "lider", linhas, cor, cargo })}</div>` : "";
   const fila = new Map(linhas.map((l) => [l.uf, l]));
   const tiles = ufsDo(cargo).map((uf) => {
     const l = fila.get(uf);
@@ -198,11 +205,11 @@ function todosOsEstados(nac: BrasilSnapshot | null, cargo: Cargo): string {
          <small>${pct(l.avanco ?? 0, 1)} das seções${l.defasada ? " · desatualizado" : ""}</small>`;
     return `<li><button type="button" class="live-uf" data-live-escopo="${uf}" aria-label="Ver ${h(nomeUf)}"><b class="live-uf-n">${h(nomeUf)}</b>${corpo}</button></li>`;
   });
-  return `${abas}<ul class="live-ufs">${tiles.join("")}</ul>
+  return `${abas}${mapaHtml}<h4>Quem está vencendo onde</h4><ul class="live-ufs">${tiles.join("")}</ul>
     <p class="muted small">Cada quadro é o arquivo do TSE do estado: o líder e o segundo de agora, não o resultado. Toque num estado para filtrar a tela.${cargo === "Presidente" ? " O exterior tem arquivo próprio." : ""}</p>`;
 }
 
-export interface AoVivoProps { prev?: PrevProps | null; hero: Hero; linhas: Linha[]; escopo: string; ufCartoes: string; nac: BrasilSnapshot | null; cargoTodos: Cargo; agora: Date; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado>; fx?: Efeitos; turno?: Turno }
+export interface AoVivoProps { prev?: PrevProps | null; hero: Hero; linhas: Linha[]; escopo: string; ufCartoes: string; nac: BrasilSnapshot | null; cargoTodos: Cargo; mapa?: UfMap | null; agora: Date; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado>; fx?: Efeitos; turno?: Turno }
 
 const opcoes = (escopo: string, ufMeu: string) => [
   `<option value="${BRASIL}"${escopo === BRASIL ? " selected" : ""}>Brasil (total)</option>`,
@@ -229,7 +236,7 @@ export function renderAoVivo(p: AoVivoProps): string {
     ${renderHero({ hero, avatar: p.avatar, cor: p.cor, esperado: p.esperado, fx: p.fx, turno })}
     ${p.prev ? renderPrevisao(p.prev) : ""}
     ${turno === 2 ? `<p class="muted small">2º turno: Presidente e Governador (só onde houve). Senador e deputados foram decididos no 1º turno e seguem com os arquivos dele. As pesquisas e a curva de expectativa são do 1º turno e não aparecem aqui.</p>` : ""}
-    ${escopo === TODOS ? `<h3>Todos os estados</h3>${todosOsEstados(nac, p.cargoTodos)}` : ""}
+    ${escopo === TODOS ? `<h3>Todos os estados</h3>${todosOsEstados(nac, p.cargoTodos, p.mapa, p.cor)}` : ""}
     ${escopo === TODOS || escopo === EXTERIOR ? "" : cartoes}
     ${escopo === TODOS ? cartoes : ""}
     <h3>Quem foi eleito <small>nas disputas acima, desde que você abriu a aba</small></h3>
@@ -242,11 +249,13 @@ export interface Contexto { uf: string; abrir: (cargo: Cargo, uf: string) => voi
 
 export function mountAoVivo(el: HTMLElement) {
   let ctx: Contexto | null = null;
-  let escopo = BRASIL;
+  let escopo = TODOS; // the whole country by default; the filter narrows it
   let cargoTodos: Cargo = "Presidente";
   let hero: Hero = { uf: BRASIL, snap: null, hist: [], eleitos: vazio() };
   let linhas: Linha[] = [];
   let nac: BrasilSnapshot | null = null;
+  let mapa: UfMap | null = null;
+  fetch("mapa-uf.json").then((r) => (r.ok ? r.json() : null)).then((m) => { if (m) { mapa = m as UfMap; agendar(); } }).catch(() => {}); // no map: the tiles below still say it
   let feeds: ReturnType<typeof createFeed>[] = [];
   let brasil: ReturnType<typeof createBrasilFeed> | null = null;
   let painted: string | null = null;
@@ -319,7 +328,7 @@ export function mountAoVivo(el: HTMLElement) {
     const decidida = !!disputaDecidida(hero.snap?.dados);
     const fx: Efeitos = { ligado: efeitos, intro: intro && !!hero.snap?.dados, ko: decidida && !koTocou, som: somLigado };
     if (fx.intro && efeitos) som.intro();
-    const html = renderAoVivo({ hero, linhas, escopo, ufCartoes: ufCartoes(), nac, cargoTodos, agora: new Date(), avatar: ctx.avatar, cor, esperado, fx, turno, prev: previsaoProps() });
+    const html = renderAoVivo({ hero, linhas, escopo, ufCartoes: ufCartoes(), nac, cargoTodos, mapa, agora: new Date(), avatar: ctx.avatar, cor, esperado, fx, turno, prev: previsaoProps() });
     if (hero.snap?.dados) intro = false;
     if (decidida && !koTocou) { koTocou = true; tocarKo(); }
     const key = semRelogio(html);
@@ -384,11 +393,12 @@ export function mountAoVivo(el: HTMLElement) {
   };
 
   el.addEventListener("click", (e) => {
-    const t = (e.target as Element).closest<HTMLElement>("[data-abrir-corrida], [data-live-escopo], [data-live-cargo], [data-live-fx], [data-live-som], [data-turno]");
+    const t = (e.target as Element).closest<HTMLElement>("[data-abrir-corrida], [data-uf], [data-live-escopo], [data-live-cargo], [data-live-fx], [data-live-som], [data-turno]");
     if (!t || !ctx) return;
     if (t.dataset.turno) { const novo: Turno = t.dataset.turno === "2" ? 2 : 1; if (novo !== turno) { turno = novo; gravarTurno(turno); ligar(); } return; }
     if ("liveSom" in t.dataset) { somLigado = !somLigado; try { localStorage.setItem("radar:som", somLigado ? "on" : "off"); } catch { /* private window */ } som.desbloquear(); paint(); return; }
     if ("liveFx" in t.dataset) { efeitos = !efeitos; try { localStorage.setItem("radar:fx", efeitos ? "on" : "off"); } catch { /* private window: the choice lasts until the tab closes */ } paint(); return; }
+    if (t.dataset.uf && !t.dataset.liveEscopo) { escopo = t.dataset.uf; ligar(); return; }
     if (t.dataset.liveEscopo) { escopo = t.dataset.liveEscopo; ligar(); return; }
     if (t.dataset.liveCargo) { cargoTodos = t.dataset.liveCargo as Cargo; nac = null; brasil?.follow(cargoTodos); paint(); return; }
     const [cargo, uf] = t.dataset.abrirCorrida!.split("|");
