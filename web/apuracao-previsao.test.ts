@@ -110,6 +110,14 @@ describe("curva da noite", () => {
     expect(h.map((x) => x.pa)).toEqual([0.6, 0.7]);
   });
 
+  test("a file without a usable date is compared by its hour: the same hour again changes nothing, an older hour is ignored", () => {
+    const semData = (hora: string) => ({ versao: { hora } });
+    let h = registrarPrev([], p("A", "B", 0.6), semData("19:00:00"));
+    h = registrarPrev(h, p("A", "B", 0.7), semData("19:00:00"));
+    h = registrarPrev(h, p("A", "B", 0.8), semData("18:00:00"));
+    expect(h.map((x) => x.pa)).toEqual([0.6]);
+  });
+
   test("the curve is the chance of the current favourite: when the lead changes hands the old points are turned around", () => {
     let h = registrarPrev([], p("A", "B", 0.7), at("19:00:00"));
     h = registrarPrev(h, p("B", "A", 0.55), at("19:01:00"));

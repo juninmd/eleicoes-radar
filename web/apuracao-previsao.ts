@@ -84,8 +84,12 @@ const MAX_PONTOS = 240;
 export function registrarPrev(hist: PontoPrev[], p: Previsao, arquivo: Versionado): PontoPrev[] {
   const f = p.favorito, o = p.outro, ult = hist.at(-1);
   const t = epochDe(arquivo), hora = arquivo?.versao?.hora ?? "";
-  if (ult && ult.t === t && ult.a === f.id && ult.b === o.id) return hist;
-  if (ult && t < ult.t) return hist; // the TSE sometimes answers with an older file: it never rewinds the curve
+  // Without a usable date (NaN epoch) the hour text decides: otherwise every poll would add a copy of the same point.
+  const datado = Number.isFinite(t) && !!ult && Number.isFinite(ult.t);
+  const igual = ult && (Number.isFinite(t) ? ult.t === t : ult.hora === hora);
+  const velho = ult && (datado ? t < ult.t : hora < ult.hora);
+  if (igual && ult.a === f.id && ult.b === o.id) return hist;
+  if (velho) return hist; // the TSE sometimes answers with an older file: it never rewinds the curve
   return [...hist, { hora, t, a: f.id, b: o.id, pa: f.chance }].slice(-MAX_PONTOS);
 }
 // The chance of the current favourite, over the points of the same pair.
