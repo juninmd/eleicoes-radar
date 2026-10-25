@@ -106,7 +106,7 @@ export function prevBlock(c: Candidatura, exp?: ExpPrev | null) {
        ${rangeBar(p, Math.max(p.hi! * 1.25, 0.1), displayName(c))}${r?.ultima ? `<p class="muted small">Pesquisa mais recente: ${fmtDate(r.ultima)} (${frescor(r.ultima)}).</p>` : ""}`
     : `<p class="muted small">Por que o modelo chegou nisso:</p><ul class="porque">${porque(c, exp?.modelo?.anterior).map((x) => `<li>${x}</li>`).join("")}</ul>`;
   const how = poll ? howPoll(exp?.metodo?.simulacoes) : `Chance = probabilidade, segundo um modelo treinado nas eleições de ${h(exp?.modelo?.treino ?? "2022")}, de ficar entre os eleitos do estado. As chances de todos os candidatos somam aproximadamente o número de vagas. Não existe pesquisa pública por deputado.`;
-  return `<section><h3>Expectativa <small>não é pesquisa eleitoral</small></h3>
+  return `<section id="d-prev"><h3>Expectativa <small>não é pesquisa eleitoral</small></h3>
     <div class="prevline"><span class="big">${chance(p.p)}</span>${chip(p.p)}<span class="muted">de chance de ser eleito(a)</span></div>
     ${facts}
     <details class="how"><summary>Como ler este número</summary><p class="muted small">${how}</p></details></section>`;

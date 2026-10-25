@@ -32,7 +32,7 @@ export function fornecedoresBlock(list: Candidatura["fornecedores"] | undefined,
       <p class="small">${outros(f)}</p>
       ${f.flags.length ? `<p class="flag"><b>Para conferir:</b> ${f.flags.map(h).join("; ")}.</p>` : ""}
     </li>`).join("");
-  return `<section><h3>Principais fornecedores <small>pessoas jurídicas pagas com dinheiro público</small></h3>
+  return `<section id="d-forn"><h3>Principais fornecedores <small>pessoas jurídicas pagas com dinheiro público</small></h3>
     <p><button type="button" class="btn-confirma" data-rede-foco="${h(id)}">Ver rede deste candidato</button></p>
     <ul class="forns">${rows}</ul>
     <p class="muted small">Dados do TSE, da cota parlamentar e da Receita Federal. Os sinais não indicam irregularidade: empresas novas, de capital pequeno ou em endereços compartilhados também são legítimas. Confira nos documentos oficiais.</p></section>`;

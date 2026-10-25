@@ -75,11 +75,30 @@
   .exp-seats li { grid-template-columns: minmax(0, 1fr) 70px 48px; }
 }
 @media print {
-  body > *:not(.layout), .layout > *:not(.rail), .rail > *:not(.cola), .cola .row, .cola p { display: none !important; }
-  body { background: #fff; padding: 0; }
-  .layout { display: block; margin: 0; }
+  body { background: #fff; color: #000; padding: 0; }
+  .layout { display: block; margin: 0; max-width: 100%; }
+
+  /* Default print: printed voting cheat-sheet (Cola) */
+  body:not(.has-dossie) > *:not(.layout),
+  body:not(.has-dossie) .layout > *:not(.rail),
+  body:not(.has-dossie) .rail > *:not(.cola),
+  body:not(.has-dossie) .cola .row,
+  body:not(.has-dossie) .cola p { display: none !important; }
   .cola { background: #fff; color: #000; border: 1px solid #000; }
   #cola-lista li, #cola-lista .num, #cola-lista small, .cola h2 { color: #000; }
   .cola .print-only { display: block !important; font-size: 12px; }
   #cola-lista .av.ini:empty { display: none; } /* a blank slot needs no box of ink; its blanks and "em branco" say it */
+
+  /* Candidate dossier print */
+  body.has-dossie > *:not(.layout),
+  body.has-dossie .layout > *:not(#dossie),
+  body.has-dossie #dossie .close,
+  body.has-dossie #dossie .btn-confirma,
+  body.has-dossie #dossie .djump { display: none !important; }
+  body.has-dossie #dossie { display: block !important; position: static !important; max-height: none !important; overflow: visible !important; width: 100% !important; border: 0 !important; box-shadow: none !important; background: #fff !important; color: #000 !important; padding: 0 !important; animation: none !important; }
+  body.has-dossie #dossie h2, body.has-dossie #dossie h3, body.has-dossie #dossie h4, body.has-dossie #dossie p, body.has-dossie #dossie strong, body.has-dossie #dossie .nota, body.has-dossie #dossie .num { color: #000 !important; }
+  body.has-dossie #dossie .num { background: #f0f0f0 !important; border: 1px solid #000 !important; }
+  body.has-dossie #dossie .muted, body.has-dossie #dossie small { color: #444 !important; }
+  body.has-dossie #dossie section { break-inside: avoid; page-break-inside: avoid; border-bottom: 1px solid #ddd; padding-bottom: 12px; }
+  body.has-dossie #dossie .meter span { background: #000 !important; }
 }

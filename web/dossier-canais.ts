@@ -34,7 +34,7 @@ export function canaisBlock(c: Pick<Candidatura, "canais" | "bio">) {
        <ul class="seguidores">${seg.map((s) => `<li><span>${h(REDE_NOME[s.rede] ?? s.rede)}</span><span class="fonte">${compact.format(s.n)} em ${mesAno(s.em)}</span></li>`).join("")}</ul>
        <p class="muted small">Contagem editada por voluntários no Wikidata; pode estar defasada. Seguidores não entram na nota.</p>`
     : "";
-  return `<section><h3>Canais oficiais <small>declarados ao TSE</small></h3>
+  return `<section id="d-canais"><h3>Canais oficiais <small>declarados ao TSE</small></h3>
     ${links.length ? `<ul class="canais">${links.join("")}</ul>` : ""}
     ${followers}
     ${escolaridade ? `<p class="muted">Escolaridade (Câmara): ${h(escolaridade)}</p>` : ""}</section>`;
