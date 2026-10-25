@@ -325,8 +325,9 @@ html { scroll-behavior: smooth; }
 #dossie:not([hidden]) { animation: slide-in 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 body.sobre .metodo > * { animation: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 body.sobre .metodo > :nth-child(3) { animation-delay: 0.08s; } body.sobre .metodo > :nth-child(4) { animation-delay: 0.16s; }
-#achados:empty, #lista:empty { background: linear-gradient(100deg, var(--surface) 30%, var(--panel-2) 50%, var(--surface) 70%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
-#lista:empty { min-height: 160px; border-radius: var(--r-lg); }
+#achados:empty, #lista.carregando { background: linear-gradient(100deg, var(--surface) 30%, var(--panel-2) 50%, var(--surface) 70%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+/* A class, not :empty: the loading text inside the list would otherwise drop the reserved height (CLS). */
+#lista.carregando { min-height: 160px; border-radius: var(--r-lg); }
 @supports (animation-timeline: view()) {
   .box, .metodo > div { animation: rise linear both; animation-timeline: view(); animation-range: entry 0% entry 35%; }
 }

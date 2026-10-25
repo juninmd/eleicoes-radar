@@ -75,18 +75,25 @@ async function loadJson<T = unknown>(path: string): Promise<T> {
 const ballotOf = (c: Candidatura) => BALLOTS.findIndex((b) => b.cargo === c.cargo || b.alt === c.cargo);
 
 async function loadUf() {
+  // The retry button lives in the list, which render() replaces: remember focus to give it back.
+  const foco = $("#lista").contains(document.activeElement);
   $("#lista").setAttribute("aria-busy", "true");
   try {
     const [local, br] = await Promise.all([loadJson<Candidatura[]>(`data/uf/${state.uf}.json`), loadJson<Candidatura[]>("data/uf/BR.json")]);
     state.cands = [...local, ...br];
   } catch {
     // Sem isto a lista ficaria em aria-busy para sempre e sem aviso.
-    $("#lista").innerHTML = `<li class="muted">Não foi possível carregar os dados desta UF. Recarregue a página para tentar de novo.</li>`;
+    $("#lista").classList.remove("carregando");
+    $("#lista").innerHTML = `<li class="empty"><p role="status">Não foi possível carregar as candidaturas desta UF. Verifique a conexão.</p><button type="button" class="ghost" id="tentar">Tentar de novo</button></li>`;
+    $("#tentar").addEventListener("click", loadUf);
+    if (foco) $("#tentar").focus();
     return;
   } finally {
     $("#lista").removeAttribute("aria-busy");
   }
+  $("#lista").classList.remove("carregando");
   render();
+  if (foco) $("#lista").focus({ preventScroll: true });
   loadFotos();
 }
 
@@ -353,4 +360,5 @@ async function main() {
 }
 
 // The error goes in the radar list, so show the radar view even when another tab was saved (renderModo never ran).
-main().catch((e) => { document.body.classList.add("ready"); document.body.dataset.visao = "radar"; $("#lista").innerHTML = `<li class="empty">Não foi possível carregar os dados (${h(e.message)}). Rode <code>bun run radar:build</code> e recarregue.</li>`; });
+// The cause goes to the console: the page only tells the reader what to do, not the file that failed.
+main().catch((e) => { console.error(e); document.body.classList.add("ready"); document.body.dataset.visao = "radar"; $("#lista").classList.remove("carregando"); $("#lista").innerHTML = `<li class="empty"><p role="status">Não foi possível carregar os dados. Recarregue a página para tentar de novo.</p></li>`; });
