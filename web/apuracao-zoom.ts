@@ -1,6 +1,6 @@
 // Zoom and pan of the Noite map: the stage (`cena`, the world in its own units) moves inside the viewport (`vp`). The geometry is pure
-// (apuracao-cena.ts); this only listens: drag, pinch, Ctrl/⌘ + wheel (a plain wheel keeps scrolling the page), the +/−/fit buttons, and a
-// state that takes keyboard focus is panned into view. Touch only drags once the map is zoomed, so a finger on a fitted map still scrolls the page.
+// (apuracao-cena.ts); this only listens: drag, pinch, wheel (with or without Ctrl/⌘; a trackpad pinch also arrives as wheel), the +/−/fit buttons,
+// and a state that takes keyboard focus is panned into view. Touch only drags once the map is zoomed, so a finger on a fitted map still scrolls the page.
 import { MUNDO_VB, enquadrar, limitar, trazerParaVista, zoomEm } from "./apuracao-cena.js";
 import type { Retangulo, Vista } from "./apuracao-cena.js";
 
@@ -14,6 +14,14 @@ export interface OpcoesZoom { vp: HTMLElement; cena: HTMLElement; reduzido: () =
 const LIMIAR_ARRASTO = 4; // px a pointer must move before it is a drag and not a click
 const PASSO_BOTAO = 1.6;
 const DURACAO_MS = 700;
+const ROLAGEM_PX = 0.0018; // a wheel notch (deltaMode 0, ~100 px) gives about 1.2x
+const ROLAGEM_MAX = 160; // a fast flick zooms one step, not several at once
+
+// Wheel delta in pixels, whatever the browser reports (pixels, lines or pages), clamped to one step.
+export function fatorRolagem(deltaY: number, deltaMode: number): number {
+  const px = deltaY * (deltaMode === 1 ? 16 : deltaMode === 2 ? 400 : 1);
+  return Math.exp(-Math.max(-ROLAGEM_MAX, Math.min(ROLAGEM_MAX, px)) * ROLAGEM_PX);
+}
 
 export function criarZoom({ vp, cena, reduzido }: OpcoesZoom): Zoom {
   let v: Vista = { k: 1, x: 0, y: 0 };
@@ -51,10 +59,10 @@ export function criarZoom({ vp, cena, reduzido }: OpcoesZoom): Zoom {
   };
 
   const aoRolar = (e: WheelEvent) => {
-    if (!e.ctrlKey && !e.metaKey) return; // a plain wheel scrolls the page; a trackpad pinch arrives as ctrl + wheel
-    e.preventDefault();
+    if (!e.deltaY) return; // a horizontal wheel scrolls nothing here
+    e.preventDefault(); // the map zooms with the wheel; a trackpad pinch also arrives as wheel
     manual = true;
-    mudar(zoomEm(v, Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0025)), doEvento(e), tamanho()));
+    mudar(zoomEm(v, fatorRolagem(e.deltaY, e.deltaMode), doEvento(e), tamanho()));
   };
 
   const aoApertar = (e: PointerEvent) => {

@@ -156,7 +156,7 @@ const ESQUELETO = `<section class="nt-duelo" aria-label="Os dois mais votados no
         <canvas class="nt-fx" aria-hidden="true"></canvas>
         <div class="nt-zoom" role="group" aria-label="Zoom do mapa"><button type="button" data-nt-zoom="mais" aria-label="Ampliar o mapa">+</button><button type="button" data-nt-zoom="menos" aria-label="Reduzir o mapa">−</button><button type="button" data-nt-zoom="ajustar" aria-label="Voltar ao enquadramento">⤢</button></div>
       </div>
-      <p class="muted small nt-dica">Arraste para mover. Para ampliar: botões, Ctrl e rolagem, pinça ou as teclas + e −; 0 volta ao enquadramento.</p>
+      <p class="muted small nt-dica">Arraste para mover. Para ampliar: rolagem do mouse, botões, pinça ou as teclas + e −; 0 volta ao enquadramento.</p>
       <p class="muted small nt-leg">${LEGENDA_BRASIL}</p>
     </section>
     <aside class="nt-lado" aria-label="Detalhes da apuração">
