@@ -238,3 +238,22 @@ describe("botão Som", () => {
   });
 });
 
+
+describe("cartão de disputa sem arquivo no 2º turno", () => {
+  const ba = { cargo: "Governador" as const, uf: "BA", snap: { url: "x", status: "ausente" as const, dados: null, buscadoEm: null, erro: null }, eleitos: vazio() };
+  const cartoes = (segundos: ReadonlySet<string> | null) => renderAoVivo(props({ escopo: "BA", ufCartoes: "BA", linhas: [ba], turno: 2, segundos }));
+
+  test("com a lista dos 2º turnos carregada, diz que a disputa foi decidida no 1º", () => {
+    const html = cartoes(new Set(["Governador|AC", "Presidente|BR"]));
+    expect(html).toContain("decidida no 1º turno");
+    expect(html).not.toContain("Se não houve 2º turno nela");
+  });
+  test("a disputa que está na lista segue esperando o arquivo", () => {
+    const html = cartoes(new Set(["Governador|BA"]));
+    expect(html).toContain("ainda não publicou");
+    expect(html).not.toContain("decidida no 1º turno");
+  });
+  test("sem a lista (não carregou) não afirma nada: mantém o texto de dúvida", () => {
+    expect(cartoes(null)).toContain("Se não houve 2º turno nela");
+  });
+});
