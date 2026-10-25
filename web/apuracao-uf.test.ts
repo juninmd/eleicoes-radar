@@ -64,7 +64,22 @@ describe("createBrasilFeed", () => {
       await r.fire();
     }
     expect(esperas).toEqual([POLL_MS, POLL_LENTO_MS, POLL_LENTO_MS]);
-    await ciclo((c) => { c.done = true; c.resolve({ fase: "parcial", n: 1 } as unknown as Apuracao); });
+    // One state answers, the other 26 fail: a cycle with any answer is not a failure of the TSE.
+    let primeiro = true;
+    await ciclo((c) => { c.done = true; if (primeiro) { primeiro = false; c.resolve({ fase: "parcial", n: 1 } as unknown as Apuracao); } else c.reject(new TypeError("Failed to fetch")); });
+    expect(r.timers[0].ms).toBe(POLL_MS);
+  });
+
+  test("a cycle where every state answers 404 is not a failure of the TSE and does not extend the wait", async () => {
+    const r = rig();
+    const ciclo = async (resposta: (c: Call) => void) => { while (r.inflight().length) { resposta(r.inflight()[0]); await flush(); } };
+    r.feed.follow("Governador");
+    await flush();
+    for (let i = 0; i < 2; i++) {
+      await ciclo((c) => { c.done = true; c.reject(new TypeError("Failed to fetch")); });
+      await r.fire();
+    }
+    await ciclo((c) => { c.done = true; c.reject(new HttpError(404)); });
     expect(r.timers[0].ms).toBe(POLL_MS);
   });
 
