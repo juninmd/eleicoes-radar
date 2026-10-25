@@ -18,7 +18,9 @@ const PAD = 6;
 type Pt = [number, number];
 interface Feature { properties: { codarea: string }; geometry: { type: string; coordinates: number[][][] | number[][][][] } }
 export interface UfShape { d: string; c: [number, number]; a: number }
-export interface UfMap { fonte: string; viewBox: [number, number, number, number]; ufs: Record<string, UfShape> }
+// How lon/lat became SVG units, so the page can put the states on the world map: x = pad + (lon - lon0) * grauX, y = pad + (lat0 - lat) * grauY.
+export interface UfProj { lon0: number; lat0: number; pad: number; grauX: number; grauY: number }
+export interface UfMap { fonte: string; viewBox: [number, number, number, number]; proj: UfProj; ufs: Record<string, UfShape> }
 
 const rings = (g: Feature["geometry"]): number[][][] => (g.type === "Polygon" ? (g.coordinates as number[][][]) : (g.coordinates as number[][][][]).flat());
 
@@ -63,7 +65,7 @@ export function buildMap(geo: { features: Feature[] }): UfMap {
     const [cx, cy] = centroid(biggest);
     ufs[uf] = { d, c: [r1(cx), r1(cy)], a: Math.round(projected.reduce((sum, r) => sum + Math.abs(area(r)), 0)) };
   }
-  return { fonte: "Malha territorial: IBGE (servicodados.ibge.gov.br, qualidade mínima)", viewBox: [0, 0, Math.ceil(w + PAD), Math.ceil(h + PAD)], ufs };
+  return { fonte: "Malha territorial: IBGE (servicodados.ibge.gov.br, qualidade mínima)", viewBox: [0, 0, Math.ceil(w + PAD), Math.ceil(h + PAD)], proj: { lon0, lat0, pad: PAD, grauX: COS * K, grauY: K }, ufs };
 }
 
 if (import.meta.main) {

@@ -12,6 +12,10 @@ import { pontosMundo, renderExterior } from "./apuracao-exterior.js";
 import type { ExteriorProps, PontoMundo } from "./apuracao-exterior.js";
 import { caixaDe, corDoPartido, decimos, depoisDoPrimeiroQuadro, elemento, iniciais, movimentoReduzido, odometro, pct1, reiniciaClasse } from "./apuracao-fx.js";
 import type { Caixa } from "./apuracao-fx.js";
+import { afimUfNoMundo, caixaBrasil, naCena, PROJ_PADRAO } from "./apuracao-cena.js";
+import type { Retangulo } from "./apuracao-cena.js";
+import { criarZoom, MUNDO_RETANGULO } from "./apuracao-zoom.js";
+import type { Zoom } from "./apuracao-zoom.js";
 import type { Cargo, Fase } from "./apuracao-tse.js";
 import type { Cores, LinhaCom, LinhaUf } from "./apuracao-nacional.js";
 import type { BrasilSnapshot } from "./apuracao-uf.js";
@@ -147,8 +151,12 @@ const ESQUELETO = `<section class="nt-duelo" aria-label="Os dois mais votados no
         <span class="muted small nt-contagem"></span>
       </div>
       <p class="empty nt-msg" hidden></p>
-      <div class="nt-mapa"><canvas class="nt-fx" aria-hidden="true"></canvas></div>
-      <div class="nt-mundo" hidden></div>
+      <div class="nt-mapa" role="group" aria-label="Mapa interativo: arraste para mover; use os botões, Ctrl e a rolagem ou a pinça para ampliar">
+        <div class="nt-cena"><div class="nt-mundo"></div></div>
+        <canvas class="nt-fx" aria-hidden="true"></canvas>
+        <div class="nt-zoom" role="group" aria-label="Zoom do mapa"><button type="button" data-nt-zoom="mais" aria-label="Ampliar o mapa">+</button><button type="button" data-nt-zoom="menos" aria-label="Reduzir o mapa">−</button><button type="button" data-nt-zoom="ajustar" aria-label="Voltar ao enquadramento">⤢</button></div>
+      </div>
+      <p class="muted small nt-dica">Arraste para mover. Para ampliar: botões, Ctrl e rolagem, pinça ou as teclas + e −; 0 volta ao enquadramento.</p>
       <p class="muted small nt-leg">${LEGENDA_BRASIL}</p>
     </section>
     <aside class="nt-lado" aria-label="Detalhes da apuração">
@@ -169,6 +177,9 @@ export function criarNoite(): Painel<NoiteProps> & { raiz: HTMLElement | null; a
   let sel = "SP"; // the state in focus survives a redraw of the tab
   let forma: "mapa" | "carto" = "mapa";
   let lugar: Lugar = "brasil";
+  let zoom: Zoom | null = null;
+  let caixaBr: Retangulo | null = null; // Brazil's box in world units, once the state map is here
+  let enquadrado = ""; // what the zoom was last aimed at: a poll must not undo the reader's own zoom
   let ultimo: NoiteProps | null = null;
   let ultimasLinhas: LinhaUf[] = [];
   let observador: ResizeObserver | null = null;
@@ -223,25 +234,28 @@ export function criarNoite(): Painel<NoiteProps> & { raiz: HTMLElement | null; a
   }
 
   function construirMapa(m: UfMap) {
-    const palco = q<HTMLElement>(".nt-mapa");
-    palco.style.setProperty("--proporcao", `${m.viewBox[2]} / ${m.viewBox[3]}`);
+    const vp = q<HTMLElement>(".nt-mapa"), palco = q<HTMLElement>(".nt-cena");
+    caixaBr = caixaBrasil(m.viewBox, afimUfNoMundo(m.proj ?? PROJ_PADRAO));
+    ufs.forEach((u) => u.b.remove());
     ufs = new Map();
     Object.entries(m.ufs).forEach(([uf, forma_], k) => {
-      const c = caixaDe(forma_.d), pos = c && posicoes(uf, c, m.viewBox);
-      if (!c || !pos) return;
+      const c = caixaDe(forma_.d), pos0 = c && posicoes(uf, c, m.viewBox);
+      if (!c || !pos0 || !caixaBr) return;
+      const pos = { mapa: naCena(pos0.mapa, caixaBr), carto: naCena(pos0.carto, caixaBr) };
       const [x0, y0, x1, y1] = c;
       const b = elemento("button", `nt-uf zero${forma_.a >= 650 ? " grande" : ""}`);
       b.type = "button"; b.dataset.ntUf = uf;
       b.style.cssText = `--ml:${pos.mapa.l}%;--mt:${pos.mapa.t}%;--mw:${pos.mapa.w}%;--mh:${pos.mapa.h}%;--cl:${pos.carto.l}%;--ct:${pos.carto.t}%;--cw:${pos.carto.w}%;--ch:${pos.carto.h}%;--vtn:uf-${uf};--sibling-index:${k + 1};--m:0`;
       b.setAttribute("aria-pressed", String(uf === sel));
       b.innerHTML = `<svg viewBox="${x0} ${y0} ${x1 - x0} ${y1 - y0}" preserveAspectRatio="none" aria-hidden="true"><path d="${forma_.d}"/></svg><span class="lb" aria-hidden="true">${uf}<small></small></span>`;
-      palco.insertBefore(b, palco.querySelector("canvas"));
+      palco.append(b);
       ufs.set(uf, { b, sm: b.querySelector("small")! });
     });
     mapaDe = m;
-    q<HTMLElement>(".nt-mapa").classList.toggle("cartograma", forma === "carto");
+    vp.classList.toggle("cartograma", forma === "carto");
     observador?.disconnect();
-    if (typeof ResizeObserver !== "undefined") { observador = new ResizeObserver(ajustar); observador.observe(palco); }
+    if (typeof ResizeObserver !== "undefined") { observador = new ResizeObserver(ajustar); observador.observe(vp); }
+    enquadrado = "";
     ajustar();
   }
 
@@ -249,40 +263,46 @@ export function criarNoite(): Painel<NoiteProps> & { raiz: HTMLElement | null; a
     if (nova === forma) return;
     const aplica = () => {
       forma = nova;
+      if (zoom && caixaBr) { zoom.irPara(caixaBr, false); enquadrado = "brasil"; } // the tiles live in Brazil's box: show it whole
       q<HTMLElement>(".nt-mapa").classList.toggle("cartograma", nova === "carto");
       raiz!.querySelectorAll<HTMLElement>("[data-nt-forma]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.ntForma === nova)));
       depoisDoPrimeiroQuadro(ajustar);
     };
     const vt = (document as Document & { startViewTransition?: (fn: () => void) => unknown }).startViewTransition;
-    if (typeof vt !== "function" || !ultimo?.efeitos || movimentoReduzido()) aplica();
+    if (typeof vt !== "function" || !ultimo?.efeitos || movimentoReduzido() || q<HTMLElement>(".nt-mapa").classList.contains("ampliado")) aplica(); // the snapshots of a zoomed map would leave the viewport
     else vt.call(document, aplica);
   }
 
-  // Brazil or abroad: the choice only exists for the President (the vote abroad is only in that race)
+  // Brazil or abroad: the choice only exists for the President (the vote abroad is only in that race). It is one map: this only changes
+  // what the zoom frames and what is lit; the reader's own zoom and pan are left alone until the choice changes.
   function aplicarLugar(p: NoiteProps) {
     const ext = p.cargo === "Presidente" && lugar === "exterior";
     q<HTMLElement>(".nt-lugar").hidden = p.cargo !== "Presidente";
     raiz!.querySelectorAll<HTMLElement>("[data-nt-lugar]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.ntLugar === (ext ? "exterior" : "brasil"))));
     raiz!.classList.toggle("exterior", ext);
-    for (const [s, v] of [[".nt-mapa", !ext], [".nt-forma", !ext], [".nt-foco", !ext], [".nt-mundo", ext], [".nt-ext", ext]] as const) q<HTMLElement>(s).hidden = !v;
+    q<HTMLElement>(".nt-mapa").classList.toggle("exterior", ext);
+    for (const [s, v] of [[".nt-forma", !ext], [".nt-foco", !ext], [".nt-ext", ext]] as const) q<HTMLElement>(s).hidden = !v;
+    ufs.forEach(({ b }) => { b.inert = ext; }); // faded states are out of the Tab order and the reader's tree too
+    const alvo = ext ? "mundo" : "brasil";
+    if (zoom && enquadrado !== alvo && (ext || caixaBr)) { zoom.irPara(ext ? MUNDO_RETANGULO : caixaBr!, enquadrado !== ""); enquadrado = alvo; }
     const msg = q<HTMLElement>(".nt-msg"), leg = q<HTMLElement>(".nt-leg");
+    const vb = p.mundo?.viewBox, arq = p.exterior?.mun, pts = pontosMundo(arq && !p.simulado && ext ? arq : null);
+    if (vb && p.mundo) {
+      const corA = arq ? corDoPartido(p.cor, arq.a.partido) : "", corB = arq ? corDoPartido(p.cor, arq.b.partido) : "";
+      const html = `<svg viewBox="${vb.join(" ")}" role="img" aria-label="Mapa-múndi: contornos dos países e, no Exterior, os votos do 1º turno por cidade"><path class="terra" d="${p.mundo.d}"/><g class="bolhas">${arq && ext ? bolhasMundo(pts.pontos, vb, corA, corB) : ""}</g></svg>`;
+      const alvoHtml = q<HTMLElement>(".nt-mundo");
+      if (alvoHtml.dataset.h !== html) { alvoHtml.innerHTML = html; alvoHtml.dataset.h = html; }
+    }
     if (!ext) {
       msg.hidden = !!p.mapa;
       if (!p.mapa) msg.textContent = p.mapa === null ? "Não foi possível carregar a malha dos estados." : "Carregando o mapa…";
       leg.textContent = LEGENDA_BRASIL;
       return;
     }
-    const vb = p.mundo?.viewBox, arq = p.exterior?.mun, pts = pontosMundo(arq && !p.simulado ? arq : null);
     msg.hidden = !!p.mundo;
     if (!msg.hidden) msg.textContent = p.mundo === null ? "Não foi possível carregar o mapa-múndi." : "Carregando o mapa-múndi…";
-    if (vb && p.mundo) {
-      const corA = arq ? corDoPartido(p.cor, arq.a.partido) : "", corB = arq ? corDoPartido(p.cor, arq.b.partido) : "";
-      const html = `<svg viewBox="${vb.join(" ")}" role="img" aria-label="Mapa-múndi com os votos do 1º turno por cidade no exterior"><path class="terra" d="${p.mundo.d}"/>${arq ? bolhasMundo(pts.pontos, vb, corA, corB) : ""}</svg>`;
-      const alvo = q<HTMLElement>(".nt-mundo");
-      if (alvo.dataset.h !== html) { alvo.innerHTML = html; alvo.dataset.h = html; }
-    }
     leg.textContent = p.simulado ? "Na simulação o mapa-múndi fica sem as cidades: elas trazem as candidaturas reais."
-      : `Cada círculo é uma cidade com seções eleitorais no exterior, com área proporcional aos votos válidos do 1º turno (resultado final) e a cor do finalista mais votado ali.${pts.semPosicao ? ` ${int(pts.semPosicao)} cidades sem posição conhecida ficam só na tabela.` : ""}`;
+      : `Cada círculo é uma cidade com seções eleitorais no exterior, com área proporcional aos votos válidos do 1º turno (resultado final) e a cor do finalista mais votado ali. Os estados ficam esmaecidos.${pts.semPosicao ? ` ${int(pts.semPosicao)} cidades sem posição conhecida ficam só na tabela.` : ""}`;
     q<HTMLElement>(".nt-ext").innerHTML = p.exterior ? renderExterior({ ...p.exterior, cor: (k) => corDoPartido(p.cor, k), turno: 1, compacto: true }) : "";
   }
 
@@ -380,6 +400,7 @@ export function criarNoite(): Painel<NoiteProps> & { raiz: HTMLElement | null; a
           if (ultimo) foco(ultimo);
         }
       });
+      zoom = criarZoom({ vp: q<HTMLElement>(".nt-mapa"), cena: q<HTMLElement>(".nt-cena"), reduzido: () => movimentoReduzido() || !ultimo?.efeitos });
       depoisDoPrimeiroQuadro(() => raiz?.classList.add("pronto"));
     },
     // The host was thrown away by a redraw of the page around the view (the Ao vivo tab redraws as a string): move the view into the new one,
@@ -444,6 +465,7 @@ export function criarNoite(): Painel<NoiteProps> & { raiz: HTMLElement | null; a
       if (raf) cancelAnimationFrame(raf);
       raf = 0; fx.length = 0;
       observador?.disconnect(); observador = null;
+      zoom?.destruir(); zoom = null; caixaBr = null; enquadrado = "";
       raiz?.remove();
       raiz = null; host = null; ufs = new Map(); mapaDe = null; antes = null; topoAntes = null; ultimo = null; ultimasLinhas = [];
     },

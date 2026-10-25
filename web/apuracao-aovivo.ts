@@ -326,7 +326,7 @@ export function mountAoVivo(el: HTMLElement) {
     const f = fonteMapa();
     if (!ctx || !alvo || !f) { noite.parar(); return; }
     if (noite.raiz) noite.adotar(alvo); else noite.montar(alvo);
-    if (f.cargo === "Presidente") carregarMundo();
+    carregarMundo();
     const exterior = f.cargo === "Presidente" ? exteriorProps({ ctx: ctxPres(), turno, snap: hero.snap, nac: f.nac, indice: munis.indice(), disputa: munis.disputa(ctxPres()), arquivo: munis.arquivo(ctxPres()), simulado: false, idSim: () => null }) : null;
     noite.atualizar({
       nac: f.nac, cargo: f.cargo, mapa: mapa ?? (mapaFalhou ? null : undefined), mundo, exterior,

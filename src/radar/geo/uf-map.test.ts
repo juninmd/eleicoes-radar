@@ -53,6 +53,14 @@ describe("web/mapa-uf.json", () => {
       expect(asset.ufs[uf].a).toBeGreaterThan(0);
     }
   });
+  test("says how lon/lat became SVG units, so the page can put the states on the world map", () => {
+    const { proj } = asset;
+    expect(proj.lon0).toBeLessThan(-70); // the western tip of Acre
+    expect(proj.lat0).toBeGreaterThan(4); // the northern tip of Roraima
+    expect(proj.grauY).toBe(14);
+    expect(proj.grauX).toBeCloseTo(14 * Math.cos((14 * Math.PI) / 180), 6);
+    expect(proj.pad).toBe(6);
+  });
   test("carries the source credit the licence asks for", () => {
     expect(asset.fonte).toContain("IBGE");
   });
