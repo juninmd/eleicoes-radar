@@ -1016,3 +1016,44 @@
 @media (max-width: 520px) {
   .live-col-prev, .live-col-prev .prev-compacto { max-width: 100%; }
 }
+
+/* Boletim de Urna: tabela por município e o parcial do estado enquanto o BU do turno não chega. */
+.bu { display: flex; flex-direction: column; gap: 12px; }
+.bu-topo { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 16px; }
+.bu-topo h3 { margin: 0 0 3px; }
+.bu-topo h3 small { font: 500 12px var(--mono); color: var(--muted); }
+.bu-uf { max-width: 220px; }
+.bu-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 8px; }
+.bu-cards > div { display: flex; flex-direction: column; gap: 2px; padding: 9px 11px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); }
+.bu-cards b { font: 700 15px var(--mono); font-variant-numeric: tabular-nums; }
+.bu-cards span { font: 500 10.5px var(--mono); text-transform: uppercase; letter-spacing: .03em; color: var(--muted); }
+.bu-filtros { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 14px; }
+.bu-filtros .field { flex: 0 1 280px; }
+.bu-tabela-wrap { border: 1px solid var(--line); border-radius: var(--r-md); }
+.bu-tabela { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.bu-tabela th, .bu-tabela td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+.bu-tabela thead th { font: 700 10px var(--mono); text-transform: uppercase; letter-spacing: .03em; color: var(--muted); vertical-align: bottom; }
+.bu-tabela thead th small { display: block; font: 500 9.5px var(--mono); text-transform: none; color: var(--muted); }
+.bu-tabela th:first-child, .bu-tabela tbody th { text-align: left; }
+.bu-tabela tbody th { font-weight: 600; position: sticky; left: 0; background: var(--ground); }
+.bu-tabela tfoot th, .bu-tabela tfoot td { border-top: 2px solid var(--line); border-bottom: 0; font-weight: 700; }
+.bu-tabela tfoot th { position: sticky; left: 0; background: var(--ground); }
+#bu-mais { align-self: flex-start; }
+.bu-parcial { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--corrige); border-radius: var(--r-lg); }
+.bu-cands { display: flex; flex-direction: column; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.bu-cands li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: baseline; gap: 10px; padding: 5px 7px; background: var(--sunk); border-radius: var(--r-md); font-size: 13px; }
+.bu-cands small { font: 500 10px var(--mono); color: var(--muted); }
+.bu-cands b { font: 700 12.5px var(--mono); font-variant-numeric: tabular-nums; }
+.bu-cands span:last-child { font: 600 11px var(--mono); color: var(--ink-2); }
+.bu-ref { padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.bu-ref summary { cursor: pointer; font: 700 12px var(--mono); text-transform: uppercase; color: var(--ink-2); }
+.bu-confere, .bu-difere { margin: 0; padding: 7px 10px; border-radius: var(--r-md); font-size: 12.5px; }
+.bu-confere { background: color-mix(in srgb, var(--confirma) 12%, var(--surface)); border: 1px solid var(--confirma); }
+.bu-difere { background: color-mix(in srgb, var(--corrige) 12%, var(--surface)); border: 1px solid var(--corrige); }
+@media (max-width: 640px) {
+  .bu-tabela th, .bu-tabela td { padding: 5px 6px; }
+  .bu-tabela thead th:nth-child(4), .bu-tabela tbody td:nth-child(4), .bu-tabela tfoot td:nth-child(4),
+  .bu-tabela thead th:nth-child(5), .bu-tabela tbody td:nth-child(5), .bu-tabela tfoot td:nth-child(5),
+  .bu-tabela thead th:nth-child(6), .bu-tabela tbody td:nth-child(6), .bu-tabela tfoot td:nth-child(6) { display: none; }
+  .bu-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

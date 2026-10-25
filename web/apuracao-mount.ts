@@ -38,6 +38,7 @@ import type { Ponto } from "./apuracao-graficos.js";
 import type { EstadoMun } from "./apuracao-mount-props.js";
 import type { UfMap } from "../src/radar/geo/uf-map";
 import type { MundoMap } from "./apuracao-noite.js";
+import type { BuData } from "./apuracao-bu.js";
 
 const PAGE = 40;
 const UMA_VAGA: ReadonlySet<string> = new Set(["Presidente", "Governador"]);
@@ -58,6 +59,12 @@ export function mountApuracao(el: HTMLElement) {
   let eleitos = vazioEleitos();
   let turno: Turno = lerTurno();
   let limit = PAGE;
+  let bu: BuData | null | undefined;
+  let buCarregando = false;
+  let buBusca = "";
+  let buLimit = PAGE;
+  let buChave = "";
+  let buUf: string | null = null;
   let maisVotadosLimite = LIMITE_INICIAL; // "Mais votados": 10, then 30 after "Ver mais"
   let vista: Vista = "placar";
   let modoMapa = "lider";
@@ -157,7 +164,7 @@ export function mountApuracao(el: HTMLElement) {
     const ch = cheia() ? chanceDe() : null, ex = cheia() ? exteriorDe() : null;
     const html = cheia()
       ? renderPainel({ cargo: ctx.cargo, uf: ctx.uf, turno, snap, nac, mapa, cor, novidades: novidades.itens, simulado, chance: ch ? { ...ch, cargo: ctx.cargo, cor, simulado } : null, proj: projDe(), exterior: ex ? { ...ex, cor, turno: turnoDe(ctx.cargo, turno) } : null })
-      : renderApuracao({ ...ctxVista(), turno, snap, nac, proj: projDe(), mun: munProps(), chance: chanceDe(), exterior: exteriorDe(), simulado, hist, novidades: novidades.itens, eleitos, limit, maisVotadosLimite, vista, modoMapa, selUf, mapa, cor: c });
+      : renderApuracao({ ...ctxVista(), turno, snap, nac, proj: projDe(), mun: munProps(), chance: chanceDe(), exterior: exteriorDe(), bu, buCarregando, buBusca, buLimit, buUf: buUfDe(), buUfOpcoes: ctx.cargo === "Presidente" ? ufsDo("Presidente") : [], simulado, hist, novidades: novidades.itens, eleitos, limit, maisVotadosLimite, vista, modoMapa, selUf, mapa, cor: c });
     const key = semRelogio(html);
     const quando = corpo.querySelector<HTMLElement>("#apu-quando");
     if (key === painted && quando) {
@@ -190,7 +197,7 @@ export function mountApuracao(el: HTMLElement) {
       }
     }
   };
-  const zerarSessao = () => { limit = PAGE; maisVotadosLimite = LIMITE_INICIAL; hist = []; novidades = vazio(); eleitos = vazioEleitos(); projecao.reiniciar(); };
+  const zerarSessao = () => { limit = PAGE; maisVotadosLimite = LIMITE_INICIAL; hist = []; novidades = vazio(); eleitos = vazioEleitos(); projecao.reiniciar(); bu = undefined; buChave = ""; buBusca = ""; buLimit = PAGE; buUf = null; };
   // With the notifications on, the open race keeps being asked while the tab is in the background: that is when they matter.
   const feed = createFeed({ visible: () => !document.hidden || avisos.ativo(), onChange: (s) => { if (simAtivo()) return; snap = s; registrarSnap(s); paint(); } });
   const brasil = createBrasilFeed({ url: (c, uf) => tseUrl(c, uf, TSE_BASE, turnoDe(c, turno)), onChange: (s) => { if (simAtivo()) return; nac = s; agendar(); } });
@@ -251,6 +258,24 @@ export function mountApuracao(el: HTMLElement) {
       .catch((e) => { console.error("apuração: mapa-múndi", e); mundo = null; })
       .then(() => { buscandoMundo = false; paint(); });
   };
+  const buUfDe = () => buUf ?? selUf ?? (ctx?.uf === "BR" ? ctx.ufEleitor ?? "SP" : ctx?.uf ?? "SP");
+  const carregarBu = () => {
+    if (!ctx || simAtivo()) return;
+    const uf = buUfDe();
+    const t = turnoDe(ctx.cargo, turno);
+    const chave = `${uf}|${ctx.cargo}|${t}`;
+    if (chave === buChave) return;
+    buChave = chave;
+    bu = undefined;
+    buCarregando = true;
+    const slug = ctx.cargo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z]+/g, "-");
+    const base = `data/bu/${uf.toLowerCase()}-${slug}`;
+    const um = (url: string) => getJson<BuData>(url);
+    (t === 2 ? um(`${base}-2t.json`).catch(() => um(`${base}-1t.json`)) : um(`${base}-1t.json`))
+      .then((b) => { bu = b; })
+      .catch(() => { bu = null; })
+      .then(() => { buCarregando = false; paint(); });
+  };
   const seguirMapa = () => {
     if (vista === "noite") carregarMundo(); // the one map has the world behind Brazil, for governors too
     if (vista === "mapa" || vista === "noite" || (cheia() && ctx?.cargo === "Presidente")) carregarMapa();
@@ -261,6 +286,7 @@ export function mountApuracao(el: HTMLElement) {
   const seguir = () => {
     if (!ctx) return;
     if (precisaMun()) munis.carregar(ctx);
+    if (vista === "boletim") carregarBu();
     if (simAtivo()) { seguirMapa(); aplicarSim(true); return; }
     feed.follow(tseUrl(ctx.cargo, ctx.uf, TSE_BASE, turnoDe(ctx.cargo, turno)));
     seguirMapa();
@@ -310,10 +336,11 @@ export function mountApuracao(el: HTMLElement) {
   });
 
   el.addEventListener("click", (e) => {
-    const t = (e.target as Element).closest<HTMLElement>("[data-vista], [data-turno], [data-modo-mapa], [data-uf], [data-abrir-uf], [data-mun-modo], [data-mun-uf], [data-fx-pref], [data-demo-toggle], [data-demo], #apu-mais, #mun-mais, #mv-mais");
+    const t = (e.target as Element).closest<HTMLElement>("[data-vista], [data-turno], [data-modo-mapa], [data-uf], [data-abrir-uf], [data-mun-modo], [data-mun-uf], [data-fx-pref], [data-demo-toggle], [data-demo], #apu-mais, #mun-mais, #mv-mais, #bu-mais");
     if (!t) return;
     if (fx.clique(t)) return;
     if (t.id === "apu-mais") { limit += PAGE; paint(); }
+    else if (t.id === "bu-mais") { buLimit += PAGE; paint(); }
     else if (t.id === "mv-mais") { maisVotadosLimite = LIMITE_MAXIMO; paint(); }
     else if (t.id === "mun-mais") { munLimit += PAGE_MUN; paint(); }
     else if (t.dataset.munModo) { munCenario = { modo: t.dataset.munModo as Cenario["modo"], alvo: t.dataset.alvo ? Number(t.dataset.alvo) : munCenario.alvo }; munLimit = PAGE_MUN; paint(); }
@@ -340,11 +367,12 @@ export function mountApuracao(el: HTMLElement) {
   el.addEventListener("change", (e) => {
     const t = e.target as HTMLInputElement | HTMLSelectElement;
     if (mudando) return;
-    if (t.id === "mun-uf") munFiltro = { ...munFiltro, uf: t.value };
-    else if (t.id === "mun-busca") munFiltro = { ...munFiltro, busca: t.value.trim() };
-    else if (t.id === "mun-alvo") munCenario = { modo: "meu", alvo: Number(t.value) / 100 };
+    if (t.id === "mun-uf") { munFiltro = { ...munFiltro, uf: t.value }; munLimit = PAGE_MUN; }
+    else if (t.id === "mun-busca") { munFiltro = { ...munFiltro, busca: t.value.trim() }; munLimit = PAGE_MUN; }
+    else if (t.id === "mun-alvo") { munCenario = { modo: "meu", alvo: Number(t.value) / 100 }; munLimit = PAGE_MUN; }
+    else if (t.id === "bu-busca") { buBusca = t.value.trim(); buLimit = PAGE; }
+    else if (t.id === "bu-uf") { buUf = t.value; buChave = ""; buBusca = ""; buLimit = PAGE; carregarBu(); }
     else return;
-    munLimit = PAGE_MUN;
     mudando = true;
     try { paint(); } finally { mudando = false; }
   });
@@ -384,3 +412,5 @@ export function mountApuracao(el: HTMLElement) {
     hide() { clearInterval(giro); giro = 0; base = null; tela.sair(false); ui.pausar(); fx.parar(); feed.stop(); brasil.stop(); sim.parar(); ctx = null; snap = null; nac = null; painted = null; anuncio.textContent = ""; },
   };
 }
+
+

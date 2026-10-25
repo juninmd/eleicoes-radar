@@ -188,6 +188,7 @@ bun run radar:model            # modelo de deputados treinado em 2018 e 2022 -> 
 bun run radar:mc-backtest      # (análise) logística vs Monte Carlo, deixando uma eleição de fora
 bun run radar:profiles         # trajetória e fotos de reserva (Câmara, Senado, Wikidata)
 bun run radar:suppliers        # CNPJ dos fornecedores na Receita (sem chave; retomável)
+bun run radar:bu 2026 SP       # (opcional) Boletim de Urna oficial do 1º turno -> web/data/bu/
 bun run radar:build            # gera web/data/ (uf/<UF>.json, fotos/, expectativa.json, meta.json)
 bun run radar:panorama         # web/data/panorama.json (sempre depois do build)
 bun run radar:geo              # (uma vez) malha dos estados do IBGE -> web/mapa-uf.json (versionado)
@@ -253,3 +254,4 @@ Ainda sem arquivo de licença; sem ele, valem todos os direitos reservados ao au
 seguem a licença OFL (textos ao lado de cada uma), e a malha dos estados é do IBGE.
 
 <div align="center"><sub>Feito com Bun e TypeScript a partir de dados públicos do TSE, da Câmara, do Senado e da Receita.</sub></div>
+
