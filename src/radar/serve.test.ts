@@ -35,6 +35,14 @@ describe("static server", () => {
     expect(brBytes.length).toBeLessThan((await gz.arrayBuffer()).byteLength);
     expect(new TextDecoder().decode(brotliDecompressSync(brBytes))).toContain("renderExpectativa");
   });
+  test("br;q=0 and identity never get brotli", async () => {
+    expect((await get("/app.js", { headers: { "accept-encoding": "gzip, br;q=0" } })).headers.get("content-encoding")).toBe("gzip");
+    expect((await get("/app.js", { headers: { "accept-encoding": "identity" } })).headers.get("content-encoding")).toBeNull();
+  });
+  test("two simultaneous first requests share one compression and get the same bytes", async () => {
+    const [x, y] = await Promise.all([get("/app.css", { headers: { "accept-encoding": "br" } }), get("/app.css", { headers: { "accept-encoding": "br" } })]);
+    expect(Buffer.from(await x.arrayBuffer()).equals(Buffer.from(await y.arrayBuffer()))).toBe(true);
+  });
   test("a matching ETag answers 304 with no body, a stale one gets the file", async () => {
     const first = await get("/app.css");
     const tag = first.headers.get("etag");
