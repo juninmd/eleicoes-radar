@@ -33,6 +33,14 @@ const flush = () => new Promise((r) => setTimeout(r, 0));
 const data = (n: unknown) => ({ fase: "parcial", n }) as unknown as Apuracao;
 
 describe("createFeed", () => {
+  test("the next poll follows the rhythm of the count: faster in the last stretch", async () => {
+    const r = rig();
+    r.feed.follow("u1");
+    r.calls[0].resolve({ fase: "parcial", secoes: { totalizadas: 95, total: 100 }, versao: { data: "04/10/2026", hora: "16:59:00" } } as unknown as Apuracao);
+    await flush();
+    expect(r.timers.map((t) => t.ms)).toEqual([30_000]);
+  });
+
   test("fetches at once, then polls again after the interval", async () => {
     const r = rig();
     r.feed.follow("u1");

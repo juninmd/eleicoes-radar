@@ -5,7 +5,6 @@
 // estimate of vote shares with its formulas on the page; the Cadeiras view, a reading of who holds each seat today; and the
 // head-to-head bar and the list of updates (apuracao-duelo.js, apuracao-novidades.js).
 import { h, int, pct, titleName } from "./format.js";
-import { POLL_MS } from "./apuracao-feed.js";
 import { renderProjecao } from "./apuracao-projecao-view.js";
 import { renderCadeiras } from "./apuracao-cadeiras-view.js";
 import { renderDuelo } from "./apuracao-duelo.js";
@@ -263,7 +262,7 @@ export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, turno = 1
     corpo = proj ? renderProjecao({ ...proj, cor, cargo }) : aviso("Consultando o TSE…");
   } else if (!d) {
     corpo = snap?.status === "ausente" ? aviso(`O TSE ainda não publicou o arquivo de resultados desta disputa.${t === 2 ? " Se não houve 2º turno nela, o arquivo não existe." : ""} A página continua consultando.`)
-      : snap?.status === "erro" ? aviso(`Não foi possível consultar o TSE agora: ${h(snap.erro)}. Nova tentativa em ${POLL_MS / 1000} s.`)
+      : snap?.status === "erro" ? aviso(`Não foi possível consultar o TSE agora: ${h(snap.erro)}. Nova tentativa em instantes.`)
       : aviso("Consultando o TSE…");
   } else {
     const aguardando = d.fase === "aguardando";
@@ -292,7 +291,7 @@ export function renderApuracao({ snap, cargo, uf, byId, avatar, limit, turno = 1
   return `<section class="exp-card apu" aria-labelledby="apu-t">
     <h2 id="apu-t">${h(cargo)}${local}${t === 2 ? " · 2º turno" : ""} ${fxVista ? `<span class="rot baixa" data-fx-fase></span>` : `<span class="rot ${d?.fase === "parcial" ? "aberta" : d?.fase === "concluida" ? "alta" : "baixa"}">${h(FASES[d?.fase as Fase] ?? "Consultando")}</span>`}</h2>
     ${nav}
-    <p class="muted exp-meta">${simulado ? `Simulação${quando ? `: noite simulada às <span id="apu-quando">${h(quando.toLocaleTimeString("pt-BR"))}</span>` : ""}. Avança com os controles acima.` : `${quando ? `Consultado às <span id="apu-quando">${h(quando.toLocaleTimeString("pt-BR"))}</span> · ` : ""}atualiza sozinho a cada ${POLL_MS / 1000} s enquanto você estiver nesta aba.`}</p>
+    <p class="muted exp-meta">${simulado ? `Simulação${quando ? `: noite simulada às <span id="apu-quando">${h(quando.toLocaleTimeString("pt-BR"))}</span>` : ""}. Avança com os controles acima.` : `${quando ? `Consultado às <span id="apu-quando">${h(quando.toLocaleTimeString("pt-BR"))}</span> · ` : ""}atualiza sozinho (a cada 30 s a 2 min, conforme o ritmo da apuração) enquanto você estiver nesta aba.`}</p>
     ${corpo}
     ${comoLer(proporcional(cargo))}
     <p class="muted small">${simulado ? "Simulação sobre a estrutura dos arquivos finais do 1º turno do TSE (resultados.tse.jus.br): nomes, partidos, horários e o caminho da noite são inventados; o 2º turno vem do modelo da visão Cidades." : `Fonte: Tribunal Superior Eleitoral, <a href="https://resultados.tse.jus.br/" rel="noopener" target="_blank">resultados.tse.jus.br</a>${aberta === "mapa" ? ". Malha dos estados: IBGE" : ""}. O Radar só exibe o que o TSE publica.`}</p>

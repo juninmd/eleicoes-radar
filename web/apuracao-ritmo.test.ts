@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { epochDe, idadeTxt, pausaDoTse } from "./apuracao-ritmo.js";
+import { epochDe, idadeTxt, intervaloDe, pausaDoTse } from "./apuracao-ritmo.js";
 
 const arq = (data: string, hora: string) => ({ versao: { data, hora } });
 
@@ -37,5 +37,21 @@ describe("pausaDoTse", () => {
   test("with no readable version there is nothing to say", () => {
     expect(pausaDoTse([arq("", "")], agora)).toBeNull();
     expect(pausaDoTse([], agora)).toBeNull();
+  });
+});
+
+describe("intervaloDe", () => {
+  const agora = new Date("2026-10-04T23:10:00Z"); // 20:10 in Brasília
+  const arq = (fase: string, totalizadas: number, hora = "20:08:00") => ({ fase, secoes: { totalizadas, total: 100 }, versao: { data: "04/10/2026", hora } });
+  test("the last stretch is asked faster, a finished or stalled count slower", () => {
+    expect(intervaloDe(arq("parcial", 50), agora, 60_000)).toBe(60_000);
+    expect(intervaloDe(arq("parcial", 92), agora, 60_000)).toBe(30_000);
+    expect(intervaloDe(arq("concluida", 100), agora, 60_000)).toBe(120_000);
+    expect(intervaloDe(arq("parcial", 95, "19:40:00"), agora, 60_000)).toBe(120_000);
+  });
+  test("unknown keeps the base", () => {
+    expect(intervaloDe(null, agora, 60_000)).toBe(60_000);
+    expect(intervaloDe({ fase: "aguardando" }, agora, 60_000)).toBe(60_000);
+    expect(intervaloDe({ fase: "parcial" }, agora, 60_000)).toBe(60_000);
   });
 });

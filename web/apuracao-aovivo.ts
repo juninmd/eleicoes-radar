@@ -2,7 +2,7 @@
 // with its own TSE file, plus one timeline of who has been elected across all of them. It reads the same files as the Apuração tab and
 // adds no arithmetic of its own beyond what apuracao-eleito.js already proves; the TSE's text wins everywhere. In memory only.
 import { h, int, pct, titleName } from "./format.js";
-import { createFeed, POLL_MS } from "./apuracao-feed.js";
+import { createFeed } from "./apuracao-feed.js";
 import { createBrasilFeed, EXTERIOR, UFS, ufsDo } from "./apuracao-uf.js";
 import { tseUrl, TSE_BASE, turnoDe } from "./apuracao-tse.js";
 import { gravarTurno, lerTurno, seletorTurno } from "./apuracao-turno.js";
@@ -231,7 +231,7 @@ export function renderAoVivo(p: AoVivoProps): string {
   return `<section class="exp-card apu live" aria-labelledby="live-t">
     <h2 id="live-t">Ao vivo <span class="rot aberta">${ativos.length} de ${todas.length} disputas com apuração</span></h2>
     <div class="live-filtro"><label class="field" for="live-escopo">Onde<select id="live-escopo">${opcoes(escopo, p.ufCartoes === BRASIL ? "" : p.ufCartoes)}</select></label>${seletorTurno("Presidente", turno)}<button type="button" class="ghost" data-live-fx aria-pressed="${(p.fx ?? EFEITOS_PADRAO).ligado}">Efeitos: ${(p.fx ?? EFEITOS_PADRAO).ligado ? "ligados" : "desligados"}</button><button type="button" class="ghost" data-live-som aria-pressed="${(p.fx ?? EFEITOS_PADRAO).som !== false}">Som: ${(p.fx ?? EFEITOS_PADRAO).som !== false ? "ligado" : "desligado"}</button></div>
-    <p class="muted exp-meta">${quando ? `Consultado às <span id="apu-quando">${h(quando.toLocaleTimeString("pt-BR"))}</span> · ` : ""}atualiza sozinho a cada ${POLL_MS / 1000} s enquanto você estiver nesta aba. Média das seções totalizadas: <b>${pct(Math.floor(media * 1000) / 1000, 1)}</b>${pausa ? ` · arquivo mais recente <span id="apu-idade">(${idadeTxt(pausa.idadeMs)})</span>` : ""}.</p>
+    <p class="muted exp-meta">${quando ? `Consultado às <span id="apu-quando">${h(quando.toLocaleTimeString("pt-BR"))}</span> · ` : ""}atualiza sozinho (a cada 30 s a 2 min, conforme o ritmo da apuração) enquanto você estiver nesta aba. Média das seções totalizadas: <b>${pct(Math.floor(media * 1000) / 1000, 1)}</b>${pausa ? ` · arquivo mais recente <span id="apu-idade">(${idadeTxt(pausa.idadeMs)})</span>` : ""}.</p>
     ${pausa?.parado ? `<p class="apu-aviso apu-pausa"><b>Sem arquivo novo do TSE há mais de 10 minutos.</b> A pausa é do TSE, que publica em rodadas.</p>` : ""}
     ${renderHero({ hero, avatar: p.avatar, cor: p.cor, esperado: p.esperado, fx: p.fx, turno })}
     ${p.prev ? renderPrevisao(p.prev) : ""}
