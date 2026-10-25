@@ -53,6 +53,15 @@ describe("static server", () => {
     expect(same.headers.get("content-security-policy")).toContain("default-src 'none'");
     expect((await get("/app.css", { headers: { "if-none-match": 'W/"outro"' } })).status).toBe(200);
   });
+  test("modules revalidate on every load; only static assets keep the 5 min cache", async () => {
+    // Tabs load lazily: a stale cached dependency next to a fresh dependant fails with "does not provide an export named ...".
+    expect((await get("/apuracao-aovivo.js")).headers.get("cache-control")).toBe("no-cache"); // served from the .ts source
+    expect((await get("/app.css")).headers.get("cache-control")).toBe("public, max-age=300");
+    const mod = await get("/apuracao-aovivo.js");
+    const cond = await get("/apuracao-aovivo.js", { headers: { "if-none-match": mod.headers.get("etag")! } });
+    expect(cond.status).toBe(304);
+    expect(cond.headers.get("cache-control")).toBe("no-cache");
+  });
   test("a NUL byte in the path is a 400, not an exception with a stack trace", async () => {
     for (const path of ["/%00", "/index.html%00", "/app.js%00.ts"]) expect((await get(path)).status).toBe(400);
   });
