@@ -17,6 +17,11 @@ import { atualizar, vazio } from "./apuracao-eleitos.js";
 import { idadeTxt, pausaDoTse } from "./apuracao-ritmo.js";
 import { repaint, relogio, idade, semRelogio } from "./apuracao-dom.js";
 import { avancoDe } from "./apuracao-nacional.js";
+import { createProjecao } from "./apuracao-projecao-estado.js";
+import { createChance } from "./apuracao-chance.js";
+import { chanceProps, criarMunicipais } from "./apuracao-mount-props.js";
+import { deChance, deProjecao, registrarPrev } from "./apuracao-previsao.js";
+import { renderPrevisao } from "./apuracao-previsao-view.js";
 import type { Apuracao, Candidato, Cargo, Fase, Turno } from "./apuracao-tse.js";
 import type { BrasilSnapshot } from "./apuracao-uf.js";
 import type { Cores } from "./apuracao-nacional.js";
@@ -24,6 +29,10 @@ import type { Esperado, Ponto } from "./apuracao-graficos.js";
 import type { Prev } from "../src/radar/expectativa";
 import type { FeedSnapshot } from "./apuracao-feed.js";
 import type { EstadoEleitos } from "./apuracao-eleitos.js";
+import type { Fonte } from "./apuracao-projecao-estado.js";
+import type { PrevProps } from "./apuracao-previsao-view.js";
+import type { PontoPrev } from "./apuracao-previsao.js";
+import type { RenderProps } from "./apuracao.js";
 
 export interface Corrida { cargo: Cargo; uf: string }
 export interface Linha extends Corrida { snap: FeedSnapshot | null; eleitos: EstadoEleitos }
@@ -193,7 +202,7 @@ function todosOsEstados(nac: BrasilSnapshot | null, cargo: Cargo): string {
     <p class="muted small">Cada quadro é o arquivo do TSE do estado: o líder e o segundo de agora, não o resultado. Toque num estado para filtrar a tela.${cargo === "Presidente" ? " O exterior tem arquivo próprio." : ""}</p>`;
 }
 
-export interface AoVivoProps { hero: Hero; linhas: Linha[]; escopo: string; ufCartoes: string; nac: BrasilSnapshot | null; cargoTodos: Cargo; agora: Date; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado>; fx?: Efeitos; turno?: Turno }
+export interface AoVivoProps { prev?: PrevProps | null; hero: Hero; linhas: Linha[]; escopo: string; ufCartoes: string; nac: BrasilSnapshot | null; cargoTodos: Cargo; agora: Date; avatar: Avatar; cor: Cores; esperado?: Record<string, Esperado>; fx?: Efeitos; turno?: Turno }
 
 const opcoes = (escopo: string, ufMeu: string) => [
   `<option value="${BRASIL}"${escopo === BRASIL ? " selected" : ""}>Brasil (total)</option>`,
@@ -218,17 +227,18 @@ export function renderAoVivo(p: AoVivoProps): string {
     <p class="muted exp-meta">${quando ? `Consultado às <span id="apu-quando">${h(quando.toLocaleTimeString("pt-BR"))}</span> · ` : ""}atualiza sozinho a cada ${POLL_MS / 1000} s enquanto você estiver nesta aba. Média das seções totalizadas: <b>${pct(Math.floor(media * 1000) / 1000, 1)}</b>${pausa ? ` · arquivo mais recente <span id="apu-idade">(${idadeTxt(pausa.idadeMs)})</span>` : ""}.</p>
     ${pausa?.parado ? `<p class="apu-aviso apu-pausa"><b>Sem arquivo novo do TSE há mais de 10 minutos.</b> A pausa é do TSE, que publica em rodadas.</p>` : ""}
     ${renderHero({ hero, avatar: p.avatar, cor: p.cor, esperado: p.esperado, fx: p.fx, turno })}
+    ${p.prev ? renderPrevisao(p.prev) : ""}
     ${turno === 2 ? `<p class="muted small">2º turno: Presidente e Governador (só onde houve). Senador e deputados foram decididos no 1º turno e seguem com os arquivos dele. As pesquisas e a curva de expectativa são do 1º turno e não aparecem aqui.</p>` : ""}
     ${escopo === TODOS ? `<h3>Todos os estados</h3>${todosOsEstados(nac, p.cargoTodos)}` : ""}
     ${escopo === TODOS || escopo === EXTERIOR ? "" : cartoes}
     ${escopo === TODOS ? cartoes : ""}
     <h3>Quem foi eleito <small>nas disputas acima, desde que você abriu a aba</small></h3>
     ${linhaGeral(todas)}
-    <p class="muted small">Cada bloco mostra os números do TSE e o texto de situação que ele publica; o Radar não projeta vencedor. "Matematicamente eleito" é uma conta do Radar sobre os números do TSE (Presidente nacional, Governador e Senado). Fotos seguem a opção "Mostrar fotos". Nada fica guardado ao fechar a aba. Fonte: <a href="https://resultados.tse.jus.br/" rel="noopener" target="_blank">resultados.tse.jus.br</a>.</p>
+    <p class="muted small">Cada bloco mostra os números do TSE e o texto de situação que ele publica; a Previsão do Radar é estimativa e diz "deve terminar à frente", nunca quem foi eleito: isso é o texto do TSE. "Matematicamente eleito" é uma conta do Radar sobre os números do TSE (Presidente nacional, Governador e Senado). Fotos seguem a opção "Mostrar fotos". Nada fica guardado ao fechar a aba. Fonte: <a href="https://resultados.tse.jus.br/" rel="noopener" target="_blank">resultados.tse.jus.br</a>.</p>
   </section>`;
 }
 
-export interface Contexto { uf: string; abrir: (cargo: Cargo, uf: string) => void; avatar: Avatar; prev?: (id: string) => Prev | null | undefined }
+export interface Contexto { uf: string; abrir: (cargo: Cargo, uf: string) => void; avatar: Avatar; prev?: (id: string) => Prev | null | undefined; exp?: RenderProps["exp"] }
 
 export function mountAoVivo(el: HTMLElement) {
   let ctx: Contexto | null = null;
@@ -248,6 +258,16 @@ export function mountAoVivo(el: HTMLElement) {
   let somLigado = (() => { try { return localStorage.getItem("radar:som") !== "off"; } catch { return true; } })();
   const som = criarSom(() => somLigado);
   const cor = createCores(PALETA, RESTO);
+  // The Previsão (Brasil scope only) sums the 28 files of the President, so it has a national feed of its own, like the Apuração tab's.
+  let nacPrev: BrasilSnapshot | null = null;
+  let nacFeed: ReturnType<typeof createBrasilFeed> | null = null;
+  let histPrev: PontoPrev[] = [];
+  const projecao = createProjecao();
+  const leitorChance = createChance();
+  const getJson = <T,>(url: string): Promise<T> => fetch(url).then((r) => (r.ok ? (r.json() as Promise<T>) : Promise.reject(new Error(`HTTP ${r.status}`))));
+  const munis = criarMunicipais(getJson, () => agendar());
+  const ctxPres = () => ({ cargo: "Presidente" as Cargo, uf: BRASIL, exp: ctx?.exp });
+  const velha = (s: string | undefined) => s === "erro" || s === "ausente";
 
   // The big K.O. and its flash live outside the redrawn area: a redraw (any of the five feeds can trigger one) must not cut them off.
   const tocarKo = () => {
@@ -267,6 +287,29 @@ export function mountAoVivo(el: HTMLElement) {
     el.classList.add("ko-treme");
     setTimeout(() => { o.remove(); el.classList.remove("ko-treme"); }, 5600);
   };
+  // The Previsão of the President, national scope: a 1st round from the Projeção's reading of the 28 files, a runoff from the Chance ao vivo.
+  const previsaoProps = (): PrevProps | null => {
+    if (!ctx || escopo !== BRASIL) return null;
+    const d = hero.snap?.dados;
+    const base = { avatar: ctx.avatar, cor };
+    if (d?.fase === "concluida") return { ...base, estado: "concluida" };
+    const esperados = ufsDo("Presidente").length;
+    const chegaram = Object.values(nacPrev?.ufs ?? {}).filter((u) => u.dados).length;
+    if (turnoDe("Presidente", turno) === 2) {
+      const r = chanceProps({ ctx: ctxPres(), turno, snap: hero.snap, nac: nacPrev, indice: munis.indice(), disputa: munis.disputa(ctxPres()), arquivo: munis.arquivo(ctxPres()), simulado: false, idSim: () => null }, leitorChance);
+      if (!r || r.estado === "carregando") return { ...base, estado: "carregando", arquivos: { chegaram, esperados } };
+      if (r.estado === "sem-disputa") return { ...base, estado: "sem-disputa" };
+      if (r.concluida) return { ...base, estado: "concluida" };
+      const p = deChance(r.leitura, r.a!, r.b!);
+      if (p && d) histPrev = registrarPrev(histPrev, p, d.versao.hora);
+      return { ...base, estado: "ok", previsao: p, hist: histPrev };
+    }
+    if (!(nacPrev && nacPrev.ciclo >= 1)) return { ...base, estado: "carregando", arquivos: { chegaram, esperados } };
+    const fontes: Fonte[] = Object.entries(nacPrev.ufs).map(([id, u]) => [id, u.dados, velha(u.status)]);
+    const p = deProjecao(projecao.ler(fontes), (id) => ctx?.prev?.(id));
+    if (p && d) histPrev = registrarPrev(histPrev, p, d.versao.hora);
+    return { ...base, estado: "ok", previsao: p, hist: histPrev };
+  };
   const ufCartoes = () => (escopo === BRASIL || escopo === TODOS ? ctx!.uf : escopo);
   const paint = () => {
     if (!ctx) return;
@@ -276,7 +319,7 @@ export function mountAoVivo(el: HTMLElement) {
     const decidida = !!disputaDecidida(hero.snap?.dados);
     const fx: Efeitos = { ligado: efeitos, intro: intro && !!hero.snap?.dados, ko: decidida && !koTocou, som: somLigado };
     if (fx.intro && efeitos) som.intro();
-    const html = renderAoVivo({ hero, linhas, escopo, ufCartoes: ufCartoes(), nac, cargoTodos, agora: new Date(), avatar: ctx.avatar, cor, esperado, fx, turno });
+    const html = renderAoVivo({ hero, linhas, escopo, ufCartoes: ufCartoes(), nac, cargoTodos, agora: new Date(), avatar: ctx.avatar, cor, esperado, fx, turno, prev: previsaoProps() });
     if (hero.snap?.dados) intro = false;
     if (decidida && !koTocou) { koTocou = true; tocarKo(); }
     const key = semRelogio(html);
@@ -292,7 +335,7 @@ export function mountAoVivo(el: HTMLElement) {
   };
   const agendar = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; paint(); }); };
 
-  const parar = () => { feeds.forEach((f) => f.stop()); feeds = []; brasil?.stop(); brasil = null; linhas = []; nac = null; painted = null; };
+  const parar = () => { feeds.forEach((f) => f.stop()); feeds = []; brasil?.stop(); brasil = null; nacFeed?.stop(); nacFeed = null; nacPrev = null; linhas = []; nac = null; painted = null; };
 
   // (Re)starts every feed for the chosen scope: the President's file of that scope, the other races of one state, and the 28 files when
   // every state is shown at once.
@@ -330,6 +373,13 @@ export function mountAoVivo(el: HTMLElement) {
       brasil = createBrasilFeed({ url: (c, uf) => tseUrl(c, uf, TSE_BASE, turnoDe(c, turno)), onChange: (s) => { nac = s; agendar(); } });
       brasil.follow(cargoTodos);
     }
+    histPrev = [];
+    projecao.reiniciar();
+    if (escopo === BRASIL) {
+      nacFeed = createBrasilFeed({ url: (c, uf) => tseUrl(c, uf, TSE_BASE, turnoDe(c, turno)), onChange: (s) => { nacPrev = s; agendar(); } });
+      nacFeed.follow("Presidente");
+      if (turnoDe("Presidente", turno) === 2) munis.carregar(ctxPres());
+    }
     paint();
   };
 
@@ -351,7 +401,7 @@ export function mountAoVivo(el: HTMLElement) {
     ligar();
   });
   document.addEventListener("pointerdown", () => som.desbloquear());
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) { feeds.forEach((f) => f.refresh()); brasil?.refresh(); } });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { feeds.forEach((f) => f.refresh()); brasil?.refresh(); nacFeed?.refresh(); } });
 
   return {
     show(next: Contexto) {

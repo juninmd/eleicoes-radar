@@ -81,6 +81,27 @@ describe("Ao vivo", () => {
   });
 });
 
+describe("Previsão do Radar na aba", () => {
+  const lado = (id: string, nome: string, c: number) => ({ id, nome, partido: "AAA", chance: c, pesquisa: { media: 0.45 }, apuracao: 0.47, mc: [0.46, 0.48, 0.5] as [number, number, number] });
+  const previsao = { turno: 1 as const, favorito: lado("a1", "ANA SOUZA", 0.82), outro: lado("b2", "BETO LIMA", 0.18), nivel: "clara" as const, n: 2000, contados: 0.6, faltam: 3e6, decideNoPrimeiro: 0.2, segundoTurno: 0.8, defasadas: [] };
+  const prev = { estado: "ok" as const, previsao, hist: [], avatar, cor };
+
+  test("vem logo depois do duelo e antes dos cartões; sem ela a tela fica como era", () => {
+    const html = renderAoVivo(props({ prev }));
+    expect(html.indexOf("live-hero")).toBeLessThan(html.indexOf('class="prev"'));
+    expect(html.indexOf('class="prev"')).toBeLessThan(html.indexOf("live-card"));
+    expect(html).toContain("Estimativa do Radar, não é resultado");
+    expect(renderAoVivo(props())).not.toContain('class="prev"');
+  });
+
+  test("a previsão não chama ninguém de vencedor; o rodapé diz que só o TSE diz quem foi eleito", () => {
+    const html = renderAoVivo(props({ prev }));
+    expect(html.split('<p class="muted small">Cada bloco')[0]).not.toMatch(/venceu|vencedor|vai vencer|vai ganhar|será eleit/i);
+    expect(html).toContain("deve terminar à frente");
+    expect(html).toContain("nunca quem foi eleito: isso é o texto do TSE");
+  });
+});
+
 describe("expectativa na curva", () => {
   const d1 = parseApuracao(file({ cands: dois }))!;
   const d2 = parseApuracao({ ...file({ cands: dois }), hg: "19:50:07" })!;
