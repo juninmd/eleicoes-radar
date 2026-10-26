@@ -78,8 +78,15 @@ async function compile(source: string, key: string): Promise<Bytes> {
 }
 
 // `api` answers /api/* (presence, cheering, push); null in the static-only tests and for a plain `handle`.
-export const handleAt = (root: string, api: Api | null = null) => async (req: Request, peer?: string): Promise<Response> =>
-  secure((await api?.(req, ipDe(req, peer))) ?? (await route(req, resolve(root))));
+// A throw (I/O error, bad API input) still gets the security headers and a generic body: no stack or OS message reaches the client.
+export const handleAt = (root: string, api: Api | null = null) => async (req: Request, peer?: string): Promise<Response> => {
+  try {
+    return secure((await api?.(req, ipDe(req, peer))) ?? (await route(req, resolve(root))));
+  } catch (e) {
+    console.error(`serve: ${e instanceof Error ? e.message : e}`);
+    return secure(new Response("internal error", { status: 500 }));
+  }
+};
 export const handle = handleAt(ROOT);
 
 async function route(req: Request, root: string): Promise<Response> {
