@@ -64,7 +64,8 @@ const aoVivo = abaSobDemanda(() => import("./apuracao-aovivo.js"), (m) => m.moun
 const panorama = abaSobDemanda(() => import("./panorama.js"), (m) => m.mountPanorama($("#pan-view")));
 const expectativa = abaSobDemanda(() => import("./expectativa.js"), (m) => m.renderExpectativa);
 const redeAba = abaSobDemanda(() => import("./rede.js"), (m) => m.renderRede);
-const abaDo = (modo: string) => (modo === "apuracao" ? apuracao : modo === "aovivo" ? aoVivo : modo === "expectativa" ? expectativa : modo === "rede" ? redeAba : modo in PAN_MODES ? panorama : null);
+const auditoria = abaSobDemanda(() => import("./auditoria.js"), (m) => m.mountAuditoria($("#aud-view")));
+const abaDo = (modo: string) => (modo === "apuracao" ? apuracao : modo === "aovivo" ? aoVivo : modo === "expectativa" ? expectativa : modo === "rede" ? redeAba : modo === "auditoria" ? auditoria : modo in PAN_MODES ? panorama : null);
 // A deep link to the Apuração tab, applied once that tab is ready (see abrirLink).
 let linkPendente: Visao | null = null;
 
@@ -374,6 +375,7 @@ function renderModo() {
   $("#apu-view").hidden = state.modo !== "apuracao";
   $("#live-view").hidden = state.modo !== "aovivo";
   $("#pan-view").hidden = !(state.modo in PAN_MODES);
+  $("#aud-view").hidden = state.modo !== "auditoria";
   if (state.modo === "aovivo") { mostrarAoVivo(); carregarFotosPresidente(); }
   else aoVivo.get()?.hide();
   if (state.modo === "apuracao") {
@@ -382,6 +384,12 @@ function renderModo() {
       ap.show({ ...raceOf(), ufEleitor: state.uf, byId: new Map(state.cands.map((c) => [c.id, c] as const)), avatar, exp: state.exp, abrirUf });
     });
   } else apuracao.get()?.hide();
+  if (state.modo === "auditoria") {
+    auditoria.baixar();
+    quandoPronta(auditoria, $("#aud-view"), () => state.modo === "auditoria", (a) => a.show());
+    return;
+  }
+  auditoria.get()?.hide();
   pedirDoRadar();
   if (state.modo in PAN_MODES) {
     panorama.baixar();
@@ -682,6 +690,7 @@ setupConexaoListener();
 // The link modules load only for a #apuracao hash, so the radar boot stays light.
 async function abrirLink() {
   if (location.hash === "#aovivo") { state.modo = "aovivo"; return; } // the link a push notification opens
+  if (location.hash === "#auditoria") { state.modo = "auditoria"; return; } // the link to the statistical audit tab
   if (!location.hash.startsWith("#apuracao")) return;
   const [{ decodificar }, { PASSOS }] = await Promise.all([import("./apuracao-link.js"), import("./apuracao-sim.js")]);
   const v = decodificar(location.hash, PASSOS);

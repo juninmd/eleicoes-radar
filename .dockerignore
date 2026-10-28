@@ -12,3 +12,4 @@ web/panorama.css
 src/radar/aovivo/*.test.ts
 src/radar/aovivo/keygen.ts
 web/social.css
+web/auditoria.css
