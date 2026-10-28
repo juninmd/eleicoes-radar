@@ -317,3 +317,7 @@ Feito em 2026-10-25, noite do 2º turno. **Só acrescenta**: um chip discreto "�
 - PRs cujos checks não iniciam por billing/spending limit são mesclados pelo bot central
   `juninmd/base-actions/.github/workflows/auto-merge-billing-blocked.yml`.
   Para impedir o merge automático de um PR, aplique a label `do-not-merge`.
+
+## Auditoria estatística dos boletins (docs/forense)
+
+Feito em 2026-10-28. Testes de inconsistência por seção (Presidente 2002 a 2026, Governador) e o que cada um viu: ver `docs/forense/README.md` (resultados, limites, comando a comando). Invariantes: sinal vira "para conferir" com o fato e o aviso de que não é irregularidade; nos sinais de disputas estaduais, sem nome de candidato; nenhum dado individual. Armadilhas que custaram horas: o zip `_BR` de `votacao_secao` só traz Presidente; o arquivo de RR 2022 traz a **Eleição Suplementar Governador 2026** (`CD_ELEICAO` 6278) misturada à geral (546); candidato de número 90 (PROS) existe, então só 95/96/97 são branco/nulo/anulado; horário do BU é de Brasília em 2018 e local em 2022 e 2026. Bolsa Família por município não foi baixado (CGU nega acesso do ambiente de análise).
