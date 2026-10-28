@@ -26,6 +26,7 @@ test("the link opens on Ao vivo, not on the tab saved by an earlier visit", asyn
   expect(run("#sobre")).toBe("aovivo"); // an overlay: Ao vivo stays underneath
   expect(run("#cand=280002551544&uf=SP")).toBe("radar");
   expect(run("#apuracao/Presidente/BR")).toBe("apuracao");
+  expect(run("#auditoria")).toBe("auditoria");
 });
 
 test("boot.ts and app.ts agree on the first screen", async () => {

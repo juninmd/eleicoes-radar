@@ -18,3 +18,11 @@ test("ballot photos and supplier sidecars are not fetched while Ao vivo is open,
   expect(app).toContain("fotosPedidas.has(file)"); // the redraw at the end of loadFotos asks again through renderModo
   expect(between("function renderModo()", "function mostrarAoVivo()")).toContain("pedirDoRadar()");
 });
+
+test("a aba Auditoria só baixa o módulo e os dados ao abrir; o boot não os pede", () => {
+  const boot = between("async function main()", "main().catch");
+  expect(boot).not.toContain("data/auditoria");
+  expect(boot).not.toContain("auditoria.js");
+  expect(app).toContain('import("./auditoria.js")');
+  expect(app).not.toMatch(/^import .*auditoria/m);
+});

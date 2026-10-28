@@ -55,7 +55,8 @@ python3 docs/forense/scripts/t_cross.py turnos | elpop | urna | tempo
 python3 docs/forense/scripts/perfil.py 2022 && python3 docs/forense/scripts/adjust.py 2022
 python3 docs/forense/scripts/lastsec.py ; python3 docs/forense/scripts/power.py
 python3 docs/forense/scripts/ingest_uf.py 2022 && python3 docs/forense/scripts/gov.py 2022
-python3 docs/forense/scripts/build_ds.py ; python3 docs/forense/scripts/build_gov.py   # ds/*.json para o painel
+python3 docs/forense/scripts/build_ds.py ; python3 docs/forense/scripts/build_gov.py   # ds/*.json
+bun run radar:auditoria                                                                 # web/data/auditoria/*.json (aba Auditoria do app, `#auditoria`)
 ```
 
 Dependências: Python 3.13 com `numpy`, `scipy`, `pandas` e `pyshp`. IBGE/SIDRA: tabelas 1552 (2010) e 9514 (2022);
