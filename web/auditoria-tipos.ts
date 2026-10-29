@@ -81,6 +81,14 @@ export interface Auditoria {
 /** Sections of the fingerprint chart: contest id -> [turnout bin, share bin, sections], 40x40 grid. */
 export type Impressao = Record<string, [number, number, number][]>;
 export interface PontoMunicipio { uf: string; mun: string; x: number; y: number; aptos: number; pop16: number; r22: number | null; r10: number | null }
+// Candidato mais votado por município (mapa-voto.json), linha a linha igual a mapa.json. Fatias em décimos de ponto percentual.
+export interface MvCandidato { n: number; nome: string; pct: number; votos: number }
+export type MvLinha = [number, number, number, number]; // [mais votado, sua fatia, fatia do 2º, índice do 2º]
+export interface MvTurno {
+  id: string; ano: number; turno: number; rotulo: string; cands: MvCandidato[]; outros_pct: number;
+  ganhos: number[]; sem_dado: number; rows: (MvLinha | null)[];
+}
+export interface MapaVoto { municipios: number; turnos: MvTurno[] }
 export interface Governador {
   id: string; ano: number; turno: number; uf: string; secoes: number; validos: number; share_a: number; margem: number; margem_pct: number; arit: number;
   t95: number | null; t95_exp: number | null; corner: number | null; corner_esp: number | null; corner_lift: number | null; corr_t_a: number | null;

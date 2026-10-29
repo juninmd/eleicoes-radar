@@ -120,6 +120,18 @@ export function mapaPontos(ufs: Record<string, UfForma>, viewBox: number[], pts:
   return `<svg class="au-svg au-mapa" viewBox="${viewBox.join(" ")}" role="img" aria-label="Mapa de municípios por razão entre eleitores e residentes com 16 anos ou mais">${paths}${dots}</svg>`;
 }
 
+// ---- municipalities coloured by the most voted candidate (one dot per municipality, area = voters; strength = lead over the 2nd)
+export const forcaVoto = (margemPp: number) => Math.round(Math.max(28, Math.min(100, 28 + margemPp * 1.8)));
+export function mapaVoto(ufs: Record<string, UfForma>, viewBox: number[], pts: { uf: string; mun: string; x: number; y: number; aptos: number }[], rows: (number[] | null)[], nomes: string[]): string {
+  const raio = (a: number) => 0.9 + Math.min(1, Math.sqrt(a / 1.5e6)) * 8.1;
+  const paths = Object.entries(ufs).map(([uf, s]) => `<path class="au-uf" d="${h(s.d)}"><title>${h(uf)}</title></path>`).join("");
+  const dots = pts.map((p, i) => ({ p, r: rows[i] })).filter((x) => x.r).sort((a, b) => b.p.aptos - a.p.aptos).map(({ p, r }) => {
+    const [a, sa, sb, b] = r as number[], nm = (k: number) => nomes[k] ?? "outros";
+    return `<circle class="au-vt c${Math.min(a, 6)}" style="--p:${forcaVoto((sa - sb) / 10)}%" cx="${p.x}" cy="${p.y}" r="${raio(p.aptos).toFixed(1)}"><title>${h(p.mun)} (${h(p.uf)}): ${h(nm(a))} ${dec(sa / 10, 1)}% · ${h(nm(b))} ${dec(sb / 10, 1)}%</title></circle>`;
+  }).join("");
+  return `<svg class="au-svg au-mapa" viewBox="${viewBox.join(" ")}" role="img" aria-label="Mapa de municípios pintados pelo candidato mais votado">${paths}${dots}</svg>`;
+}
+
 // ---- coefficient plot with 95% intervals (rows grouped by model; `spec` picks the colour)
 export interface Coef { modelo: string; spec: number; v: number; lo: number; hi: number; primeiro: boolean }
 export const SPECS = ["mesmo município", "mesma zona", "mesmo local"];

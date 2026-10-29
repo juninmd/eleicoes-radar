@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { auditoria, governador, impressao, pontos } from "./auditoria-fixtures.js";
-import { aguardando, biometriaView, faixasBio, eleicaoView, governosView, investigaView, metodoView, poderView, populacaoView, resumoView, SECOES, semDados } from "./auditoria-view.js";
+import { auditoria, governador, impressao, mapaVotoFx, pontos } from "./auditoria-fixtures.js";
+import { aguardando, biometriaView, faixasBio, mapaVotoView, eleicaoView, governosView, investigaView, metodoView, poderView, populacaoView, resumoView, SECOES, semDados } from "./auditoria-view.js";
 
 const mapa = { pontos: pontos(), ufs: { SP: { d: "M0 0L10 10" } }, viewBox: [0, 0, 400, 400] };
 const todas = (): string[] => {
   const a = auditoria();
   return [
     resumoView(a), eleicaoView(a, impressao(), "2022-1"), eleicaoView(a, null, "2026-1"), investigaView(a, "2022-1"), populacaoView(a, mapa, "2022"), populacaoView(a, null, "2022"),
-    governosView([governador(), governador({ id: "g2", uf: "BA", arit: 1, corner: 12, corner_lift: 3, corner_top: "Cidade Q" })], 1, "g2"), biometriaView(a, "2022-1"), poderView(a), metodoView(a),
+    governosView([governador(), governador({ id: "g2", uf: "BA", arit: 1, corner: 12, corner_lift: 3, corner_top: "Cidade Q" })], 1, "g2"), biometriaView(a, "2022-1"), mapaVotoView(mapaVotoFx(), mapa, "2022-2"), poderView(a), metodoView(a),
   ];
 };
 
@@ -30,7 +30,7 @@ describe("linguagem: sinal é fato para conferir, nunca acusação", () => {
 
 describe("estrutura", () => {
   test("toda seção tem rótulo e a matriz do resumo abre a eleição pelo id", () => {
-    expect(SECOES.map(([k]) => k)).toEqual(["resumo", "eleicao", "investiga", "populacao", "governos", "biometria", "poder", "metodo"]);
+    expect(SECOES.map(([k]) => k)).toEqual(["resumo", "eleicao", "investiga", "populacao", "mapavoto", "governos", "biometria", "poder", "metodo"]);
     expect(resumoView(auditoria())).toContain('data-aud-go="2026-1"');
   });
   test("a eleição sem o arquivo de impressão digital mostra carregando, não gráfico vazio", () => {
@@ -109,5 +109,30 @@ describe("Sem biometria", () => {
     const a = auditoria();
     a.biometria!.uf.push({ id: "2022-1", uf: "ZZ", secoes: 10, comp: 100, nh: 0, pct: -0 });
     expect(biometriaView(a, "2022-1")).not.toContain("-0,0");
+  });
+});
+
+describe("Mais votado por município", () => {
+  test("pinta cada município com a cor do candidato mais votado e diz quantos cada um liderou", () => {
+    const html = mapaVotoView(mapaVotoFx(), mapa, "2022-2");
+    expect(html.match(/class="au-vt c0"/g)).toHaveLength(1);
+    expect(html.match(/class="au-vt c1"/g)).toHaveLength(1);
+    expect(html).toContain("<b>1</b> municípios");
+    expect(html).toContain("62,0%"); // fatia do mais votado no 1º município, no título do ponto
+  });
+  test("não afirma vencedor: 'mais votado' e o aviso de que eleito é o do TSE", () => {
+    const html = mapaVotoView(mapaVotoFx(), mapa, "2022-2");
+    expect(html).toContain("não é \"eleito\"");
+    expect(html).not.toMatch(/\bvenceu|vencedor|vai ganhar|será eleito/i);
+  });
+  test("município sem dado fica em branco e é contado", () => {
+    const html = mapaVotoView(mapaVotoFx(), mapa, "2026-2");
+    expect(html.match(/class="au-vt /g)).toHaveLength(1);
+    expect(html).toContain("1 municípios sem dado");
+  });
+  test("espera os dois arquivos e avisa se mapa e resultado não batem", () => {
+    expect(mapaVotoView(null, mapa, "2022-2")).toContain("Carregando");
+    expect(mapaVotoView(mapaVotoFx(), null, "2022-2")).toContain("Carregando");
+    expect(mapaVotoView(mapaVotoFx(), { ...mapa, pontos: pontos().slice(0, 1) }, "2022-2")).toContain("fora de sincronia");
   });
 });

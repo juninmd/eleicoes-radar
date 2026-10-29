@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mountAuditoria } from "./auditoria.js";
-import { auditoria, governador, impressao, pontos } from "./auditoria-fixtures.js";
+import { auditoria, governador, impressao, mapaVotoFx, pontos } from "./auditoria-fixtures.js";
 
 // Just enough DOM for the tab: one element with innerHTML, a click listener and the few queries it makes.
 function fakeRoot() {
@@ -25,6 +25,7 @@ function leitor(falhas: Set<string> = new Set()) {
     if (caminho.endsWith("impressao.json")) return impressao() as T;
     if (caminho.endsWith("governadores.json")) return [governador()] as T;
     if (caminho.endsWith("mapa.json")) return pontos() as T;
+    if (caminho.endsWith("mapa-voto.json")) return mapaVotoFx() as T;
     if (caminho === "mapa-uf.json") return { viewBox: [0, 0, 10, 10], ufs: { SP: { d: "M0 0" } } } as T;
     throw new Error(`inesperado ${caminho}`);
   };
@@ -83,6 +84,21 @@ describe("mountAuditoria", () => {
     clicar({ audBio: "2026-2" });
     expect(el.innerHTML).toContain("<b>10.000</b>");
     expect(l.pedidos).toEqual(["data/auditoria/auditoria.json"]);
+  });
+
+  test("Mais votado pede o mapa, o mapa-uf e o resultado só ao abrir, e troca de turno sem pedir de novo", async () => {
+    const l = leitor();
+    const { root, el, clicar } = fakeRoot();
+    const aba = mountAuditoria(root, l.ler);
+    aba.show();
+    await noMicrotasks();
+    clicar({ audSec: "mapavoto" });
+    await noMicrotasks();
+    await noMicrotasks();
+    expect(el.innerHTML).toContain("au-vt");
+    clicar({ audMv: "2026-2" });
+    expect(el.innerHTML).toContain("2026");
+    expect(l.pedidos.sort()).toEqual(["data/auditoria/auditoria.json", "data/auditoria/mapa-voto.json", "data/auditoria/mapa.json", "mapa-uf.json"].sort());
   });
 
   test("clicar numa célula do resumo abre aquela eleição", async () => {

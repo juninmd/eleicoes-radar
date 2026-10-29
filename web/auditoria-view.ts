@@ -4,13 +4,13 @@ import { h, int } from "./format.js";
 import {
   CENARIOS, COLUNAS_PODER, dec, maiorCurtose, media, nomeSinalGov, paraConferir, pc, posicaoNoLocal, reducoes, sinaisGov, sinal, statusDe, TESTES, totais,
 } from "./auditoria-dados.js";
-import { balde, barrasH, coeficientes, colunas, halteres, heat2d, histograma, mapaPontos, obsEsp, ultimoDigito } from "./auditoria-graficos.js";
+import { balde, barrasH, coeficientes, colunas, forcaVoto, halteres, heat2d, histograma, mapaPontos, mapaVoto, obsEsp, ultimoDigito } from "./auditoria-graficos.js";
 import type { Coef, ObsEsp } from "./auditoria-graficos.js";
-import type { Auditoria, BioTurno, Eleicao, Governador, Impressao, PontoMunicipio } from "./auditoria-tipos.js";
+import type { Auditoria, BioTurno, Eleicao, Governador, Impressao, MapaVoto, PontoMunicipio } from "./auditoria-tipos.js";
 
 export const SECOES: [string, string][] = [
   ["resumo", "Resumo"], ["eleicao", "Por eleição"], ["investiga", "Investigações"], ["populacao", "Eleitorado × população"],
-  ["governos", "Governadores"], ["biometria", "Sem biometria"], ["poder", "Poder dos testes"], ["metodo", "Método e limites"],
+  ["mapavoto", "Mais votado"], ["governos", "Governadores"], ["biometria", "Sem biometria"], ["poder", "Poder dos testes"], ["metodo", "Método e limites"],
 ];
 
 const rot = (e: Eleicao) => e.rotulo.replace(" · ", " ");
@@ -202,6 +202,23 @@ export function populacaoView(a: Auditoria, mapa: MapaCtx | null, ano: string): 
         { h: "Maior alta", f: (r) => { const t = a.crescimento_top.find((x) => x.periodo === r.periodo && x.rank === 1); return t ? `${h(t.mun)}-${h(t.uf)} (${pc(t.cresc)})` : ""; } },
       ], a.crescimento)}</div>`)}
     ${nota(`<b>Bolsa Família × voto: não executado</b><span>Os arquivos mensais por município do Portal da Transparência (CGU) e do MDS negaram acesso a partir do ambiente da análise, e não há alternativa aberta equivalente. A malha municipal e os dados de voto por município já estão prontos; o cruzamento exige baixar o arquivo e repetir o recorte por quintil acima, com controle de renda do Censo. Só agregados por município entram; nome e NIS de beneficiário, nunca.</span>`, "info")}`;
+}
+
+// ------------------------------------------------------------------ Mais votado por município
+export function mapaVotoView(mv: MapaVoto | null, mapa: MapaCtx | null, id: string): string {
+  if (!mv || !mapa) return aguardando("o mapa");
+  const t = mv.turnos.find((x) => x.id === id) ?? mv.turnos[mv.turnos.length - 1];
+  if (!t) return semDados();
+  if (mapa.pontos.length !== t.rows.length) return nota(`<b>Arquivos fora de sincronia</b><span>O mapa e o resultado por município têm tamanhos diferentes; gere os dois de novo com <code>bun run radar:auditoria</code>.</span>`, "info");
+  const nomes = t.cands.map((c) => c.nome);
+  const lider = t.cands.map((c, i) => ({ c, i, n: t.ganhos[i] ?? 0 })).filter((x) => x.n > 0);
+  const total = t.ganhos.reduce((a, b) => a + b, 0);
+  const legenda = t.cands.map((c, i) => `<span><i class="au-sw vt c${i}" style="--p:100%"></i>${h(c.nome)} <span class="muted">${dec(c.pct, 1)}% dos votos · ${int(t.ganhos[i] ?? 0)} municípios</span></span>`).join("");
+  const fracos = [0, 10, 20, 40].map((m) => `<span><i class="au-sw vt c0" style="--p:${forcaVoto(m)}%"></i>${m ? `+${m} p.p.` : "empate"}</span>`).join("");
+  return `<p class="au-lede">${h(t.rotulo)}: ${lider.map((x) => `<b>${h(x.c.nome)}</b> foi o mais votado em <b>${int(x.n)}</b> municípios (${pc(x.n / Math.max(1, total), 0)})`).join(" e ")}. Cada ponto é um município, com área proporcional ao eleitorado: o mapa mostra onde cada um liderou, não quantos votos teve.</p>
+    ${chips(mv.turnos.map((x) => [x.id, x.rotulo.replace(" · ", " ")] as [string, string]), t.id, "aud-mv")}
+    ${card(`Candidato mais votado por município · ${t.rotulo.replace(" · ", " ")}`, `${mapaVoto(mapa.ufs, mapa.viewBox, mapa.pontos, t.rows, nomes)}<div class="au-legend">${legenda}</div><div class="au-legend"><span class="muted">cor mais forte = vantagem maior sobre o 2º:</span>${fracos}</div>`)}
+    ${nota(`<b>Como ler</b><span>"Mais votado" no município não é "eleito": o eleito é o que o TSE marca. As cores são só de candidatos, sem agrupar partido nem lado, e mudam de turno para turno (a ordem é a de votos no país). Município pequeno pesa o mesmo que uma capital na contagem de municípios, não nos votos.${t.sem_dado ? ` ${int(t.sem_dado)} municípios sem dado ficam em branco.` : ""}</span>`, "info")}`;
 }
 
 // ------------------------------------------------------------------ Governadores

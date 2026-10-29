@@ -1,5 +1,5 @@
 // Small synthetic data in the shape of web/data/auditoria/*.json, for the Auditoria tests. Not real election data.
-import type { Auditoria, Eleicao, Governador, Impressao, PontoMunicipio } from "./auditoria-tipos.js";
+import type { Auditoria, Eleicao, Governador, Impressao, MapaVoto, PontoMunicipio } from "./auditoria-tipos.js";
 
 export function eleicao(id = "2022-1", sobre: Partial<Eleicao> = {}): Eleicao {
   const [ano, turno] = id.split("-").map(Number);
@@ -67,3 +67,12 @@ export function governador(sobre: Partial<Governador> = {}): Governador {
     ...sobre,
   };
 }
+
+// alinhado a pontos(): 2 municípios; o 2º tem o primeiro turno sem dado
+export const mapaVotoFx = (): MapaVoto => ({
+  municipios: 2,
+  turnos: [
+    { id: "2022-2", ano: 2022, turno: 2, rotulo: "2022 · 2º turno", cands: [{ n: 13, nome: "Candidato A", pct: 50.9, votos: 60 }, { n: 22, nome: "Candidato B", pct: 49.1, votos: 58 }], outros_pct: 0, ganhos: [1, 1, 0, 0, 0, 0, 0], sem_dado: 0, rows: [[0, 620, 380, 1], [1, 540, 460, 0]] },
+    { id: "2026-2", ano: 2026, turno: 2, rotulo: "2026 · 2º turno", cands: [{ n: 13, nome: "Candidato A", pct: 51, votos: 60 }, { n: 22, nome: "Candidato B", pct: 49, votos: 58 }], outros_pct: 0, ganhos: [1, 0, 0, 0, 0, 0, 0], sem_dado: 1, rows: [[0, 600, 400, 1], null] },
+  ],
+});
