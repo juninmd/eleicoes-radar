@@ -45,6 +45,14 @@ export function auditoria(): Auditoria {
     crescimento_top: [{ periodo: "2018-2022", rank: 1, uf: "PA", mun: "Cidade V", de: 1000, para: 1600, cresc: 0.6, z: 5 }],
     poder: [{ cenario: "enchimento", f: 0.01, unidades: 10, desloc_margem: 100, margem_real: 200, alguma: 1, d_corner: 0, d_t95: 1, d_low_rate: 0, d_out_rate: 1, d_V_last: 0, d_dup: 0 }],
     poder_base: [{ k: "t95", base: 5, limiar: 8 }],
+    biometria: {
+      turnos: [
+        { id: "2022-1", ano: 2022, turno: 1, rotulo: "2022 · 1º turno", ufs: 28, ufs_faltando: [], secoes: 1000, aptos: 150000, comp: 120000, nh: 9600, nh_pct: 0.08, secoes_com_nh: 900, secoes_sem_dado: 0, nh_maior_que_comp: 0, mediana_pct: 0.07, p99_pct: 0.3, secoes_gt50: 2, hist: [100, ...Array.from({ length: 20 }, (_, i) => 50 - i * 2)] },
+        { id: "2026-2", ano: 2026, turno: 2, rotulo: "2026 · 2º turno", ufs: 27, ufs_faltando: ["RR"], secoes: 1000, aptos: 150000, comp: 125000, nh: 10000, nh_pct: 0.08, secoes_com_nh: 950, secoes_sem_dado: 0, nh_maior_que_comp: 0, mediana_pct: 0.07, p99_pct: 0.3, secoes_gt50: 1, hist: [80, ...Array.from({ length: 20 }, () => 40)] },
+      ],
+      uf: [{ id: "2022-1", uf: "SP", secoes: 500, comp: 60000, nh: 3000, pct: 0.05 }, { id: "2022-1", uf: "BA", secoes: 500, comp: 60000, nh: 6600, pct: 0.11 }, { id: "2026-2", uf: "SP", secoes: 500, comp: 60000, nh: 5000, pct: 0.083 }],
+      modelo: [{ id: "2022-1", modelo: "UE 2020", secoes: 800, comp: 100000, nh: 7000, pct: 0.07 }],
+    },
   };
 }
 

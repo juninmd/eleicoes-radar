@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { auditoria, governador, impressao, pontos } from "./auditoria-fixtures.js";
-import { aguardando, eleicaoView, governosView, investigaView, metodoView, poderView, populacaoView, resumoView, SECOES, semDados } from "./auditoria-view.js";
+import { aguardando, biometriaView, faixasBio, eleicaoView, governosView, investigaView, metodoView, poderView, populacaoView, resumoView, SECOES, semDados } from "./auditoria-view.js";
 
 const mapa = { pontos: pontos(), ufs: { SP: { d: "M0 0L10 10" } }, viewBox: [0, 0, 400, 400] };
 const todas = (): string[] => {
   const a = auditoria();
   return [
     resumoView(a), eleicaoView(a, impressao(), "2022-1"), eleicaoView(a, null, "2026-1"), investigaView(a, "2022-1"), populacaoView(a, mapa, "2022"), populacaoView(a, null, "2022"),
-    governosView([governador(), governador({ id: "g2", uf: "BA", arit: 1, corner: 12, corner_lift: 3, corner_top: "Cidade Q" })], 1, "g2"), poderView(a), metodoView(a),
+    governosView([governador(), governador({ id: "g2", uf: "BA", arit: 1, corner: 12, corner_lift: 3, corner_top: "Cidade Q" })], 1, "g2"), biometriaView(a, "2022-1"), poderView(a), metodoView(a),
   ];
 };
 
@@ -30,7 +30,7 @@ describe("linguagem: sinal é fato para conferir, nunca acusação", () => {
 
 describe("estrutura", () => {
   test("toda seção tem rótulo e a matriz do resumo abre a eleição pelo id", () => {
-    expect(SECOES.map(([k]) => k)).toEqual(["resumo", "eleicao", "investiga", "populacao", "governos", "poder", "metodo"]);
+    expect(SECOES.map(([k]) => k)).toEqual(["resumo", "eleicao", "investiga", "populacao", "governos", "biometria", "poder", "metodo"]);
     expect(resumoView(auditoria())).toContain('data-aud-go="2026-1"');
   });
   test("a eleição sem o arquivo de impressão digital mostra carregando, não gráfico vazio", () => {
@@ -72,5 +72,42 @@ describe("Governadores: sem nome de candidato", () => {
     expect(t2).toContain('data-aud-gsel="b"');
     expect(t2).not.toContain('data-aud-gsel="a"');
     expect(t2).toContain("Aritmética");
+  });
+});
+
+describe("Sem biometria", () => {
+  test("diz o número, a base e o que o campo não conta", () => {
+    const html = biometriaView(auditoria(), "2022-1");
+    expect(html).toContain("<b>9.600</b>");
+    expect(html).toContain("<b>8%</b>".replace("8%", "8,0%"));
+    expect(html).toContain("não conta quem nem tinha biometria cadastrada");
+    expect(html).toContain("não é irregularidade por si");
+  });
+  test("o seletor lista os turnos com dado e marca o aberto", () => {
+    const html = biometriaView(auditoria(), "2026-2");
+    expect(html).toContain('data-aud-bio="2022-1"');
+    expect(html).toContain('data-aud-bio="2026-2" aria-pressed="true"');
+    expect(html).toContain("RR");
+  });
+  test("turno desconhecido cai no último; sem o arquivo novo mostra como gerar", () => {
+    expect(biometriaView(auditoria(), "1999-1")).toContain("2026");
+    const velho = auditoria();
+    delete velho.biometria;
+    expect(biometriaView(velho, "2022-1")).toContain("bio.py agg");
+  });
+  test("as 21 faixas viram 7 barras sem perder nenhuma seção", () => {
+    const h = [100, ...Array.from({ length: 20 }, (_, i) => i + 1)]; // 0 exato + 1..20
+    const b = faixasBio(h);
+    expect(b).toHaveLength(7);
+    expect(b[0]).toBe(100);
+    expect(b[1]).toBe(1 + 2); // 0–10%
+    expect(b[5]).toBe(9 + 10); // 40–50%
+    expect(b[6]).toBe(h.slice(11).reduce((x, y) => x + y, 0)); // mais de 50%
+    expect(b.reduce((x, y) => x + y, 0)).toBe(h.reduce((x, y) => x + y, 0));
+  });
+  test("zero negativo não vira \"-0,0%\"", () => {
+    const a = auditoria();
+    a.biometria!.uf.push({ id: "2022-1", uf: "ZZ", secoes: 10, comp: 100, nh: 0, pct: -0 });
+    expect(biometriaView(a, "2022-1")).not.toContain("-0,0");
   });
 });

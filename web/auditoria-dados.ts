@@ -24,6 +24,7 @@ export const statusDe = (s: number) => STATUS[s] ?? "informativo";
 const nf = new Map<number, Intl.NumberFormat>();
 export const dec = (v: number | null | undefined, d = 2) => {
   if (v === null || v === undefined || Number.isNaN(v)) return "–";
+  if (v === 0) v = 0; // -0 would print as "-0,0"
   let f = nf.get(d);
   if (!f) nf.set(d, (f = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d })));
   return f.format(v);
