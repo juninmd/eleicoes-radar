@@ -6,6 +6,8 @@
 import { resolve, sep } from "node:path";
 import { brotliCompress, constants as Z } from "node:zlib";
 import { promisify } from "node:util";
+import type { Api } from "./aovivo/api.js";
+import { ipDe } from "./aovivo/limite.js";
 
 const ROOT = resolve(process.env.WEB_ROOT ?? "web");
 const PORT = Number(process.env.PORT ?? 4173);
@@ -75,7 +77,16 @@ async function compile(source: string, key: string): Promise<Bytes> {
   return out;
 }
 
-export const handleAt = (root: string) => async (req: Request): Promise<Response> => secure(await route(req, resolve(root)));
+// `api` answers /api/* (presence, cheering, push); null in the static-only tests and for a plain `handle`.
+// A throw (I/O error, bad API input) still gets the security headers and a generic body: no stack or OS message reaches the client.
+export const handleAt = (root: string, api: Api | null = null) => async (req: Request, peer?: string): Promise<Response> => {
+  try {
+    return secure((await api?.(req, ipDe(req, peer))) ?? (await route(req, resolve(root))));
+  } catch (e) {
+    console.error(`serve: ${e instanceof Error ? e.message : e}`);
+    return secure(new Response("internal error", { status: 500 }));
+  }
+};
 export const handle = handleAt(ROOT);
 
 async function route(req: Request, root: string): Promise<Response> {
@@ -112,8 +123,10 @@ async function route(req: Request, root: string): Promise<Response> {
   const html = file.endsWith(".html");
   const headers = new Headers({
     "Content-Type": html ? "text/html; charset=utf-8" : Bun.file(file).type,
-    // Data changes on each deploy; a short cache keeps repeat visits fast without going stale.
-    "Cache-Control": html ? "no-cache" : "public, max-age=300",
+    // Data changes on each deploy; a short cache keeps repeat visits fast without going stale. Pages, modules and stylesheets revalidate
+    // (the ETag makes it a 304): tabs load lazily, and a cached dependency next to a fresh dependant fails with "does not provide an
+    // export"; new markup next to a cached stylesheet shows a broken layout.
+    "Cache-Control": html || /\.(js|css)$/.test(file) ? "no-cache" : "public, max-age=300",
     Vary: "Accept-Encoding",
   });
   const etag = `W/"${Bun.file(source).lastModified.toString(36)}-${BOOT}"`;
@@ -140,6 +153,9 @@ async function route(req: Request, root: string): Promise<Response> {
 }
 
 if (import.meta.main) {
-  const server = Bun.serve({ port: PORT, hostname: HOST, fetch: handle });
+  const { criarRuntime } = await import("./aovivo/runtime.js");
+  const { api } = await criarRuntime();
+  const comApi = handleAt(ROOT, api);
+  const server = Bun.serve({ port: PORT, hostname: HOST, maxRequestBodySize: 4096, fetch: (req, s) => comApi(req, s.requestIP(req)?.address) });
   console.log(`Radar do Voto em http://${server.hostname}:${server.port}`);
 }

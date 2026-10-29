@@ -21,16 +21,17 @@
     <button type="button" id="menu-fechar" class="menu-fechar" aria-label="Fechar menu">×</button>
   </div>
   <div id="modos" role="tablist" aria-label="Visão" aria-orientation="vertical">
-    <button type="button" role="tab" id="tab-radar" aria-controls="painel" data-modo="radar" aria-selected="true">Radar técnico</button>
+    <button type="button" role="tab" id="tab-aovivo" aria-controls="painel" data-modo="aovivo" aria-selected="true">Ao vivo</button>
+    <button type="button" role="tab" id="tab-radar" aria-controls="painel" data-modo="radar" aria-selected="false" tabindex="-1">Radar técnico</button>
     <button type="button" role="tab" id="tab-expectativa" aria-controls="painel" data-modo="expectativa" aria-selected="false" tabindex="-1">Expectativa</button>
     <button type="button" role="tab" id="tab-rede" aria-controls="painel" data-modo="rede" aria-selected="false" tabindex="-1">Rede</button>
-    <button type="button" role="tab" id="tab-aovivo" aria-controls="painel" data-modo="aovivo" aria-selected="false" tabindex="-1">Ao vivo</button>
     <button type="button" role="tab" id="tab-apuracao" aria-controls="painel" data-modo="apuracao" aria-selected="false" tabindex="-1">Apuração</button>
     <button type="button" role="tab" id="tab-partidos" aria-controls="painel" data-modo="partidos" aria-selected="false" tabindex="-1">Partidos</button>
     <button type="button" role="tab" id="tab-dinheiro" aria-controls="painel" data-modo="dinheiro" aria-selected="false" tabindex="-1">Dinheiro</button>
     <button type="button" role="tab" id="tab-aliancas" aria-controls="painel" data-modo="aliancas" aria-selected="false" tabindex="-1">Alianças</button>
     <button type="button" role="tab" id="tab-perfil" aria-controls="painel" data-modo="perfil" aria-selected="false" tabindex="-1">Perfil</button>
     <button type="button" role="tab" id="tab-redes" aria-controls="painel" data-modo="redes" aria-selected="false" tabindex="-1">Redes</button>
+    <button type="button" role="tab" id="tab-auditoria" aria-controls="painel" data-modo="auditoria" aria-selected="false" tabindex="-1">Auditoria</button>
   </div>
   <div class="menu-rodape">
     <a href="#sobre" id="menu-sobre">Como funciona</a>
@@ -95,6 +96,7 @@
     <div id="live-view" hidden></div>
     <div id="apu-view" hidden></div>
     <div id="pan-view" hidden></div>
+    <div id="aud-view" hidden></div>
     <div id="radar-view">
     <div id="achados"></div>
     <div class="toolbar">

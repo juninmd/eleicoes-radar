@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { brotliDecompressSync } from "node:zlib";
-import { handle } from "./serve";
+import { handle, handleAt } from "./serve";
+import type { Api } from "./aovivo/api.js";
 
 const get = (path: string, init: RequestInit = {}) => handle(new Request(`http://x${path}`, init));
 
@@ -53,8 +54,30 @@ describe("static server", () => {
     expect(same.headers.get("content-security-policy")).toContain("default-src 'none'");
     expect((await get("/app.css", { headers: { "if-none-match": 'W/"outro"' } })).status).toBe(200);
   });
+  test("modules revalidate on every load; only static assets keep the 5 min cache", async () => {
+    // Tabs load lazily: a stale cached dependency next to a fresh dependant fails with "does not provide an export named ...".
+    expect((await get("/apuracao-aovivo.js")).headers.get("cache-control")).toBe("no-cache"); // served from the .ts source
+    // The stylesheet too: after a deploy new markup next to the old CSS shows broken layouts (a 304 costs no body).
+    expect((await get("/app.css")).headers.get("cache-control")).toBe("no-cache");
+    // A file that is in git: web/data is not there in CI, and a 404 carries no Cache-Control.
+    expect((await get("/fonts/public-sans.woff2")).headers.get("cache-control")).toBe("public, max-age=300");
+    const mod = await get("/apuracao-aovivo.js");
+    const cond = await get("/apuracao-aovivo.js", { headers: { "if-none-match": mod.headers.get("etag")! } });
+    expect(cond.status).toBe(304);
+    expect(cond.headers.get("cache-control")).toBe("no-cache");
+  });
   test("a NUL byte in the path is a 400, not an exception with a stack trace", async () => {
     for (const path of ["/%00", "/index.html%00", "/app.js%00.ts"]) expect((await get(path)).status).toBe(400);
+  });
+  test("an exception inside the handler is a generic 500 that still carries the security headers", async () => {
+    const boom = handleAt("web", (async () => {
+      throw new Error("disco cheio /etc/segredo");
+    }) as unknown as Api);
+    const r = await boom(new Request("http://x/api/qualquer"));
+    expect(r.status).toBe(500);
+    expect(await r.text()).toBe("internal error");
+    expect(r.headers.get("content-security-policy")).toContain("default-src 'none'");
+    expect(r.headers.get("x-frame-options")).toBe("DENY");
   });
   test("every response carries the security headers, the page and the assets alike", async () => {
     for (const path of ["/", "/app.js", "/data/meta.json", "/health", "/nao-existe.js"]) {

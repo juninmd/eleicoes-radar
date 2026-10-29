@@ -86,6 +86,13 @@ export function createCores(palette: readonly string[], resto?: string): Cores {
   return cor;
 }
 
+// Colours are handed out in order of first use, so whoever led when the tab opened got the first one and a reload with the lead
+// flipped swapped the same people's colours. Calling this first (ordered by ballot number) makes the choice the same on every load.
+export function fixarCores(cor: Cores, candidatos: readonly Pick<Candidato, "num" | "partido">[]): void {
+  const n = (c: Pick<Candidato, "num">) => { const v = parseInt(c.num, 10); return Number.isFinite(v) ? v : Infinity; };
+  for (const c of [...candidatos].sort((a, b) => (n(a) < n(b) ? -1 : n(a) > n(b) ? 1 : 0))) cor(c.partido);
+}
+
 // Count against the polls of the same race. One seat compares the leader; several seats compare the names
 // in the first places, in any order. If the polls name fewer people than there are seats, it compares as
 // many as they name. A difference is not an error of either side.

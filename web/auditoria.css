@@ -1,0 +1,94 @@
+/* Auditoria tab (statistical consistency tests). Plain HTML and SVG; every colour is an existing token, so dark mode follows.
+   Cards reuse .exp-card and the segmented buttons reuse .pan-seg. */
+
+.au-root h2 small { font: 500 13px var(--body); text-transform: none; color: var(--muted); letter-spacing: 0; }
+.au-aviso { margin: 0; max-width: 78ch; font-size: 13px; line-height: 1.5; border-left: 3px solid var(--line); padding-left: 10px; }
+.au-corpo { display: grid; gap: 22px; min-width: 0; }
+.au-sec { display: grid; gap: 12px; min-width: 0; }
+.au-h { margin: 0; font: 700 14px/1.2 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-2); }
+.au-sub { margin: 0; max-width: 84ch; font-size: 13px; line-height: 1.55; }
+.au-lede { margin: 0; max-width: 78ch; font-size: 15px; line-height: 1.6; }
+.au-lede b, .au-card b { font-variant-numeric: tabular-nums; }
+
+.au-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr)); align-items: start; }
+.au-grid.w2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 25rem), 1fr)); }
+.au-split { display: grid; gap: 16px; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: start; }
+.au-stack { display: grid; gap: 16px; min-width: 0; }
+@media (max-width: 760px) { .au-split { grid-template-columns: minmax(0, 1fr); } }
+
+.au-card { background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-md); padding: 16px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.au-card h4 { margin: 0; font: 700 13px/1.3 var(--body); }
+.au-card p { margin: 0; font-size: 13px; line-height: 1.5; }
+.au-card p.small, .au-card .small { font-size: 12px; }
+.au-grande { font: 900 34px/1 var(--display) !important; font-variant-numeric: tabular-nums; }
+.au-nota { display: grid; gap: 4px; background: var(--sunk); border: 1px solid var(--line); border-left: 3px solid var(--corrige); border-radius: var(--r-md); padding: 12px 14px; font-size: 13px; line-height: 1.5; }
+.au-nota.info { border-left-color: var(--muted); }
+
+.au-kv { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; margin: 0; font-size: 13px; }
+.au-kv dt { color: var(--ink-2); } .au-kv dd { margin: 0; text-align: right; font: 500 13px var(--mono); font-variant-numeric: tabular-nums; }
+.au-kv dt small { display: block; color: var(--muted); font-size: 11px; }
+.au-kv.wide { row-gap: 8px; align-items: center; }
+
+.au-pill { display: inline-flex; align-items: center; gap: 6px; font: 600 11px/1 var(--body); padding: 4px 8px; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.au-pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+.au-pill.st0::before { background: var(--s3); }
+.au-pill.st1::before { background: var(--corrige); }
+.au-pill.st2::before { background: var(--muted); }
+.au-tag { display: inline-block; font: 600 11px/1.3 var(--body); padding: 2px 6px; border-radius: 4px; background: color-mix(in srgb, var(--corrige) 22%, var(--sunk)); color: var(--ink); }
+.au-tag.k { background: var(--surface); border: 1px solid var(--line); color: var(--muted); }
+.au-legend { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; font-size: 12px; color: var(--ink-2); }
+.au-legend > span { display: inline-flex; align-items: center; gap: 5px; }
+
+/* Result matrix: tests in rows, contests in columns; the cell opens the contest. */
+.au-matrix { display: grid; gap: 3px; min-width: 700px; }
+.au-mrow { display: grid; grid-template-columns: minmax(150px, 210px) repeat(14, minmax(34px, 1fr)); gap: 3px; align-items: center; }
+.au-mrow.gov { min-width: 0; }
+.au-mhead { font: 600 11px/1.2 var(--mono); color: var(--muted); text-align: center; }
+.au-mhead small { display: block; font-weight: 400; }
+.au-mname { font-size: 12px; line-height: 1.25; padding-right: 8px; }
+.au-mname small { display: block; color: var(--muted); font-size: 11px; }
+.au-cell { appearance: none; height: 28px; padding: 0; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); color: var(--muted); font: 600 11px var(--mono); cursor: pointer; display: grid; place-items: center; }
+.au-cell.st0 { background: color-mix(in srgb, var(--s3) 18%, var(--sunk)); border-color: color-mix(in srgb, var(--s3) 45%, var(--line)); color: var(--ink); }
+.au-cell.st1 { background: color-mix(in srgb, var(--corrige) 30%, var(--sunk)); border-color: var(--corrige); color: var(--ink); font-weight: 800; }
+.au-cell.st2 { background: var(--surface); }
+.au-cell.none { cursor: default; border-style: dashed; }
+.au-cell:hover { border-color: var(--ink-2); }
+.au-cell[aria-pressed="true"] { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+.au-table { border-collapse: collapse; width: 100%; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.au-table th { text-align: left; font: 700 11px var(--mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.au-table td { padding: 7px 8px; border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent); vertical-align: top; }
+.au-table .num { text-align: right; white-space: nowrap; }
+.au-table tr:last-child td { border-bottom: 0; }
+
+.au-regras summary { cursor: pointer; width: fit-content; }
+.au-regras p { margin: 6px 0 0; max-width: 84ch; line-height: 1.5; }
+
+/* Charts */
+.au-svg { display: block; width: 100%; height: auto; overflow: visible; }
+.au-svg text { font: 500 10px var(--mono); fill: var(--muted); }
+.au-svg text.tick { font-size: 10px; }
+.au-svg text.lab { fill: var(--ink-2); font-size: 10px; }
+.au-svg .grid { stroke: var(--line); stroke-width: 1; }
+.au-svg .zero { stroke: var(--muted); stroke-width: 1; }
+.au-svg .ref { stroke: var(--muted); stroke-dasharray: 4 3; stroke-width: 1; }
+.au-svg .au-frame { fill: none; stroke: var(--line); }
+.au-svg .au-corner { fill: none; stroke: var(--corrige); stroke-dasharray: 3 2; }
+.au-hc { fill: var(--s1); }
+.au-bar { fill: var(--s1); }
+.au-bar.warn { fill: var(--corrige); }
+.au-band { fill: var(--line); fill-opacity: 0.55; }
+.au-link { stroke: var(--line); stroke-width: 2; }
+.au-link.thick { stroke-width: 3; }
+.au-exp { fill: var(--muted); }
+.au-dot { fill: var(--s1); }
+.au-dot.warn { fill: var(--corrige); }
+.au-dot.muted { fill: var(--muted); }
+.au-dot.sp0, .au-ci.sp0 { fill: var(--s1); stroke: var(--s1); } .au-dot.sp1, .au-ci.sp1 { fill: var(--s2); stroke: var(--s2); } .au-dot.sp2, .au-ci.sp2 { fill: var(--s3); stroke: var(--s3); }
+.au-ci { stroke-width: 2; }
+.au-mapa { background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-md); }
+.au-uf { fill: var(--surface); stroke: var(--line); stroke-width: 0.8; }
+.au-pt { stroke: var(--sunk); stroke-width: 0.25; fill-opacity: 0.85; }
+.au-pt.lo, .au-sw.lo { fill: color-mix(in srgb, var(--s1) var(--p), var(--sunk)); background: color-mix(in srgb, var(--s1) var(--p), var(--sunk)); }
+.au-pt.hi, .au-sw.hi { fill: color-mix(in srgb, var(--corrige) var(--p), var(--sunk)); background: color-mix(in srgb, var(--corrige) var(--p), var(--sunk)); }
+.au-sw { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--line); }

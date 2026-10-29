@@ -68,8 +68,14 @@ export function renderCaminho(c: Caminho | null, cor: Cor): string {
   const lo = Math.max(0, Math.floor((Math.min(...marcas) - 0.06) / 0.05) * 0.05), hi = Math.min(1, Math.ceil((Math.max(...marcas) + 0.06) / 0.05) * 0.05);
   const pos = (x: number) => (Math.min(1, Math.max(0, (x - lo) / (hi - lo))) * 100).toFixed(2);
   const cc = h(cor(c.atras.partido));
+  const mg = 2 * c.precisa - 1;
+  const mgTxt = pp(mg);
+  const precTxt = pct(c.precisa, 1);
+  const precRotulo = precTxt === "50,0%" ? "pouco mais da metade" : precTxt;
+  const mgRotulo = mgTxt === "0,0" ? "menos de 0,1 p.p." : `${mgTxt} p.p.`;
+  const fim = mgRotulo.endsWith(".") ? "" : "."; // "p.p." already closes the sentence: no second dot
   const frase = c.alcancavel
-    ? `<b>${nome}</b> tem <b>${pct(c.tem, 1)}</b> dos votos válidos apurados. Para terminar com mais votos que ${h(curto(c.frente.nome))}, precisa de <b>${pct(c.precisa, 1)}</b> dos <b>${mi(c.faltam)}</b> que ainda faltam, isto é, ganhar o que falta por <b>${pp(2 * c.precisa - 1)} p.p.</b>`
+    ? `<b>${nome}</b> tem <b>${pct(c.tem, 1)}</b> dos votos válidos apurados. Para terminar com mais votos que ${h(curto(c.frente.nome))}, precisa de <b>${precRotulo}</b> dos <b>${mi(c.faltam)}</b> que ainda faltam, isto é, ganhar o que falta por <b>${mgRotulo}</b>${fim}`
     : `<b>${nome}</b> tem <b>${pct(c.tem, 1)}</b> dos votos válidos apurados. Mesmo com todos os <b>${mi(c.faltam)}</b> que faltam, não chegaria à frente de ${h(curto(c.frente.nome))}: precisaria de mais de 100% deles.`;
   const eixo = [lo, 0.5, hi].filter((x, i, a) => i !== 1 || (x > a[0]! && x < a[2]!)).map((x) => `<span style="left:${pos(x)}%">${Math.round(x * 100)}%</span>`).join("");
   return `<section class="live-cm" aria-labelledby="cm-t" style="--c:${cc}">
@@ -77,11 +83,11 @@ export function renderCaminho(c: Caminho | null, cor: Cor): string {
     <p class="cm-txt">${frase}</p>
     <div class="cm-prog" role="img" aria-label="${h(`${mi(c.apurados)} votos válidos apurados e cerca de ${mi(c.faltam)} por apurar`)}"><i style="width:${(c.apurados / (c.apurados + c.faltam) * 100).toFixed(1)}%"></i></div>
     <p class="cm-prog-t"><span><b>${mi(c.apurados)}</b> apurados</span><span>≈ <b>${mi(c.faltam)}</b> a apurar</span></p>
-    <div class="cm-trk" role="img" aria-label="${h(`Parcela dos votos que faltam: ${curto(c.atras.nome)} tem ${pct(c.tem, 1)} do apurado, precisa de ${c.alcancavel ? pct(c.precisa, 1) : "mais de 100%"}${c.esperado === null ? "" : ` e o modelo espera ${pct(c.esperado, 1)}`}`)}">
+    <div class="cm-trk" role="img" aria-label="${h(`Parcela dos votos que faltam: ${curto(c.atras.nome)} tem ${pct(c.tem, 1)} do apurado, precisa de ${c.alcancavel ? (precTxt === "50,0%" ? "pouco mais de 50%" : precTxt) : "mais de 100%"}${c.esperado === null ? "" : ` e o modelo espera ${pct(c.esperado, 1)}`}`)}">
       ${c.alcancavel ? `<i class="cm-basta" style="left:${pos(c.precisa)}%;right:0"></i>` : ""}${lo < 0.5 && hi > 0.5 ? `<i class="cm-50" style="left:${pos(0.5)}%"></i>` : ""}
       <i class="cm-m cm-tem" style="left:${pos(c.tem)}%"></i>${c.alcancavel ? `<i class="cm-m cm-prec" style="left:${pos(c.precisa)}%"></i>` : ""}${c.esperado === null ? "" : `<i class="cm-m cm-esp" style="left:${pos(c.esperado)}%"></i>`}</div>
     <div class="cm-eixo" aria-hidden="true">${eixo}</div>
-    <ul class="cm-leg"><li><i class="cm-tem"></i>tem hoje <b>${pct(c.tem, 1)}</b></li>${c.alcancavel ? `<li><i class="cm-prec"></i>precisa de <b>${pct(c.precisa, 1)}</b></li>` : ""}${c.esperado === null ? "" : `<li><i class="cm-esp"></i>modelo espera <b>${pct(c.esperado, 1)}</b></li>`}</ul>
+    <ul class="cm-leg"><li><i class="cm-tem"></i>tem hoje <b>${pct(c.tem, 1)}</b></li>${c.alcancavel ? `<li><i class="cm-prec"></i>precisa de <b>${precTxt === "50,0%" ? ">50%" : precTxt}</b></li>` : ""}${c.esperado === null ? "" : `<li><i class="cm-esp"></i>modelo espera <b>${pct(c.esperado, 1)}</b></li>`}</ul>
     <p class="muted small">Votos que faltam = estimativa (mesma abstenção e mesma parcela de válidos das seções já apuradas). "Modelo espera" é a mediana da simulação da Previsão. Não é resultado.</p>
   </section>`;
 }
@@ -135,7 +141,7 @@ export function renderFinalistas(par: Par, avatar: (c: { id: string; nome: strin
 
 // ---- the wave of votes: each region's votes still to come, priced at what the region has already shown, and how far that moves the
 // first name's share of the two's votes. The bar is drawn to one scale for all rows; every figure is also printed.
-const sinal = (x: number) => (x < 0 ? "−" : "+");
+const sinal = (x: number) => (pp(x) === "0,0" ? "" : x < 0 ? "−" : "+"); // a sign in front of a printed zero reads as "−0,0"
 export function renderOnda(o: Onda | null, par: Par, cor: Cor): string {
   const casca = (corpo: string) => `<section class="live-onda" aria-labelledby="on-t"><h3 id="on-t">Onda de votos <small>o que falta, região a região</small></h3>${corpo}</section>`;
   if (!o || !o.linhas.length) return casca(`<p class="muted small">Aparece quando os primeiros estados tiverem votos e ainda faltar apurar.</p>`);
