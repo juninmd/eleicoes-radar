@@ -72,6 +72,19 @@ describe("mountAuditoria", () => {
     expect(el.innerHTML).toContain("au-pt");
   });
 
+  test("a seção Sem biometria troca de turno pelo clique e não pede arquivo extra", async () => {
+    const l = leitor();
+    const { root, el, clicar } = fakeRoot();
+    const aba = mountAuditoria(root, l.ler);
+    aba.show();
+    await noMicrotasks();
+    clicar({ audSec: "biometria" });
+    expect(el.innerHTML).toContain("<b>9.600</b>");
+    clicar({ audBio: "2026-2" });
+    expect(el.innerHTML).toContain("<b>10.000</b>");
+    expect(l.pedidos).toEqual(["data/auditoria/auditoria.json"]);
+  });
+
   test("clicar numa célula do resumo abre aquela eleição", async () => {
     const l = leitor();
     const { root, el, clicar } = fakeRoot();

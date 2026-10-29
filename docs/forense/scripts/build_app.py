@@ -31,6 +31,8 @@ for k in SIMPLES:
 comp = {}
 for r in rd("comparecimento"):
     comp.setdefault(r["id"], [0] * 50)[r["bin"]] = r["n"]
+if os.path.exists(os.path.join(DS, "biometria.json")):  # gerado por bio.py agg
+    aud["biometria"] = rd("biometria")
 aud["comparecimento"] = comp
 dig = {}
 for r in rd("digitos"):

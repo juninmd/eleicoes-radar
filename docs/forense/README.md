@@ -56,6 +56,7 @@ python3 docs/forense/scripts/perfil.py 2022 && python3 docs/forense/scripts/adju
 python3 docs/forense/scripts/lastsec.py ; python3 docs/forense/scripts/power.py
 python3 docs/forense/scripts/ingest_uf.py 2022 && python3 docs/forense/scripts/gov.py 2022
 python3 docs/forense/scripts/build_ds.py ; python3 docs/forense/scripts/build_gov.py   # ds/*.json
+python3 docs/forense/scripts/bio.py ingest 2022 1   # idem 2022 2, 2018 1/2, 2026 1/2; depois: bio.py agg (eleitores sem biometria, BU)
 bun run radar:auditoria                                                                 # web/data/auditoria/*.json (aba Auditoria do app, `#auditoria`)
 ```
 

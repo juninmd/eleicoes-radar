@@ -52,6 +52,15 @@ export interface ElPersistencia { n_comum: number; corr_log: number; gt1_2010: n
 export interface ElVoto { id: string; ano: number; turno: number; q: number; razao_med: number; share_a: number; n: number; corr_mun: number; corr_uf: number }
 export interface Crescimento { periodo: string; municipios: number; crescimento: number; z_alto: number; z_baixo: number }
 export interface CrescimentoTop { periodo: string; rank: number; uf: string; mun: string; de: number; para: number; cresc: number; z: number }
+// Eleitores "com biometria, mas que não foram habilitados por meio dela" (QT_ELEITORES_BIOMETRIA_NH do Boletim de Urna), Presidente.
+export interface BioTurno {
+  id: string; ano: number; turno: number; rotulo: string; ufs: number; ufs_faltando: string[];
+  secoes: number; aptos: number; comp: number; nh: number; nh_pct: number; secoes_com_nh: number; secoes_sem_dado: number; nh_maior_que_comp: number;
+  mediana_pct: number; p99_pct: number; secoes_gt50: number; hist: number[]; // hist[0] = seções sem nenhum; hist[1..20] = faixas de 5 pontos
+}
+export interface BioUf { id: string; uf: string; secoes: number; comp: number; nh: number; pct: number }
+export interface BioModelo { id: string; modelo: string; secoes: number; comp: number; nh: number; pct: number }
+export interface Biometria { turnos: BioTurno[]; uf: BioUf[]; modelo: BioModelo[] }
 export interface Poder {
   cenario: string; f: number; unidades: number; desloc_margem: number; margem_real: number; alguma: number;
   d_corner: number; d_t95: number; d_low_rate: number; d_out_rate: number; d_V_last: number; d_dup: number;
@@ -67,6 +76,7 @@ export interface Auditoria {
   ajuste_perfil: AjustePerfil[]; entre_turnos: EntreTurnos[]; entre_turnos_top: EntreTurnosTop[]; urna: Urna[]; tempo_bu: TempoBu[];
   eleitorado_resumo: ElResumo[]; eleitorado_top: ElTop[]; eleitorado_uf: ElUf[]; eleitorado_porte: ElPorte[]; eleitorado_persistencia: ElPersistencia[]; eleitorado_voto: ElVoto[];
   crescimento: Crescimento[]; crescimento_top: CrescimentoTop[]; poder: Poder[]; poder_base: PoderBase[];
+  biometria?: Biometria; // ausente em arquivo gerado antes da seção existir
 }
 /** Sections of the fingerprint chart: contest id -> [turnout bin, share bin, sections], 40x40 grid. */
 export type Impressao = Record<string, [number, number, number][]>;

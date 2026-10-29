@@ -6,11 +6,11 @@ import {
 } from "./auditoria-dados.js";
 import { balde, barrasH, coeficientes, colunas, halteres, heat2d, histograma, mapaPontos, obsEsp, ultimoDigito } from "./auditoria-graficos.js";
 import type { Coef, ObsEsp } from "./auditoria-graficos.js";
-import type { Auditoria, Eleicao, Governador, Impressao, PontoMunicipio } from "./auditoria-tipos.js";
+import type { Auditoria, BioTurno, Eleicao, Governador, Impressao, PontoMunicipio } from "./auditoria-tipos.js";
 
 export const SECOES: [string, string][] = [
   ["resumo", "Resumo"], ["eleicao", "Por eleição"], ["investiga", "Investigações"], ["populacao", "Eleitorado × população"],
-  ["governos", "Governadores"], ["poder", "Poder dos testes"], ["metodo", "Método e limites"],
+  ["governos", "Governadores"], ["biometria", "Sem biometria"], ["poder", "Poder dos testes"], ["metodo", "Método e limites"],
 ];
 
 const rot = (e: Eleicao) => e.rotulo.replace(" · ", " ");
@@ -237,6 +237,43 @@ export function governosView(G: Governador[], turno: number, selId: string | nul
         { h: "Seções", num: true, f: (x) => int(x.r.secoes) }, { h: "Testes para conferir", f: (x) => x.s.map((k) => `<span class="au-tag">${h(nomeSinalGov(k))}</span>`).join(" ") },
         { h: "Onde estão as seções do canto 90/90", f: (x) => (x.s.includes("corner") ? `${int(x.r.corner)} seções: ${h(x.r.corner_top ?? "")}${x.r.corner_indig ? `; ${int(x.r.corner_indig)} em escolas indígenas` : ""}` : "") },
       ], lista))}`;
+}
+
+// ------------------------------------------------------------------ Sem biometria
+// 21 bins of the file (0 exact + 20 slices of 5 points) shown as 7 bars, so the labels fit
+const FAIXAS_BIO = ["0", "0–10%", "10–20%", "20–30%", "30–40%", "40–50%", "mais de 50%"];
+export const faixasBio = (h: number[]): number[] => [h[0], ...[1, 3, 5, 7, 9].map((i) => (h[i] ?? 0) + (h[i + 1] ?? 0)), h.slice(11).reduce((a, b) => a + b, 0)];
+export function biometriaView(a: Auditoria, id: string): string {
+  const B = a.biometria;
+  if (!B || !B.turnos.length) return nota(`<b>Dado ainda não gerado</b><span>Rode <code>python3 docs/forense/scripts/bio.py agg</code> e depois <code>bun run radar:auditoria</code>.</span>`, "info");
+  const t = B.turnos.find((x) => x.id === id) ?? B.turnos[B.turnos.length - 1];
+  const ufs = B.uf.filter((r) => r.id === t.id).sort((x, y) => y.pct - x.pct);
+  const modelos = B.modelo.filter((r) => r.id === t.id).sort((x, y) => y.comp - x.comp);
+  const falta = t.ufs_faltando.length ? `Arquivo de ${t.ufs_faltando.map(h).join(", ")} ainda não publicado pelo TSE: o total abaixo não os inclui.` : "";
+  const semDado = t.secoes_sem_dado ? `${int(t.secoes_sem_dado)} seções vêm sem o campo no arquivo do TSE e não entram na soma.` : "";
+  const barras = faixasBio(t.hist);
+  const hist = barras.map((n, i) => ({ k: FAIXAS_BIO[i], v: n, tip: `${i === 0 ? "Nenhum votante sem biometria" : `${FAIXAS_BIO[i]} dos votantes sem biometria`}: ${int(n)} seções`, flag: i === barras.length - 1 }));
+  return `<p class="au-lede">${h(t.rotulo)}: <b>${int(t.nh)}</b> eleitores com biometria cadastrada votaram para Presidente <b>sem serem habilitados por ela</b>, <b>${pc(t.nh_pct, 1)}</b> dos <b>${int(t.comp)}</b> que compareceram. É um mínimo: o Boletim de Urna não conta quem nem tinha biometria cadastrada.</p>
+    ${nota(`<b>O que o número é</b><span>É o campo do Boletim de Urna "eleitores com biometria, mas que não foram habilitados por meio dela". Cada eleitor dá um voto para Presidente, então é também o número de votos. Fica de fora quem votou sem ter biometria cadastrada. A biometria falhar é comum (digital gasta, leitor, cadastro) e o eleitor segue votando, habilitado de outra forma. É um fato para conferir, não é irregularidade por si.</span>`, "info")}
+    ${chips(B.turnos.map((x) => [x.id, x.rotulo.replace(" · ", " ")] as [string, string]), t.id, "aud-bio")}
+    ${falta || semDado ? nota(`<span>${[falta, semDado].filter(Boolean).join(" ")}</span>`, "info") : ""}
+    ${sec("Todos os turnos", "Mesma conta nos seis turnos de Presidente com o campo publicado (2018, 2022 e 2026).",
+      tabela("Eleitores sem biometria por turno", [
+        { h: "Turno", f: (r: BioTurno) => h(r.rotulo) }, { h: "Compareceram", num: true, f: (r) => int(r.comp) }, { h: "Sem biometria", num: true, f: (r) => int(r.nh) },
+        { h: "% do comparecimento", num: true, f: (r) => pc(r.nh_pct, 1) }, { h: "Seções com algum", num: true, f: (r) => `${pc(r.secoes_com_nh / Math.max(1, r.secoes - r.secoes_sem_dado), 0)}` },
+        { h: "Seções acima de 50%", num: true, f: (r) => int(r.secoes_gt50) },
+      ], B.turnos))}
+    ${sec("Como se distribui", "Cada barra é a quantidade de seções cuja fatia de votantes sem biometria cai na faixa (seções com 20+ votantes). Seção com a maioria dos votantes sem biometria é rara; essa faixa aparece em âmbar.",
+      `<div class="au-grid w2">
+        ${card(`Seções por fatia sem biometria · ${t.rotulo.replace(" · ", " ")}`, colunas(hist, { max: Math.max(1, ...barras), fmt: (v) => int(v), xlabel: "fatia dos votantes da seção sem biometria", label: "Seções por fatia de votantes sem biometria", alt: 210 })
+          + `<p class="muted small">Mediana: <b>${pc(t.mediana_pct, 1)}</b> por seção; 99% das seções ficam abaixo de <b>${pc(t.p99_pct, 0)}</b>. Seções em que o campo é maior que o comparecimento: <b>${int(t.nh_maior_que_comp)}</b>.</p>`)}
+        ${card("Por UF (maior fatia primeiro)", barrasH(ufs.map((r) => ({ k: r.uf === "ZZ" ? "Ext." : r.uf, v: r.pct * 100, tip: `${r.uf}: ${int(r.nh)} de ${int(r.comp)} (${pc(r.pct, 1)})` })), { max: Math.max(5, Math.ceil(Math.max(0, ...ufs.map((r) => r.pct * 100)) / 5) * 5), fmt: (v) => `${dec(v, 1)}%`, label: "Fatia dos votantes sem biometria por UF" }) + `<p class="muted small">A diferença entre estados acompanha o cadastro biométrico e o equipamento (veja o modelo de urna abaixo); não indica problema por si.</p>`)}
+      </div>`)}
+    ${modelos.length ? sec("Por modelo de urna", "Cada modelo de urna tem um leitor biométrico diferente: a fatia varia muito entre modelos, o que mostra quanto do número vem do equipamento (modelos com 100+ seções).",
+      tabela("Eleitores sem biometria por modelo de urna", [
+        { h: "Modelo", f: (r) => h(r.modelo) }, { h: "Seções", num: true, f: (r) => int(r.secoes) }, { h: "Compareceram", num: true, f: (r) => int(r.comp) },
+        { h: "Sem biometria", num: true, f: (r) => int(r.nh) }, { h: "%", num: true, f: (r) => pc(r.pct, 1) },
+      ], modelos)) : ""}`;
 }
 
 // ------------------------------------------------------------------ Poder dos testes

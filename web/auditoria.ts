@@ -3,7 +3,7 @@
 // The small main file loads with the tab; the three big ones (fingerprint grid, municipal map, governors) only when their section opens.
 import { h } from "./format.js";
 import { keepFocus } from "./focus.js";
-import { aguardando, eleicaoView, governosView, investigaView, metodoView, poderView, populacaoView, resumoView, SECOES, semDados } from "./auditoria-view.js";
+import { aguardando, biometriaView, eleicaoView, governosView, investigaView, metodoView, poderView, populacaoView, resumoView, SECOES, semDados } from "./auditoria-view.js";
 import type { MapaCtx } from "./auditoria-view.js";
 import type { Auditoria, Governador, Impressao, PontoMunicipio } from "./auditoria-tipos.js";
 
@@ -15,8 +15,8 @@ const lerJson: Ler = async <T>(caminho: string) => {
   return (await r.json()) as T;
 };
 
-export interface Estado { sec: string; eleicao: string; urna: string; ano: string; gturno: number; gsel: string | null }
-export const estadoInicial = (): Estado => ({ sec: "resumo", eleicao: "2022-1", urna: "2022-1", ano: "2022", gturno: 1, gsel: null });
+export interface Estado { sec: string; eleicao: string; urna: string; ano: string; gturno: number; gsel: string | null; bio: string }
+export const estadoInicial = (): Estado => ({ sec: "resumo", eleicao: "2022-1", urna: "2022-1", ano: "2022", gturno: 1, gsel: null, bio: "2022-1" });
 
 export function mountAuditoria(root: HTMLElement, ler: Ler = lerJson) {
   const st = estadoInicial();
@@ -48,6 +48,7 @@ export function mountAuditoria(root: HTMLElement, ler: Ler = lerJson) {
       case "investiga": return investigaView(dados, st.urna);
       case "populacao": return populacaoView(dados, extra.mapa ?? null, st.ano);
       case "governos": return extra.gov ? governosView(extra.gov, st.gturno, st.gsel) : aguardando("os governadores");
+      case "biometria": return biometriaView(dados, st.bio);
       case "poder": return poderView(dados);
       case "metodo": return metodoView(dados);
       default: return resumoView(dados);
@@ -71,7 +72,7 @@ export function mountAuditoria(root: HTMLElement, ler: Ler = lerJson) {
   };
 
   root.addEventListener("click", (e) => {
-    const alvo = (e.target as HTMLElement).closest<HTMLElement>("[data-aud-sec],[data-aud-go],[data-aud-eleicao],[data-aud-urna],[data-aud-ano],[data-aud-gturno],[data-aud-gsel]");
+    const alvo = (e.target as HTMLElement).closest<HTMLElement>("[data-aud-sec],[data-aud-go],[data-aud-eleicao],[data-aud-urna],[data-aud-ano],[data-aud-gturno],[data-aud-gsel],[data-aud-bio]");
     if (!alvo) return;
     const d = alvo.dataset;
     if (d.audSec) st.sec = d.audSec;
@@ -81,6 +82,7 @@ export function mountAuditoria(root: HTMLElement, ler: Ler = lerJson) {
     else if (d.audAno) st.ano = d.audAno;
     else if (d.audGturno) { st.gturno = Number(d.audGturno); st.gsel = null; }
     else if (d.audGsel) st.gsel = d.audGsel;
+    else if (d.audBio) st.bio = d.audBio;
     desenhar();
     if (d.audGo) root.querySelector<HTMLElement>(".au-root")?.scrollIntoView({ block: "start" });
   });
