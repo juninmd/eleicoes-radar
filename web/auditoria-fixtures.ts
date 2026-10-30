@@ -1,5 +1,5 @@
 // Small synthetic data in the shape of web/data/auditoria/*.json, for the Auditoria tests. Not real election data.
-import type { Auditoria, Eleicao, Governador, Impressao, PontoMunicipio } from "./auditoria-tipos.js";
+import type { Auditoria, Eleicao, Governador, Impressao, MapaVoto, PontoMunicipio, Correl } from "./auditoria-tipos.js";
 
 export function eleicao(id = "2022-1", sobre: Partial<Eleicao> = {}): Eleicao {
   const [ano, turno] = id.split("-").map(Number);
@@ -67,3 +67,33 @@ export function governador(sobre: Partial<Governador> = {}): Governador {
     ...sobre,
   };
 }
+
+// alinhado a pontos(): 2 municípios; o 2º tem o primeiro turno sem dado
+export const mapaVotoFx = (): MapaVoto => ({
+  municipios: 2,
+  turnos: [
+    { id: "2022-2", ano: 2022, turno: 2, rotulo: "2022 · 2º turno", cands: [{ n: 13, nome: "Candidato A", pct: 50.9, votos: 60 }, { n: 22, nome: "Candidato B", pct: 49.1, votos: 58 }], outros_pct: 0, ganhos: [1, 1, 0, 0, 0, 0, 0], sem_dado: 0, rows: [[0, 620, 380, 1], [1, 540, 460, 0]] },
+    { id: "2026-2", ano: 2026, turno: 2, rotulo: "2026 · 2º turno", cands: [{ n: 13, nome: "Candidato A", pct: 51, votos: 60 }, { n: 22, nome: "Candidato B", pct: 49, votos: 58 }], outros_pct: 0, ganhos: [1, 0, 0, 0, 0, 0, 0], sem_dado: 1, rows: [[0, 600, 400, 1], null] },
+  ],
+});
+
+const quintis = (a: number[]) => a.map((pt, i) => ({ med: 2 + i * 6, n: 1100, pt }));
+const ef = (corr: number, fe: number, conj: number, q: number[]) => ({ corr, fe, fe_ep: 1.4, n: 5500, q: quintis(q), conj, conj_ep: 0.4 });
+// alinhado a pontos(): 2 municípios
+export const correlFx = (): Correl => ({
+  municipios: 2, pib_ano: 2023, perfil_2026_usa: 2022,
+  bf: { "2018": { programa: "Bolsa Família", mes: "201809", pessoas: 13700000, sem_dado: 1 }, "2022": { programa: "Auxílio Brasil", mes: "202209", pessoas: 20000000, sem_dado: 0 } },
+  vars: [
+    { k: "bf100", grupo: "Renda e economia", nome: "Pessoas no Bolsa Família", unid: "por 100 habitantes", fmt: "n1", cortes: [2, 5, 8, 12, 16, 20, 25, 30], log: false, fonte: "CGU", anual: true },
+    { k: "pibpc", grupo: "Renda e economia", nome: "PIB per capita", unid: "R$ por habitante", fmt: "rs", cortes: [15000, 20000, 26000, 34000, 45000, 65000, 100000, 200000], log: true, fonte: "IBGE", anual: false },
+    { k: "ant", grupo: "Voto e participação", nome: "Fatia do candidato 13 no 2º turno anterior", unid: "% dos votos", fmt: "pct", cortes: [20, 30, 40, 50, 60, 70, 80, 90], log: false, fonte: "TSE", anual: true },
+    { k: "e60", grupo: "Eleitorado (perfil do TSE)", nome: "Eleitores com 60 anos ou mais", unid: "% do eleitorado", fmt: "pct", cortes: [10, 14, 18, 22, 26, 30, 34, 38], log: false, fonte: "TSE", anual: true },
+  ],
+  valores: { bf100: { "2018": [8, null], "2022": [10, 30] }, pibpc: [30000, 15000], ant: { "2018": [40, 60], "2022": [45, 65] }, e60: { "2018": [18, 20], "2022": [20, 22] } },
+  pt: { "2018-2": [400, null], "2022-2": [450, 700] },
+  turnos: [
+    { id: "2018-2", ano: 2018, candidato: "Candidato A", n: 5500, n_conj: 5400, efeitos: { bf100: ef(0.86, 11.4, 2.5, [0.3, 0.37, 0.5, 0.7, 0.8]), pibpc: ef(-0.68, -5.3, 1.6, [0.8, 0.64, 0.49, 0.37, 0.34]), ant: ef(0.89, 15.2, 11.5, [0.2, 0.3, 0.5, 0.7, 0.8]), e60: ef(-0.23, 2.2, 2.9, [0.5, 0.5, 0.5, 0.5, 0.5]) } },
+    { id: "2022-2", ano: 2022, candidato: "Candidato A", n: 5500, n_conj: 5400, efeitos: { bf100: ef(0.76, 7.9, -0.46, [0.37, 0.46, 0.53, 0.66, 0.75]), pibpc: ef(-0.6, -4, 0.1, [0.77, 0.65, 0.53, 0.43, 0.43]), ant: ef(0.96, 16.8, 18.5, [0.2, 0.3, 0.5, 0.7, 0.8]), e60: ef(-0.18, 1, 0.6, [0.5, 0.5, 0.5, 0.5, 0.5]) } },
+  ],
+  mudanca: [{ id: "2022-2", de: "2018-2", n: 5536, corr: -0.26, fe: -1.2, fe_ep: 0.8, dbf_med: 2.4, dsh_med: 1.5, q: [{ med: 0.3, n: 1100, d: 4.3 }, { med: 1.4, n: 1100, d: 8.9 }, { med: 2.4, n: 1100, d: 7.5 }, { med: 3.7, n: 1100, d: 3.6 }, { med: 6.3, n: 1100, d: 4.1 }] }],
+});

@@ -4,13 +4,13 @@ import { h, int } from "./format.js";
 import {
   CENARIOS, COLUNAS_PODER, dec, maiorCurtose, media, nomeSinalGov, paraConferir, pc, posicaoNoLocal, reducoes, sinaisGov, sinal, statusDe, TESTES, totais,
 } from "./auditoria-dados.js";
-import { balde, barrasH, coeficientes, colunas, halteres, heat2d, histograma, mapaPontos, obsEsp, ultimoDigito } from "./auditoria-graficos.js";
+import { balde, barrasH, classeDe, coeficientes, colunas, ESCALA_FATIA, forcaClasse, forcaVoto, halteres, heat2d, histograma, mapaEscala, mapaPontos, mapaVoto, obsEsp, ultimoDigito } from "./auditoria-graficos.js";
 import type { Coef, ObsEsp } from "./auditoria-graficos.js";
-import type { Auditoria, BioTurno, Eleicao, Governador, Impressao, PontoMunicipio } from "./auditoria-tipos.js";
+import type { Auditoria, BioTurno, Eleicao, Governador, Impressao, MapaVoto, PontoMunicipio, Correl, CorrEfeito, CorrVar } from "./auditoria-tipos.js";
 
 export const SECOES: [string, string][] = [
   ["resumo", "Resumo"], ["eleicao", "Por eleição"], ["investiga", "Investigações"], ["populacao", "Eleitorado × população"],
-  ["governos", "Governadores"], ["biometria", "Sem biometria"], ["poder", "Poder dos testes"], ["metodo", "Método e limites"],
+  ["mapavoto", "Mais votado"], ["correl", "Correlações"], ["governos", "Governadores"], ["biometria", "Sem biometria"], ["poder", "Poder dos testes"], ["metodo", "Método e limites"],
 ];
 
 const rot = (e: Eleicao) => e.rotulo.replace(" · ", " ");
@@ -201,8 +201,74 @@ export function populacaoView(a: Auditoria, mapa: MapaCtx | null, ano: string): 
         { h: "Fora do padrão (alto)", num: true, f: (r) => int(r.z_alto) }, { h: "Fora do padrão (baixo)", num: true, f: (r) => int(r.z_baixo) },
         { h: "Maior alta", f: (r) => { const t = a.crescimento_top.find((x) => x.periodo === r.periodo && x.rank === 1); return t ? `${h(t.mun)}-${h(t.uf)} (${pc(t.cresc)})` : ""; } },
       ], a.crescimento)}</div>`)}
-    ${nota(`<b>Bolsa Família × voto: não executado</b><span>Os arquivos mensais por município do Portal da Transparência (CGU) e do MDS negaram acesso a partir do ambiente da análise, e não há alternativa aberta equivalente. A malha municipal e os dados de voto por município já estão prontos; o cruzamento exige baixar o arquivo e repetir o recorte por quintil acima, com controle de renda do Censo. Só agregados por município entram; nome e NIS de beneficiário, nunca.</span>`, "info")}`;
+    ${nota(`<b>Bolsa Família e voto</b><span>O cruzamento com o Bolsa Família (e com outras 20 variáveis do Censo, do TSE e da CGU) está na seção "Correlações", com o recorte por estado e o teste de mudança entre eleições. Só entram agregados por município; nome e NIS de beneficiário, nunca.</span>`, "info")}`;
 }
+
+// ------------------------------------------------------------------ Mais votado por município
+export function mapaVotoView(mv: MapaVoto | null, mapa: MapaCtx | null, id: string): string {
+  if (!mv || !mapa) return aguardando("o mapa");
+  const t = mv.turnos.find((x) => x.id === id) ?? mv.turnos[mv.turnos.length - 1];
+  if (!t) return semDados();
+  if (mapa.pontos.length !== t.rows.length) return nota(`<b>Arquivos fora de sincronia</b><span>O mapa e o resultado por município têm tamanhos diferentes; gere os dois de novo com <code>bun run radar:auditoria</code>.</span>`, "info");
+  const nomes = t.cands.map((c) => c.nome);
+  const lider = t.cands.map((c, i) => ({ c, i, n: t.ganhos[i] ?? 0 })).filter((x) => x.n > 0);
+  const total = t.ganhos.reduce((a, b) => a + b, 0);
+  const legenda = t.cands.map((c, i) => `<span><i class="au-sw vt c${i}" style="--p:100%"></i>${h(c.nome)} <span class="muted">${dec(c.pct, 1)}% dos votos · ${int(t.ganhos[i] ?? 0)} municípios</span></span>`).join("");
+  const fracos = [0, 10, 20, 40].map((m) => `<span><i class="au-sw vt c0" style="--p:${forcaVoto(m)}%"></i>${m ? `+${m} p.p.` : "empate"}</span>`).join("");
+  return `<p class="au-lede">${h(t.rotulo)}: ${lider.map((x) => `<b>${h(x.c.nome)}</b> foi o mais votado em <b>${int(x.n)}</b> municípios (${pc(x.n / Math.max(1, total), 0)})`).join(" e ")}. Cada ponto é um município, com área proporcional ao eleitorado: o mapa mostra onde cada um liderou, não quantos votos teve.</p>
+    ${chips(mv.turnos.map((x) => [x.id, x.rotulo.replace(" · ", " ")] as [string, string]), t.id, "aud-mv")}
+    ${card(`Candidato mais votado por município · ${t.rotulo.replace(" · ", " ")}`, `${mapaVoto(mapa.ufs, mapa.viewBox, mapa.pontos, t.rows, nomes)}<div class="au-legend">${legenda}</div><div class="au-legend"><span class="muted">cor mais forte = vantagem maior sobre o 2º:</span>${fracos}</div>`)}
+    ${nota(`<b>Como ler</b><span>"Mais votado" no município não é "eleito": o eleito é o que o TSE marca. As cores são só de candidatos, sem agrupar partido nem lado, e mudam de turno para turno (a ordem é a de votos no país). Município pequeno pesa o mesmo que uma capital na contagem de municípios, não nos votos.${t.sem_dado ? ` ${int(t.sem_dado)} municípios sem dado ficam em branco.` : ""}</span>`, "info")}`;
+}
+
+// ------------------------------------------------------------------ Correlações
+const mesAno = (m: string) => `${m.slice(4)}/${m.slice(0, 4)}`;
+const pp = (v: number, ep: number) => `${v >= 0 ? "+" : "−"}${dec(Math.abs(v), 1)} p.p. (± ${dec(1.96 * ep, 1)})`;
+const valorDe = (v: CorrVar, x: number) => (v.fmt === "pct" ? `${dec(x, 1)}%` : v.fmt === "rs" ? `R$ ${int(Math.round(x))}` : v.fmt === "n1" ? dec(x, 1) : int(Math.round(x)));
+const eixoDe = (v: CorrVar, x: number) => (v.fmt === "pct" ? `${dec(x, 0)}%` : v.fmt === "rs" ? (x >= 1000 ? `${dec(x / 1000, x >= 10000 ? 0 : 1)} mil` : dec(x, 0)) : x >= 1e6 ? `${dec(x / 1e6, 1)} mi` : x >= 1000 ? `${dec(x / 1000, 0)} mil` : dec(x, v.fmt === "n1" ? 0 : 0));
+/** Series of a variable for one election year; the 2026 electorate profile reuses 2022. */
+export function serieDe(C: Correl, k: string, ano: number): (number | null)[] {
+  const s = C.valores[k];
+  if (Array.isArray(s)) return s;
+  return s[String(ano)] ?? (ano === 2026 ? s[String(C.perfil_2026_usa)] : undefined) ?? [];
+}
+const significativo = (e: CorrEfeito, campo: "fe" | "conj") => Math.abs(e[campo]) > 1.96 * e[campo === "fe" ? "fe_ep" : "conj_ep"];
+export function correlView(C: Correl | null, mapa: MapaCtx | null, id: string, vk: string): string {
+  if (!C || !mapa) return aguardando("o mapa");
+  const t = C.turnos.find((x) => x.id === id) ?? C.turnos[C.turnos.length - 1];
+  if (!t) return semDados();
+  if (mapa.pontos.length !== C.municipios) return nota(`<b>Arquivos fora de sincronia</b><span>O mapa e os dados de correlação têm tamanhos diferentes; gere os dois de novo com <code>bun run radar:auditoria</code>.</span>`, "info");
+  const v = C.vars.find((x) => x.k === vk && t.efeitos[x.k]) ?? C.vars.find((x) => t.efeitos[x.k]) ?? C.vars[0];
+  const e = t.efeitos[v.k], pt = C.pt[t.id].map((x) => (x == null ? null : x / 10));
+  const ordem = C.vars.filter((x) => t.efeitos[x.k]).sort((a, b) => Math.abs(t.efeitos[b.k].corr) - Math.abs(t.efeitos[a.k].corr));
+  const bf = t.efeitos["bf100"], ant = t.efeitos["ant"], fonte = C.bf[String(t.ano)];
+  const mud = C.mudanca.find((x) => x.id === t.id);
+  const nomeBf = fonte ? fonte.programa : "Bolsa Família";
+  const sw = (k: number, n: number, cor: string, rot: string) => `<span><i class="au-sw rd ${cor}" style="--p:${forcaClasse(k, n)}%"></i>${rot}</span>`;
+  const leg = (cortes: number[], cor: string, fmt: (x: number) => string) => [0, 2, 4, 6, 8].map((k) => sw(k, cortes.length, cor, k === 0 ? `até ${fmt(cortes[0])}` : `${fmt(cortes[k - 1])}+`)).join("");
+  const barras = (qs: CorrEfeito["q"], nome: string) => colunas(qs.map((q, i) => ({ k: eixoDe(v, q.med), v: q.pt * 100, tip: `${i + 1}º quinto (mediana ${valorDe(v, q.med)}): ${t.candidato} ${pc(q.pt, 1)} dos votos, ${int(q.n)} municípios` })), { max: 100, ref: 50, fmt: (x) => `${dec(x, 0)}%`, axis: (x) => `${dec(x, 0)}%`, xlabel: nome, label: `Fatia de ${t.candidato} por quinto de municípios, segundo ${v.nome}`, alt: 200 });
+  const linhas = ordem.map((x) => { const ef = t.efeitos[x.k]; return { x, ef }; });
+  const tab = `<div class="scroll"><table class="au-table"><caption class="sr">Variáveis municipais em ordem de correlação com a fatia de ${h(t.candidato)}</caption><thead><tr><th scope="col">Variável</th><th scope="col" class="num">Correlação</th><th scope="col" class="num">Mesmo estado, +1 desvio-padrão</th><th scope="col" class="num">Com todas as outras</th></tr></thead><tbody>${linhas.map(({ x, ef }) =>
+    `<tr><td><button type="button" class="au-var" data-aud-cv="${h(x.k)}" aria-pressed="${x.k === v.k}">${h(x.nome)}</button><small class="muted"> ${h(x.unid)}</small></td><td class="num">${ef.corr > 0 ? "+" : "−"}${dec(Math.abs(ef.corr), 2)}</td><td class="num">${pp(ef.fe, ef.fe_ep)}</td><td class="num${significativo(ef, "conj") ? "" : " muted"}">${pp(ef.conj, ef.conj_ep)}</td></tr>`).join("")}</tbody></table></div>`;
+  const tres = ordem.slice(0, 3).map((x) => `<b>${h(x.nome.toLowerCase())}</b> (${t.efeitos[x.k].corr > 0 ? "+" : "−"}${dec(Math.abs(t.efeitos[x.k].corr), 2)})`).join(", ");
+  const conjBf = bf ? (Math.abs(bf.conj) < 1 ? `fica perto de zero (${pp(bf.conj, bf.conj_ep)} por desvio-padrão): praticamente some` : significativo(bf, "conj") ? `continua com associação de ${pp(bf.conj, bf.conj_ep)} por desvio-padrão` : `fica em ${pp(bf.conj, bf.conj_ep)} por desvio-padrão, sem se distinguir de zero`) : "";
+  const mudTxt = mud ? `Entre ${h(mud.de.slice(0, 4))} e ${h(String(t.ano))}, nos municípios onde o ${h(nomeBf)} cresceu mais por habitante, a fatia mudou ${pp(mud.fe, mud.fe_ep)} a cada +10 pessoas por 100 habitantes a mais (comparando municípios do mesmo estado).` : "";
+  const tabMud = mud ? tabela("Mudança da fatia por quinto de crescimento do programa", [
+    { h: "Crescimento do programa (pessoas por 100 hab.)", f: (r: CorrMudLinha) => `${r.med >= 0 ? "+" : "−"}${dec(Math.abs(r.med), 1)}` }, { h: "Municípios", num: true, f: (r) => int(r.n) }, { h: "Mudança na fatia (p.p.)", num: true, f: (r) => `${r.d >= 0 ? "+" : "−"}${dec(Math.abs(r.d), 1)}` },
+  ], mud.q) : "";
+  return `<p class="au-lede">${h(String(t.ano))}, 2º turno, ${int(t.n)} municípios. As variáveis que mais andam junto com a fatia de <b>${h(t.candidato)}</b>: ${tres}. O ${h(nomeBf)} anda junto (<b>${bf ? `${bf.corr > 0 ? "+" : "−"}${dec(Math.abs(bf.corr), 2)}` : "–"}</b>), mas o que mais explica a fatia de hoje é a fatia que o mesmo município deu no 2º turno anterior${ant ? ` (<b>+${dec(ant.corr, 2)}</b>)` : ""}. Com todas as variáveis juntas e dentro do mesmo estado, o ${h(nomeBf)} ${conjBf}. É associação entre municípios: não mostra como cada pessoa votou nem o que fez o voto mudar.</p>
+    ${chips(C.turnos.map((x) => [x.id, `${x.ano} 2º turno`] as [string, string]), t.id, "aud-rd")}
+    ${sec("Todas as variáveis", "Ponderado pelos votos do município. \"Mesmo estado\" compara só municípios do mesmo estado (efeito fixo de UF), em p.p. de fatia por +1 desvio-padrão da variável, o que permite comparar unidades diferentes; \"com todas as outras\" repete a conta com todas as variáveis juntas (colinearidade alta: leia o sinal com cuidado). Toque numa variável para ver o mapa.", `<div class="au-card">${tab}</div>`)}
+    <div class="au-grid w2">
+      ${card(`${v.nome} (${v.unid})`, `${mapaEscala(mapa.ufs, mapa.viewBox, mapa.pontos, serieDe(C, v.k, t.ano), v.cortes, { cor: "b", fmt: (x) => `${valorDe(v, x)}`, label: `Mapa de municípios por ${v.nome}` })}<div class="au-legend">${leg(v.cortes, "b", (x) => eixoDe(v, x))}</div><p class="muted small">Fonte: ${h(v.fonte)}.</p>`)}
+      ${card(`Fatia de ${t.candidato} no 2º turno`, `${mapaEscala(mapa.ufs, mapa.viewBox, mapa.pontos, pt, ESCALA_FATIA, { cor: "v", fmt: (x) => `${t.candidato} ${dec(x, 1)}% dos votos`, label: `Mapa de municípios pela fatia de ${t.candidato} no 2º turno` })}<div class="au-legend">${leg(ESCALA_FATIA, "v", (x) => `${x}%`)}</div>`)}
+      ${card(`Fatia por quinto de municípios · ${v.nome}`, `${barras(e.q, `${v.nome} (mediana do quinto)`)}<p class="muted small">Cada barra é um quinto dos municípios, do menor ao maior valor; a altura é a fatia do candidato nos votos do grupo. A linha tracejada marca 50%.</p>`)}
+      ${card("Como ler a variável escolhida", `<dl class="au-kv wide"><dt>Correlação</dt><dd>${e.corr > 0 ? "+" : "−"}${dec(Math.abs(e.corr), 2)}</dd><dt>Mesmo estado, +1 DP</dt><dd>${pp(e.fe, e.fe_ep)}</dd><dt>Com todas as outras</dt><dd>${pp(e.conj, e.conj_ep)}</dd><dt>Municípios</dt><dd>${int(e.n)}</dd></dl><p class="muted small">${v.k === "ant" ? "É a fatia que o mesmo município deu no 2º turno anterior de Presidente: mostra o quanto o padrão de voto de cada lugar se repete." : v.k === "bf100" ? `Pessoas que receberam o ${h(nomeBf)} em ${fonte ? mesAno(fonte.mes) : ""} sobre a população do Censo 2022 (inclui parcelas retroativas).` : v.grupo.startsWith("Eleitorado") && t.ano === 2026 ? `Perfil do eleitorado de ${C.perfil_2026_usa} (o do TSE para 2026 ainda não saiu).` : v.anual ? "Valor do ano da eleição." : `Valor único para os três anos (${h(v.fonte)}).`}</p>`)}
+    </div>
+    ${mud ? sec("Mudança entre eleições", `${mudTxt} Aqui cada município é comparado com ele mesmo quatro anos antes, o que tira o peso do que já era assim.`, `<div class="au-card">${tabMud}</div>`) : ""}
+    ${nota(`<b>Como ler</b><span>Tudo aqui é associação entre municípios: onde uma coisa é alta, a outra tende a ser alta ou baixa. Não diz como cada pessoa votou e não prova que um benefício, uma renda ou outra característica da população tenha mudado o voto. O Bolsa Família é focalizado em renda baixa, então "pessoas por 100 habitantes" também mede pobreza e região; a fatia do 2º turno anterior carrega boa parte do que o município já era. O PIB per capita é média (puxada por indústria e mineração em cidades pequenas); o valor adicionado é de 2021, o PIB de ${C.pib_ano}, e o Censo de 2022 vale para os três anos. Os arquivos da CGU trazem uma linha por pessoa; aqui entra só a contagem por município${fonte ? ` (${int(fonte.sem_dado)} municípios sem dado em ${t.ano}, em branco)` : ""}.</span>`, "info")}`;
+}
+type CorrMudLinha = { med: number; n: number; d: number };
 
 // ------------------------------------------------------------------ Governadores
 export function governosView(G: Governador[], turno: number, selId: string | null): string {

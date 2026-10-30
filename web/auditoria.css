@@ -92,3 +92,21 @@
 .au-pt.lo, .au-sw.lo { fill: color-mix(in srgb, var(--s1) var(--p), var(--sunk)); background: color-mix(in srgb, var(--s1) var(--p), var(--sunk)); }
 .au-pt.hi, .au-sw.hi { fill: color-mix(in srgb, var(--corrige) var(--p), var(--sunk)); background: color-mix(in srgb, var(--corrige) var(--p), var(--sunk)); }
 .au-sw { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--line); }
+
+/* Mais votado por município: uma cor por posição do candidato (ordem de votos no país), força = vantagem sobre o 2º */
+.au-vt { stroke: var(--sunk); stroke-width: 0.25; fill-opacity: 0.9; }
+.au-vt.c0, .au-sw.vt.c0 { fill: color-mix(in srgb, var(--s1) var(--p), var(--sunk)); background: color-mix(in srgb, var(--s1) var(--p), var(--sunk)); }
+.au-vt.c1, .au-sw.vt.c1 { fill: color-mix(in srgb, var(--s2) var(--p), var(--sunk)); background: color-mix(in srgb, var(--s2) var(--p), var(--sunk)); }
+.au-vt.c2, .au-sw.vt.c2 { fill: color-mix(in srgb, var(--s3) var(--p), var(--sunk)); background: color-mix(in srgb, var(--s3) var(--p), var(--sunk)); }
+.au-vt.c3, .au-sw.vt.c3 { fill: color-mix(in srgb, var(--s4) var(--p), var(--sunk)); background: color-mix(in srgb, var(--s4) var(--p), var(--sunk)); }
+.au-vt.c4, .au-sw.vt.c4 { fill: color-mix(in srgb, var(--s5) var(--p), var(--sunk)); background: color-mix(in srgb, var(--s5) var(--p), var(--sunk)); }
+.au-vt.c5, .au-vt.c6, .au-sw.vt.c5, .au-sw.vt.c6 { fill: color-mix(in srgb, var(--muted) var(--p), var(--sunk)); background: color-mix(in srgb, var(--muted) var(--p), var(--sunk)); }
+
+/* Correlações: um tom por mapa, força = classe do valor */
+.au-rd { stroke: var(--sunk); stroke-width: 0.25; fill-opacity: 0.9; }
+.au-rd.b, .au-sw.rd.b { fill: color-mix(in srgb, var(--s1) var(--p), var(--sunk)); background: color-mix(in srgb, var(--s1) var(--p), var(--sunk)); }
+.au-rd.v, .au-sw.rd.v { fill: color-mix(in srgb, var(--s2) var(--p), var(--sunk)); background: color-mix(in srgb, var(--s2) var(--p), var(--sunk)); }
+.au-rd.p, .au-sw.rd.p { fill: color-mix(in srgb, var(--s3) var(--p), var(--sunk)); background: color-mix(in srgb, var(--s3) var(--p), var(--sunk)); }
+.au-var { appearance: none; border: 0; background: none; padding: 0; color: var(--ink); font: 600 13px var(--body); text-align: left; cursor: pointer; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.au-var[aria-pressed="true"] { text-decoration-color: var(--focus); text-decoration-thickness: 2px; }
+.au-var:hover { text-decoration-color: var(--ink-2); }

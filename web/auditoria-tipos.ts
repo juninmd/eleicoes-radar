@@ -81,6 +81,27 @@ export interface Auditoria {
 /** Sections of the fingerprint chart: contest id -> [turnout bin, share bin, sections], 40x40 grid. */
 export type Impressao = Record<string, [number, number, number][]>;
 export interface PontoMunicipio { uf: string; mun: string; x: number; y: number; aptos: number; pop16: number; r22: number | null; r10: number | null }
+// Candidato mais votado por município (mapa-voto.json), linha a linha igual a mapa.json. Fatias em décimos de ponto percentual.
+export interface MvCandidato { n: number; nome: string; pct: number; votos: number }
+export type MvLinha = [number, number, number, number]; // [mais votado, sua fatia, fatia do 2º, índice do 2º]
+export interface MvTurno {
+  id: string; ano: number; turno: number; rotulo: string; cands: MvCandidato[]; outros_pct: number;
+  ganhos: number[]; sem_dado: number; rows: (MvLinha | null)[];
+}
+export interface MapaVoto { municipios: number; turnos: MvTurno[] }
+// Variáveis municipais e quanto cada uma anda junto com a fatia do candidato 13 no 2º turno (correl.json), linha a linha igual a mapa.json.
+// Associação entre municípios; nunca voto de pessoa.
+export interface CorrVar { k: string; grupo: string; nome: string; unid: string; fmt: "pct" | "n1" | "n0" | "rs"; cortes: number[]; log: boolean; fonte: string; anual: boolean }
+export interface CorrQuintil { med: number; n: number; pt: number }
+export interface CorrEfeito { corr: number; fe: number; fe_ep: number; n: number; q: CorrQuintil[]; conj: number; conj_ep: number }
+export interface CorrTurno { id: string; ano: number; candidato: string; n: number; n_conj: number; efeitos: Record<string, CorrEfeito> }
+export interface CorrMud { id: string; de: string; n: number; corr: number; fe: number; fe_ep: number; dbf_med: number; dsh_med: number; q: { med: number; n: number; d: number }[] }
+export interface BfFonte { programa: string; mes: string; pessoas: number; sem_dado: number }
+export type CorrSerie = (number | null)[] | Record<string, (number | null)[]>;
+export interface Correl {
+  municipios: number; pib_ano: number; bf: Record<string, BfFonte>; perfil_2026_usa: number; vars: CorrVar[]; valores: Record<string, CorrSerie>;
+  pt: Record<string, (number | null)[]>; turnos: CorrTurno[]; mudanca: CorrMud[];
+}
 export interface Governador {
   id: string; ano: number; turno: number; uf: string; secoes: number; validos: number; share_a: number; margem: number; margem_pct: number; arit: number;
   t95: number | null; t95_exp: number | null; corner: number | null; corner_esp: number | null; corner_lift: number | null; corr_t_a: number | null;
