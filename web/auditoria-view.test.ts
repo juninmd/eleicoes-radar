@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { auditoria, governador, impressao, mapaVotoFx, pontos, rendaFx } from "./auditoria-fixtures.js";
-import { aguardando, biometriaView, faixasBio, mapaVotoView, rendaView, eleicaoView, governosView, investigaView, metodoView, poderView, populacaoView, resumoView, SECOES, semDados } from "./auditoria-view.js";
+import { auditoria, governador, impressao, mapaVotoFx, pontos, correlFx } from "./auditoria-fixtures.js";
+import { aguardando, biometriaView, faixasBio, mapaVotoView, correlView, eleicaoView, governosView, investigaView, metodoView, poderView, populacaoView, resumoView, SECOES, semDados } from "./auditoria-view.js";
 
 const mapa = { pontos: pontos(), ufs: { SP: { d: "M0 0L10 10" } }, viewBox: [0, 0, 400, 400] };
 const todas = (): string[] => {
   const a = auditoria();
   return [
     resumoView(a), eleicaoView(a, impressao(), "2022-1"), eleicaoView(a, null, "2026-1"), investigaView(a, "2022-1"), populacaoView(a, mapa, "2022"), populacaoView(a, null, "2022"),
-    governosView([governador(), governador({ id: "g2", uf: "BA", arit: 1, corner: 12, corner_lift: 3, corner_top: "Cidade Q" })], 1, "g2"), biometriaView(a, "2022-1"), mapaVotoView(mapaVotoFx(), mapa, "2022-2"), rendaView(rendaFx(), mapa, "2022-2"), poderView(a), metodoView(a),
+    governosView([governador(), governador({ id: "g2", uf: "BA", arit: 1, corner: 12, corner_lift: 3, corner_top: "Cidade Q" })], 1, "g2"), biometriaView(a, "2022-1"), mapaVotoView(mapaVotoFx(), mapa, "2022-2"), correlView(correlFx(), mapa, "2022-2", "bf100"), poderView(a), metodoView(a),
   ];
 };
 
@@ -30,7 +30,7 @@ describe("linguagem: sinal é fato para conferir, nunca acusação", () => {
 
 describe("estrutura", () => {
   test("toda seção tem rótulo e a matriz do resumo abre a eleição pelo id", () => {
-    expect(SECOES.map(([k]) => k)).toEqual(["resumo", "eleicao", "investiga", "populacao", "mapavoto", "renda", "governos", "biometria", "poder", "metodo"]);
+    expect(SECOES.map(([k]) => k)).toEqual(["resumo", "eleicao", "investiga", "populacao", "mapavoto", "correl", "governos", "biometria", "poder", "metodo"]);
     expect(resumoView(auditoria())).toContain('data-aud-go="2026-1"');
   });
   test("a eleição sem o arquivo de impressão digital mostra carregando, não gráfico vazio", () => {
@@ -137,27 +137,43 @@ describe("Mais votado por município", () => {
   });
 });
 
-describe("Renda e Bolsa Família", () => {
-  test("três mapas pintam só o município com dado; sem dado fica em branco", () => {
-    const html = rendaView(rendaFx(), mapa, "2018-2");
+describe("Correlações", () => {
+  test("mapa da variável escolhida e da fatia: só pinta município com dado", () => {
+    const html = correlView(correlFx(), mapa, "2018-2", "bf100");
     expect(html.match(/class="au-rd b"/g)).toHaveLength(1); // o 2º município não tem Bolsa Família em 2018
     expect(html.match(/class="au-rd v"/g)).toHaveLength(1);
-    expect(html.match(/class="au-rd p"/g)).toHaveLength(2);
+    expect(correlView(correlFx(), mapa, "2018-2", "pibpc").match(/class="au-rd b"/g)).toHaveLength(2);
   });
-  test("traz a conta dentro do estado com intervalo e a ressalva de que é associação entre municípios", () => {
-    const html = rendaView(rendaFx(), mapa, "2022-2");
-    expect(html).toContain("+11,8 p.p. (± 2,7)");
-    expect(html).toContain("não mostra como cada beneficiário votou");
-    expect(html).toContain("não provam que o benefício influenciou o voto");
-    expect(html).not.toMatch(/compra de voto|voto de cabresto|fraude/i);
+  test("a tabela ordena por |correlação| e cada variável é um botão", () => {
+    const html = correlView(correlFx(), mapa, "2022-2", "bf100");
+    const ordem = [...html.matchAll(/data-aud-cv="(\w+)"/g)].map((m) => m[1]);
+    expect(ordem).toEqual(["ant", "bf100", "pibpc", "e60"]);
+    expect(html).toContain('data-aud-cv="bf100" aria-pressed="true"');
   });
-  test("usa o nome do programa de cada ano e o mês pago", () => {
-    expect(rendaView(rendaFx(), mapa, "2018-2")).toContain("Bolsa Família: pessoas por 100 habitantes (09/2018)");
-    expect(rendaView(rendaFx(), mapa, "2022-2")).toContain("Auxílio Brasil: pessoas por 100 habitantes (09/2022)");
+  test("diz que o voto anterior pesa mais e que o Bolsa Família some quando se controla o resto", () => {
+    const html = correlView(correlFx(), mapa, "2022-2", "bf100");
+    expect(html).toContain("fatia que o mesmo município deu no 2º turno anterior");
+    expect(html).toContain("praticamente some"); // |conj| < 1 p.p.
+    expect(correlView(correlFx(), mapa, "2018-2", "bf100")).toContain("continua com associação");
   });
-  test("espera os dados e avisa quando mapa e renda não batem", () => {
-    expect(rendaView(null, mapa, "2022-2")).toContain("Carregando");
-    expect(rendaView(rendaFx(), null, "2022-2")).toContain("Carregando");
-    expect(rendaView(rendaFx(), { ...mapa, pontos: pontos().slice(0, 1) }, "2022-2")).toContain("fora de sincronia");
+  test("mostra a mudança entre eleições só onde existe e explica que compara o município com ele mesmo", () => {
+    expect(correlView(correlFx(), mapa, "2022-2", "bf100")).toContain("Mudança entre eleições");
+    expect(correlView(correlFx(), mapa, "2018-2", "bf100")).not.toContain("Mudança entre eleições");
+  });
+  test("ressalva de associação e nenhuma palavra de acusação", () => {
+    const html = correlView(correlFx(), mapa, "2022-2", "pibpc");
+    expect(html).toContain("não prova que um benefício");
+    expect(html).not.toMatch(/compra de voto|cabresto|fraude|vencedor|venceu/i);
+  });
+  test("perfil do eleitorado de 2026 avisa que usa 2022", () => {
+    const fx = correlFx();
+    fx.turnos.push({ ...fx.turnos[1], id: "2026-2", ano: 2026 });
+    fx.pt["2026-2"] = [500, 650];
+    expect(correlView(fx, mapa, "2026-2", "e60")).toContain("Perfil do eleitorado de 2022");
+  });
+  test("espera os dados e avisa quando mapa e dados não batem", () => {
+    expect(correlView(null, mapa, "2022-2", "bf100")).toContain("Carregando");
+    expect(correlView(correlFx(), null, "2022-2", "bf100")).toContain("Carregando");
+    expect(correlView(correlFx(), { ...mapa, pontos: pontos().slice(0, 1) }, "2022-2", "bf100")).toContain("fora de sincronia");
   });
 });

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mountAuditoria } from "./auditoria.js";
-import { auditoria, governador, impressao, mapaVotoFx, pontos, rendaFx } from "./auditoria-fixtures.js";
+import { auditoria, governador, impressao, mapaVotoFx, pontos, correlFx } from "./auditoria-fixtures.js";
 
 // Just enough DOM for the tab: one element with innerHTML, a click listener and the few queries it makes.
 function fakeRoot() {
@@ -26,7 +26,7 @@ function leitor(falhas: Set<string> = new Set()) {
     if (caminho.endsWith("governadores.json")) return [governador()] as T;
     if (caminho.endsWith("mapa.json")) return pontos() as T;
     if (caminho.endsWith("mapa-voto.json")) return mapaVotoFx() as T;
-    if (caminho.endsWith("renda.json")) return rendaFx() as T;
+    if (caminho.endsWith("correl.json")) return correlFx() as T;
     if (caminho === "mapa-uf.json") return { viewBox: [0, 0, 10, 10], ufs: { SP: { d: "M0 0" } } } as T;
     throw new Error(`inesperado ${caminho}`);
   };
@@ -102,19 +102,21 @@ describe("mountAuditoria", () => {
     expect(l.pedidos.sort()).toEqual(["data/auditoria/auditoria.json", "data/auditoria/mapa-voto.json", "data/auditoria/mapa.json", "mapa-uf.json"].sort());
   });
 
-  test("Renda e Bolsa Família pede renda.json e o mapa só ao abrir e troca de ano sem pedir de novo", async () => {
+  test("Correlações pede correl.json e o mapa só ao abrir; trocar de ano e de variável não pede de novo", async () => {
     const l = leitor();
     const { root, el, clicar } = fakeRoot();
     const aba = mountAuditoria(root, l.ler);
     aba.show();
     await noMicrotasks();
-    clicar({ audSec: "renda" });
+    clicar({ audSec: "correl" });
     await noMicrotasks();
     await noMicrotasks();
     expect(el.innerHTML).toContain("au-rd");
     clicar({ audRd: "2018-2" });
-    expect(el.innerHTML).toContain("Bolsa Família: pessoas por 100 habitantes (09/2018)");
-    expect(l.pedidos.sort()).toEqual(["data/auditoria/auditoria.json", "data/auditoria/mapa.json", "data/auditoria/renda.json", "mapa-uf.json"].sort());
+    expect(el.innerHTML).toContain("2018, 2º turno");
+    clicar({ audCv: "pibpc" });
+    expect(el.innerHTML).toContain('data-aud-cv="pibpc" aria-pressed="true"');
+    expect(l.pedidos.sort()).toEqual(["data/auditoria/auditoria.json", "data/auditoria/correl.json", "data/auditoria/mapa.json", "mapa-uf.json"].sort());
   });
 
   test("clicar numa célula do resumo abre aquela eleição", async () => {

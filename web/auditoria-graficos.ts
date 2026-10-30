@@ -133,8 +133,6 @@ export function mapaVoto(ufs: Record<string, UfForma>, viewBox: number[], pts: {
 }
 
 // ---- one-colour map by value classes (income, Bolsa Família, vote share): dots in the same places, strength = class
-export const ESCALA_BF = [2, 5, 8, 12, 16, 20, 25, 30];
-export const ESCALA_PIB = [15000, 20000, 26000, 34000, 45000, 65000, 100000, 200000];
 export const ESCALA_FATIA = [20, 30, 40, 50, 60, 70, 80, 90];
 export const classeDe = (v: number, cortes: number[]) => cortes.filter((c) => v >= c).length; // 0..cortes.length
 export const forcaClasse = (k: number, n: number) => Math.round(32 + 68 * (k / n));

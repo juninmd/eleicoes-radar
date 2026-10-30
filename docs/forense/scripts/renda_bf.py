@@ -76,6 +76,36 @@ def sidra():
     print("sidra", len(df), "PIB ano", df.pib_ano.dropna().unique()[:3], "com PIB", int(df.pib_mil.notna().sum()), "com pop", int(df["pop"].notna().sum()))
 
 
+def sidra2():
+    """Mais variáveis municipais (sem chave): composição do PIB (5938) e Censo 2022 (renda, alfabetização, cor ou raça, situação urbana)."""
+    def get(path):
+        r = urllib.request.Request("https://apisidra.ibge.gov.br/values" + path, headers={"User-Agent": "Mozilla/5.0"})
+        return json.load(urllib.request.urlopen(r, timeout=300))[1:]
+    def num(v):
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return np.nan
+    out = {}
+    def put(rows, nome, chave=lambda r: r["D1C"], val=lambda r: num(r["V"])):
+        for r in rows:
+            out.setdefault(r["D1C"], {})[nome] = val(r)
+    vab = {r: get(f"/t/5938/n6/all/v/{r}/p/2021") for r in (498, 513, 517, 6575, 525)}
+    for v, nome in ((498, "vab"), (513, "vab_agro"), (517, "vab_ind"), (6575, "vab_serv"), (525, "vab_adm")):
+        put(vab[v], nome)
+    put(get("/t/10295/n6/all/p/last/c2/6794/v/13534"), "renda_med")
+    put(get("/t/9543/n6/all/p/last/h/n"), "alfab")
+    cor = get("/t/9605/n6/all/p/last/c86/all")
+    for r in cor:
+        out.setdefault(r["D1C"], {}).setdefault("cor_" + r["D3C"], num(r["V"]))
+    urb = get("/t/9923/n6/all/p/last/c1/all")
+    for r in urb:
+        out.setdefault(r["D1C"], {}).setdefault("urb_" + r["D3C"], num(r["V"]))
+    df = pd.DataFrame.from_dict(out, orient="index").rename_axis("ibge").reset_index()
+    df.to_pickle(os.path.join(WORK, "sidra2.pkl"))
+    print("sidra2", len(df), df.columns.tolist())
+
+
 def norm(s):
     s = unicodedata.normalize("NFKD", str(s)).encode("ascii", "ignore").decode().upper()
     return " ".join(s.replace("'", " ").replace("-", " ").split())
@@ -86,3 +116,5 @@ if __name__ == "__main__":
         baixar_agregar(int(sys.argv[2]))
     elif sys.argv[1] == "sidra":
         sidra()
+    elif sys.argv[1] == "sidra2":
+        sidra2()

@@ -89,16 +89,18 @@ export interface MvTurno {
   ganhos: number[]; sem_dado: number; rows: (MvLinha | null)[];
 }
 export interface MapaVoto { municipios: number; turnos: MvTurno[] }
-// Renda, Bolsa Família e voto por município (renda.json), linha a linha igual a mapa.json. Associação entre municípios; nunca voto de pessoa.
-export interface RendaQuintil { med: number; n: number; pt: number }
-export interface RendaAnalise {
-  id: string; ano: number; candidato: string; n: number; corr_bf: number; corr_pib: number; corr_bf_pib: number; q_bf: RendaQuintil[]; q_pib: RendaQuintil[];
-  fe_bf: number; fe_bf_ep: number; fe_pib: number; fe_pib_ep: number; fe_conj_bf: number; fe_conj_bf_ep: number; fe_conj_pib: number; fe_conj_pib_ep: number;
-}
-export interface RendaFonte { programa: string; mes: string; pessoas: number; casadas: number; municipios_sem_dado: number }
-export interface Renda {
-  municipios: number; pib_ano: number; pop_ano: number; bf: Record<string, RendaFonte>; pop: (number | null)[]; pibpc: (number | null)[];
-  bf100: Record<string, (number | null)[]>; pt: Record<string, (number | null)[]>; analise: RendaAnalise[];
+// Variáveis municipais e quanto cada uma anda junto com a fatia do candidato 13 no 2º turno (correl.json), linha a linha igual a mapa.json.
+// Associação entre municípios; nunca voto de pessoa.
+export interface CorrVar { k: string; grupo: string; nome: string; unid: string; fmt: "pct" | "n1" | "n0" | "rs"; cortes: number[]; log: boolean; fonte: string; anual: boolean }
+export interface CorrQuintil { med: number; n: number; pt: number }
+export interface CorrEfeito { corr: number; fe: number; fe_ep: number; n: number; q: CorrQuintil[]; conj: number; conj_ep: number }
+export interface CorrTurno { id: string; ano: number; candidato: string; n: number; n_conj: number; efeitos: Record<string, CorrEfeito> }
+export interface CorrMud { id: string; de: string; n: number; corr: number; fe: number; fe_ep: number; dbf_med: number; dsh_med: number; q: { med: number; n: number; d: number }[] }
+export interface BfFonte { programa: string; mes: string; pessoas: number; sem_dado: number }
+export type CorrSerie = (number | null)[] | Record<string, (number | null)[]>;
+export interface Correl {
+  municipios: number; pib_ano: number; bf: Record<string, BfFonte>; perfil_2026_usa: number; vars: CorrVar[]; valores: Record<string, CorrSerie>;
+  pt: Record<string, (number | null)[]>; turnos: CorrTurno[]; mudanca: CorrMud[];
 }
 export interface Governador {
   id: string; ano: number; turno: number; uf: string; secoes: number; validos: number; share_a: number; margem: number; margem_pct: number; arit: number;
