@@ -201,7 +201,7 @@ export function populacaoView(a: Auditoria, mapa: MapaCtx | null, ano: string): 
         { h: "Fora do padrão (alto)", num: true, f: (r) => int(r.z_alto) }, { h: "Fora do padrão (baixo)", num: true, f: (r) => int(r.z_baixo) },
         { h: "Maior alta", f: (r) => { const t = a.crescimento_top.find((x) => x.periodo === r.periodo && x.rank === 1); return t ? `${h(t.mun)}-${h(t.uf)} (${pc(t.cresc)})` : ""; } },
       ], a.crescimento)}</div>`)}
-    ${nota(`<b>Bolsa Família × voto: não executado</b><span>Os arquivos mensais por município do Portal da Transparência (CGU) e do MDS negaram acesso a partir do ambiente da análise, e não há alternativa aberta equivalente. A malha municipal e os dados de voto por município já estão prontos; o cruzamento exige baixar o arquivo e repetir o recorte por quintil acima, com controle de renda do Censo. Só agregados por município entram; nome e NIS de beneficiário, nunca.</span>`, "info")}`;
+    ${nota(`<b>Bolsa Família e voto</b><span>O cruzamento com o Bolsa Família (e com outras 20 variáveis do Censo, do TSE e da CGU) está na seção "Correlações", com o recorte por estado e o teste de mudança entre eleições. Só entram agregados por município; nome e NIS de beneficiário, nunca.</span>`, "info")}`;
 }
 
 // ------------------------------------------------------------------ Mais votado por município
