@@ -47,5 +47,7 @@ wr("impressao", imp)
 wr("mapa", rd("eleitorado_mapa"))
 if os.path.exists(os.path.join(DS, "mapa_voto.json")):  # gerado por mapa_voto.py; alinhado linha a linha ao mapa acima
     wr("mapa-voto", rd("mapa_voto"))
+if os.path.exists(os.path.join(DS, "renda.json")):  # gerado por renda_ds.py; também alinhado ao mapa
+    wr("renda", rd("renda"))
 # sem nome de candidato nos sinais de disputas estaduais (AGENTS.md)
 wr("governadores", [{k: v for k, v in r.items() if k not in ("a_nome", "b_nome")} for r in rd("governadores")])

@@ -101,3 +101,9 @@
 .au-vt.c3, .au-sw.vt.c3 { fill: color-mix(in srgb, var(--s4) var(--p), var(--sunk)); background: color-mix(in srgb, var(--s4) var(--p), var(--sunk)); }
 .au-vt.c4, .au-sw.vt.c4 { fill: color-mix(in srgb, var(--s5) var(--p), var(--sunk)); background: color-mix(in srgb, var(--s5) var(--p), var(--sunk)); }
 .au-vt.c5, .au-vt.c6, .au-sw.vt.c5, .au-sw.vt.c6 { fill: color-mix(in srgb, var(--muted) var(--p), var(--sunk)); background: color-mix(in srgb, var(--muted) var(--p), var(--sunk)); }
+
+/* Renda e Bolsa Família: um tom por mapa, força = classe do valor */
+.au-rd { stroke: var(--sunk); stroke-width: 0.25; fill-opacity: 0.9; }
+.au-rd.b, .au-sw.rd.b { fill: color-mix(in srgb, var(--s1) var(--p), var(--sunk)); background: color-mix(in srgb, var(--s1) var(--p), var(--sunk)); }
+.au-rd.v, .au-sw.rd.v { fill: color-mix(in srgb, var(--s2) var(--p), var(--sunk)); background: color-mix(in srgb, var(--s2) var(--p), var(--sunk)); }
+.au-rd.p, .au-sw.rd.p { fill: color-mix(in srgb, var(--s3) var(--p), var(--sunk)); background: color-mix(in srgb, var(--s3) var(--p), var(--sunk)); }

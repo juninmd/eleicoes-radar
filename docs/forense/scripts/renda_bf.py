@@ -1,0 +1,88 @@
+"""Bolsa Família (e Auxílio Brasil) por município no mês anterior a cada eleição, PIB e população do IBGE.
+
+Fontes (sem chave):
+  CGU/Portal da Transparência: https://dadosabertos-download.cgu.gov.br/PortalDaTransparencia/saida/<pasta>/<AAAAMM>_<arquivo>.zip
+    2018-09 bolsa-familia-pagamentos/201809_BolsaFamilia_Pagamentos.zip   (Bolsa Família)
+    2022-09 auxilio-brasil-saques/202209_AuxilioBrasil.zip                (Auxílio Brasil, por saque no mês de competência)
+    2026-09 novo-bolsa-familia/202609_NovoBolsaFamilia.zip                (Novo Bolsa Família)
+  Os arquivos têm UMA LINHA POR PESSOA (CPF mascarado, NIS, nome): aqui só se conta, por município, quantos NIS distintos receberam
+  no mês e o valor; nenhum dado individual sai deste script.
+  IBGE SIDRA: tabela 5938 (PIB dos Municípios, variável 37, mil R$ correntes, último ano) e 4714 (população residente, Censo 2022).
+
+  python3 renda_bf.py bf <ano>     # baixa o zip, agrega por (UF, código SIAFI) e apaga o zip -> work/bf_<ano>.pkl
+  python3 renda_bf.py sidra        # PIB e população -> work/sidra.pkl
+"""
+import json
+import os
+import subprocess
+import sys
+import unicodedata
+import urllib.request
+import zipfile
+
+import numpy as np
+import pandas as pd
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from lib import BASE, WORK  # noqa: E402
+
+B = "https://dadosabertos-download.cgu.gov.br/PortalDaTransparencia/saida/"
+ARQ = {
+    2018: ("bolsa-familia-pagamentos/201809_BolsaFamilia_Pagamentos.zip", "Bolsa Família", "201809"),
+    2022: ("auxilio-brasil-saques/202209_AuxilioBrasil.zip", "Auxílio Brasil", "202209"),
+    2026: ("novo-bolsa-familia/202609_NovoBolsaFamilia.zip", "Novo Bolsa Família", "202609"),
+}
+
+
+def baixar_agregar(ano):
+    url, programa, mes = ARQ[ano]
+    pasta = os.path.join(BASE, "raw", f"bf{ano}")
+    os.makedirs(pasta, exist_ok=True)
+    zp = os.path.join(pasta, "bf.zip")
+    if not os.path.exists(zp):
+        subprocess.run(["curl", "-L", "--fail", "-sS", "-A", "Mozilla/5.0", "-o", zp, B + url], check=True)
+    parts = []
+    with zipfile.ZipFile(zp) as z:
+        nome = [n for n in z.namelist() if n.lower().endswith(".csv")][0]
+        with z.open(nome) as f:
+            for ch in pd.read_csv(f, sep=";", encoding="latin1", dtype=str, usecols=["UF", "CÓDIGO MUNICÍPIO SIAFI", "NOME MUNICÍPIO", "NIS FAVORECIDO", "VALOR PARCELA"], chunksize=2_000_000):
+                ch.columns = ["uf", "siafi", "nome", "nis", "valor"]
+                ch["nis"] = pd.to_numeric(ch.nis, errors="coerce")
+                ch["valor"] = pd.to_numeric(ch.valor.str.replace(".", "", regex=False).str.replace(",", ".", regex=False), errors="coerce")
+                parts.append(ch.dropna(subset=["nis"]))
+    d = pd.concat(parts, ignore_index=True)
+    os.remove(zp)
+    linhas = len(d)
+    g = d.groupby(["uf", "siafi", "nome"]).agg(pessoas=("nis", "nunique"), valor=("valor", "sum"), linhas=("nis", "size")).reset_index()
+    g["programa"], g["mes"] = programa, mes
+    g.to_pickle(os.path.join(WORK, f"bf_{ano}.pkl"))
+    print(ano, programa, mes, "linhas", linhas, "municípios", len(g), "pessoas (soma)", int(g.pessoas.sum()), "R$", int(g.valor.sum()), flush=True)
+
+
+def sidra():
+    def get(path):
+        r = urllib.request.Request("https://apisidra.ibge.gov.br/values" + path, headers={"User-Agent": "Mozilla/5.0"})
+        return json.load(urllib.request.urlopen(r, timeout=180))
+    pib = get("/t/5938/n6/all/v/37/p/last%201")
+    pop = get("/t/4714/n6/all/v/93/p/2022")
+    out = {}
+    for r in pib[1:]:
+        out.setdefault(r["D1C"], {})["pib_mil"] = float(r["V"]) if r["V"] not in ("-", "...", "X", "..") else np.nan
+        out[r["D1C"]]["pib_ano"] = r["D3C"]
+    for r in pop[1:]:
+        out.setdefault(r["D1C"], {})["pop"] = float(r["V"]) if r["V"] not in ("-", "...", "X", "..") else np.nan
+    df = pd.DataFrame.from_dict(out, orient="index").rename_axis("ibge").reset_index()
+    df.to_pickle(os.path.join(WORK, "sidra.pkl"))
+    print("sidra", len(df), "PIB ano", df.pib_ano.dropna().unique()[:3], "com PIB", int(df.pib_mil.notna().sum()), "com pop", int(df["pop"].notna().sum()))
+
+
+def norm(s):
+    s = unicodedata.normalize("NFKD", str(s)).encode("ascii", "ignore").decode().upper()
+    return " ".join(s.replace("'", " ").replace("-", " ").split())
+
+
+if __name__ == "__main__":
+    if sys.argv[1] == "bf":
+        baixar_agregar(int(sys.argv[2]))
+    elif sys.argv[1] == "sidra":
+        sidra()

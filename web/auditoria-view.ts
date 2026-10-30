@@ -4,13 +4,13 @@ import { h, int } from "./format.js";
 import {
   CENARIOS, COLUNAS_PODER, dec, maiorCurtose, media, nomeSinalGov, paraConferir, pc, posicaoNoLocal, reducoes, sinaisGov, sinal, statusDe, TESTES, totais,
 } from "./auditoria-dados.js";
-import { balde, barrasH, coeficientes, colunas, forcaVoto, halteres, heat2d, histograma, mapaPontos, mapaVoto, obsEsp, ultimoDigito } from "./auditoria-graficos.js";
+import { balde, barrasH, classeDe, coeficientes, colunas, ESCALA_BF, ESCALA_FATIA, ESCALA_PIB, forcaClasse, forcaVoto, halteres, heat2d, histograma, mapaEscala, mapaPontos, mapaVoto, obsEsp, ultimoDigito } from "./auditoria-graficos.js";
 import type { Coef, ObsEsp } from "./auditoria-graficos.js";
-import type { Auditoria, BioTurno, Eleicao, Governador, Impressao, MapaVoto, PontoMunicipio } from "./auditoria-tipos.js";
+import type { Auditoria, BioTurno, Eleicao, Governador, Impressao, MapaVoto, PontoMunicipio, Renda } from "./auditoria-tipos.js";
 
 export const SECOES: [string, string][] = [
   ["resumo", "Resumo"], ["eleicao", "Por eleição"], ["investiga", "Investigações"], ["populacao", "Eleitorado × população"],
-  ["mapavoto", "Mais votado"], ["governos", "Governadores"], ["biometria", "Sem biometria"], ["poder", "Poder dos testes"], ["metodo", "Método e limites"],
+  ["mapavoto", "Mais votado"], ["renda", "Renda e Bolsa Família"], ["governos", "Governadores"], ["biometria", "Sem biometria"], ["poder", "Poder dos testes"], ["metodo", "Método e limites"],
 ];
 
 const rot = (e: Eleicao) => e.rotulo.replace(" · ", " ");
@@ -219,6 +219,41 @@ export function mapaVotoView(mv: MapaVoto | null, mapa: MapaCtx | null, id: stri
     ${chips(mv.turnos.map((x) => [x.id, x.rotulo.replace(" · ", " ")] as [string, string]), t.id, "aud-mv")}
     ${card(`Candidato mais votado por município · ${t.rotulo.replace(" · ", " ")}`, `${mapaVoto(mapa.ufs, mapa.viewBox, mapa.pontos, t.rows, nomes)}<div class="au-legend">${legenda}</div><div class="au-legend"><span class="muted">cor mais forte = vantagem maior sobre o 2º:</span>${fracos}</div>`)}
     ${nota(`<b>Como ler</b><span>"Mais votado" no município não é "eleito": o eleito é o que o TSE marca. As cores são só de candidatos, sem agrupar partido nem lado, e mudam de turno para turno (a ordem é a de votos no país). Município pequeno pesa o mesmo que uma capital na contagem de municípios, não nos votos.${t.sem_dado ? ` ${int(t.sem_dado)} municípios sem dado ficam em branco.` : ""}</span>`, "info")}`;
+}
+
+// ------------------------------------------------------------------ Renda e Bolsa Família
+const mesAno = (m: string) => `${m.slice(4)}/${m.slice(0, 4)}`;
+const pp = (v: number, ep: number) => `${v >= 0 ? "+" : "−"}${dec(Math.abs(v), 1)} p.p. (± ${dec(1.96 * ep, 1)})`;
+export function rendaView(R: Renda | null, mapa: MapaCtx | null, id: string): string {
+  if (!R || !mapa) return aguardando("o mapa");
+  const t = R.analise.find((x) => x.id === id) ?? R.analise[R.analise.length - 1];
+  if (!t) return semDados();
+  if (mapa.pontos.length !== R.pibpc.length) return nota(`<b>Arquivos fora de sincronia</b><span>O mapa e os dados de renda têm tamanhos diferentes; gere os dois de novo com <code>bun run radar:auditoria</code>.</span>`, "info");
+  const ano = String(t.ano), fonte = R.bf[ano], bf = R.bf100[ano], pt = R.pt[t.id].map((v) => (v == null ? null : v / 10));
+  const sw = (k: number, n: number, cor: string, rot: string) => `<span><i class="au-sw rd ${cor}" style="--p:${forcaClasse(k, n)}%"></i>${rot}</span>`;
+  const legBf = [0, 2, 4, 6, 8].map((k) => sw(k, ESCALA_BF.length, "b", k === 0 ? `até ${ESCALA_BF[0]}` : `${ESCALA_BF[k - 1]}+`)).join("");
+  const legPib = [0, 2, 4, 6, 8].map((k) => sw(k, ESCALA_PIB.length, "p", k === 0 ? `até R$ ${ESCALA_PIB[0] / 1000} mil` : `R$ ${ESCALA_PIB[k - 1] / 1000} mil+`)).join("");
+  const legFatia = [0, 2, 4, 6, 8].map((k) => sw(k, ESCALA_FATIA.length, "v", k === 0 ? `até ${ESCALA_FATIA[0]}%` : `${ESCALA_FATIA[k - 1]}%+`)).join("");
+  const barras = (qs: Renda["analise"][number]["q_bf"], rot: (m: number) => string, nome: string) =>
+    colunas(qs.map((q, i) => ({ k: rot(q.med), v: q.pt * 100, tip: `${i + 1}º quinto (mediana ${rot(q.med)}): ${t.candidato} ${pc(q.pt, 1)} dos votos, ${int(q.n)} municípios` })), { max: 100, ref: 50, fmt: (v) => `${dec(v, 0)}%`, axis: (v) => `${dec(v, 0)}%`, xlabel: nome, label: `Fatia de ${t.candidato} por quinto de municípios, segundo ${nome}`, alt: 190 });
+  const tab = tabela("Associação dentro do mesmo estado", [
+    { h: "Comparando municípios do mesmo estado", f: (r: [string, string]) => r[0] }, { h: `Fatia de ${t.candidato}`, num: true, f: (r) => r[1] },
+  ], [
+    ["Bolsa Família: +10 pessoas por 100 habitantes", pp(t.fe_bf, t.fe_bf_ep)],
+    ["PIB per capita: dobro do valor", pp(t.fe_pib, t.fe_pib_ep)],
+    ["Os dois juntos · Bolsa Família (+10 por 100 hab.)", pp(t.fe_conj_bf, t.fe_conj_bf_ep)],
+    ["Os dois juntos · PIB per capita (dobro)", pp(t.fe_conj_pib, t.fe_conj_pib_ep)],
+  ] as [string, string][]);
+  return `<p class="au-lede">${h(String(t.ano))}, 2º turno: nos <b>${int(t.n)}</b> municípios com dado, onde há mais pessoas no ${h(fonte.programa)} por habitante, a fatia de <b>${h(t.candidato)}</b> é maior (correlação <b>${dec(t.corr_bf, 2)}</b>); onde o PIB per capita é maior, é menor (<b>${dec(t.corr_pib, 2)}</b>). Dentro do mesmo estado a associação com o Bolsa Família continua: <b>${pp(t.fe_bf, t.fe_bf_ep)}</b> a cada +10 pessoas por 100 habitantes. É uma associação entre municípios: não mostra como cada beneficiário votou nem que o benefício tenha mudado o voto.</p>
+    ${chips(R.analise.map((x) => [x.id, `${x.ano} 2º turno`] as [string, string]), t.id, "aud-rd")}
+    <div class="au-grid w2">
+      ${card(`${fonte.programa}: pessoas por 100 habitantes (${mesAno(fonte.mes)})`, `${mapaEscala(mapa.ufs, mapa.viewBox, mapa.pontos, bf, ESCALA_BF, { cor: "b", fmt: (v) => `${dec(v, 1)} pessoas por 100 habitantes`, label: "Mapa de municípios por pessoas no Bolsa Família por 100 habitantes" })}<div class="au-legend">${legBf}</div>`)}
+      ${card(`Fatia de ${t.candidato} no 2º turno`, `${mapaEscala(mapa.ufs, mapa.viewBox, mapa.pontos, pt, ESCALA_FATIA, { cor: "v", fmt: (v) => `${t.candidato} ${dec(v, 1)}% dos votos`, label: `Mapa de municípios pela fatia de ${t.candidato} no 2º turno` })}<div class="au-legend">${legFatia}</div>`)}
+      ${card(`PIB per capita (${R.pib_ano})`, `${mapaEscala(mapa.ufs, mapa.viewBox, mapa.pontos, R.pibpc, ESCALA_PIB, { cor: "p", fmt: (v) => `PIB per capita R$ ${int(Math.round(v))}`, label: "Mapa de municípios por PIB per capita" })}<div class="au-legend">${legPib}</div>`)}
+      ${card("Fatia por faixa de municípios", `${barras(t.q_bf, (m) => dec(m, 0), "pessoas no programa por 100 habitantes (mediana do quinto)")}${barras(t.q_pib, (m) => `${dec(m / 1000, 0)} mil`, "PIB per capita em R$ (mediana do quinto)")}<p class="muted small">Cada barra é um quinto dos municípios, do menor ao maior valor; a altura é a fatia do candidato nos votos desse grupo. A linha tracejada marca 50%.</p>`)}
+    </div>
+    ${sec("Dentro do mesmo estado", "Compara só municípios do mesmo estado (efeito fixo de UF), ponderando pelos votos, para não confundir com as diferenças entre regiões. Intervalo de 95% com erro agrupado por estado.", `<div class="au-card">${tab}</div>`)}
+    ${nota(`<b>Como ler</b><span>Bolsa Família é um programa para renda baixa: "pessoas por 100 habitantes" mede também pobreza, então não separa o efeito do benefício do efeito de viver num município pobre. O PIB per capita é uma média, puxada por indústria e mineração em cidades pequenas, e vem de ${R.pib_ano} para os três anos. Os números só mostram onde as coisas andam juntas; não provam que o benefício influenciou o voto nem dizem como beneficiários votaram. Contagem: pessoas distintas que receberam no mês (${mesAno(fonte.mes)}), incluindo parcelas retroativas, sobre a população do Censo ${R.pop_ano}; ${int(fonte.municipios_sem_dado)} municípios sem dado ficam em branco. Os arquivos da CGU trazem uma linha por pessoa; aqui só entra a contagem por município.</span>`, "info")}`;
 }
 
 // ------------------------------------------------------------------ Governadores

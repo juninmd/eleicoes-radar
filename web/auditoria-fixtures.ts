@@ -1,5 +1,5 @@
 // Small synthetic data in the shape of web/data/auditoria/*.json, for the Auditoria tests. Not real election data.
-import type { Auditoria, Eleicao, Governador, Impressao, MapaVoto, PontoMunicipio } from "./auditoria-tipos.js";
+import type { Auditoria, Eleicao, Governador, Impressao, MapaVoto, PontoMunicipio, Renda } from "./auditoria-tipos.js";
 
 export function eleicao(id = "2022-1", sobre: Partial<Eleicao> = {}): Eleicao {
   const [ano, turno] = id.split("-").map(Number);
@@ -74,5 +74,17 @@ export const mapaVotoFx = (): MapaVoto => ({
   turnos: [
     { id: "2022-2", ano: 2022, turno: 2, rotulo: "2022 · 2º turno", cands: [{ n: 13, nome: "Candidato A", pct: 50.9, votos: 60 }, { n: 22, nome: "Candidato B", pct: 49.1, votos: 58 }], outros_pct: 0, ganhos: [1, 1, 0, 0, 0, 0, 0], sem_dado: 0, rows: [[0, 620, 380, 1], [1, 540, 460, 0]] },
     { id: "2026-2", ano: 2026, turno: 2, rotulo: "2026 · 2º turno", cands: [{ n: 13, nome: "Candidato A", pct: 51, votos: 60 }, { n: 22, nome: "Candidato B", pct: 49, votos: 58 }], outros_pct: 0, ganhos: [1, 0, 0, 0, 0, 0, 0], sem_dado: 1, rows: [[0, 600, 400, 1], null] },
+  ],
+});
+
+const quintis = (a: number[]) => a.map((pt, i) => ({ med: 2 + i * 6, n: 1100, pt }));
+// alinhado a pontos(): 2 municípios
+export const rendaFx = (): Renda => ({
+  municipios: 2, pib_ano: 2023, pop_ano: 2022,
+  bf: { "2018": { programa: "Bolsa Família", mes: "201809", pessoas: 13700000, casadas: 13600000, municipios_sem_dado: 1 }, "2022": { programa: "Auxílio Brasil", mes: "202209", pessoas: 20000000, casadas: 19900000, municipios_sem_dado: 0 } },
+  pop: [100000, 50000], pibpc: [30000, 15000], bf100: { "2018": [8, null], "2022": [10, 30] }, pt: { "2018-2": [400, null], "2022-2": [450, 700] },
+  analise: [
+    { id: "2018-2", ano: 2018, candidato: "Candidato A", n: 1, corr_bf: 0.86, corr_pib: -0.68, corr_bf_pib: -0.7, q_bf: quintis([0.3, 0.37, 0.5, 0.7, 0.8]), q_pib: quintis([0.8, 0.64, 0.49, 0.37, 0.34]), fe_bf: 20.6, fe_bf_ep: 1.7, fe_pib: -5.4, fe_pib_ep: 1.8, fe_conj_bf: 19.9, fe_conj_bf_ep: 2, fe_conj_pib: -0.7, fe_conj_pib_ep: 1 },
+    { id: "2022-2", ano: 2022, candidato: "Candidato A", n: 2, corr_bf: 0.76, corr_pib: -0.6, corr_bf_pib: -0.68, q_bf: quintis([0.37, 0.46, 0.53, 0.66, 0.75]), q_pib: quintis([0.77, 0.65, 0.53, 0.43, 0.43]), fe_bf: 11.8, fe_bf_ep: 1.4, fe_pib: -4.1, fe_pib_ep: 1.6, fe_conj_bf: 10.7, fe_conj_bf_ep: 1.7, fe_conj_pib: -1.4, fe_conj_pib_ep: 1.3 },
   ],
 });
