@@ -176,4 +176,13 @@ describe("Correlações", () => {
     expect(correlView(correlFx(), null, "2022-2", "bf100")).toContain("Carregando");
     expect(correlView(correlFx(), { ...mapa, pontos: pontos().slice(0, 1) }, "2022-2", "bf100")).toContain("fora de sincronia");
   });
+  test("homicídios avisam que a taxa é média de três anos e vem do SIM até 2020", () => {
+    const fx = correlFx();
+    fx.vars.push({ k: "hom", grupo: "Segurança pública", nome: "Homicídios", unid: "por 100 mil habitantes, média de 3 anos", fmt: "n1", cortes: [2, 5, 10, 15, 20, 30, 40, 60], log: false, fonte: "SIM", anual: true });
+    fx.valores.hom = { "2018": [10, 20], "2022": [12, 25] };
+    for (const t of fx.turnos) t.efeitos.hom = { corr: 0.28, fe: -3.1, fe_ep: 1.4, n: 5500, q: t.efeitos.bf100.q, conj: -0.2, conj_ep: 0.2 };
+    const html = correlView(fx, mapa, "2022-2", "hom");
+    expect(html).toContain("Média de três anos");
+    expect(html).toContain("o SIM só abre até 2020");
+  });
 });

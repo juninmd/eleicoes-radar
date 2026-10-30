@@ -138,6 +138,52 @@ def sidra2():
     print("sidra2", len(df), df.columns.tolist())
 
 
+def sidra3():
+    """Mais variáveis: emprego e remuneração formais (CEMPRE, tabela 1685, 2021), migração recente (10158) e anos de estudo (10062), Censo 2022."""
+    def get(path):
+        r = urllib.request.Request("https://apisidra.ibge.gov.br/values" + path, headers={"User-Agent": "Mozilla/5.0"})
+        return json.load(urllib.request.urlopen(r, timeout=300))[1:]
+    def num(v):
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return np.nan
+    out = {}
+    for v, nome in ((707, "po_total"), (708, "po_assal"), (662, "remun")):
+        for r in get(f"/t/1685/n6/all/v/{v}/p/2021"):
+            out.setdefault(r["D1C"], {})[nome] = num(r["V"])
+    for r in get("/t/10158/n6/all/p/last/h/n"):
+        out.setdefault(r["D1C"], {})["migr"] = num(r["V"])
+    for r in get("/t/10062/n6/all/p/last/h/n"):
+        out.setdefault(r["D1C"], {})["estudo"] = num(r["V"])
+    df = pd.DataFrame.from_dict(out, orient="index").rename_axis("ibge").reset_index()
+    df.to_pickle(os.path.join(WORK, "sidra3.pkl"))
+    print("sidra3", len(df), df.columns.tolist(), df.drop(columns="ibge").notna().sum().to_dict())
+
+
+SIM = "https://diaad.s3.sa-east-1.amazonaws.com/sim/Mortalidade_Geral_{ano}.csv"
+
+
+def sim(ano):
+    """Homicídios (CID-10 X85 a Y09, agressões) por município de residência no SIM. O arquivo é por óbito, com sexo, idade e cor; aqui só se
+    conta por município (CODMUNRES, 6 dígitos) e a causa básica; nada individual sai. O bucket só abre 2015 a 2020 (2021 em diante dá 403)."""
+    pasta = os.path.join(BASE, "raw", f"sim{ano}")
+    os.makedirs(pasta, exist_ok=True)
+    arq = os.path.join(pasta, "sim.csv")
+    if not os.path.exists(arq):
+        subprocess.run(["curl", "-L", "--fail", "-sS", "-A", "Mozilla/5.0", "-o", arq, SIM.format(ano=ano)], check=True)
+    cont, total = {}, 0
+    for ch in pd.read_csv(arq, sep=";", encoding="latin1", dtype=str, usecols=["CODMUNRES", "CAUSABAS"], chunksize=1_000_000):
+        total += len(ch)
+        cb = ch.CAUSABAS.fillna("")
+        h = ch[cb.str.match(r"^(X8[5-9]|X9\d|Y0\d)")]
+        for k, v in h.CODMUNRES.value_counts().items():
+            cont[k] = cont.get(k, 0) + int(v)
+    os.remove(arq)
+    pd.Series(cont, name="homicidios").rename_axis("cod6").reset_index().to_pickle(os.path.join(WORK, f"sim_{ano}.pkl"))
+    print(ano, "óbitos", total, "homicídios", sum(cont.values()), "municípios", len(cont), flush=True)
+
+
 def norm(s):
     s = unicodedata.normalize("NFKD", str(s)).encode("ascii", "ignore").decode().upper()
     return " ".join(s.replace("'", " ").replace("-", " ").split())
@@ -150,5 +196,9 @@ if __name__ == "__main__":
         sidra()
     elif sys.argv[1] == "bpc":
         bpc(int(sys.argv[2]))
+    elif sys.argv[1] == "sidra3":
+        sidra3()
+    elif sys.argv[1] == "sim":
+        sim(int(sys.argv[2]))
     elif sys.argv[1] == "sidra2":
         sidra2()

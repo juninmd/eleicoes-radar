@@ -19,7 +19,7 @@ ANOS = [2018, 2022, 2026]
 BRANCO_NULO = (95, 96, 97)
 REF = 13
 ANTERIOR = {2018: 2014, 2022: 2018, 2026: 2022}  # 2º turno anterior de Presidente
-RG, CE, EL, VP = "Renda e economia", "Educação e população (Censo 2022)", "Eleitorado (perfil do TSE)", "Voto e participação"
+RG, CE, EL, VP, SG = "Renda e economia", "Educação e população (Censo 2022)", "Eleitorado (perfil do TSE)", "Voto e participação", "Segurança pública"
 # k, grupo, nome, unidade, formato, cortes dos mapas, escala log nas contas, fonte
 VARS = [
     ("bf100", RG, "Pessoas no Bolsa Família", "por 100 habitantes", "n1", [2, 5, 8, 12, 16, 20, 25, 30], False, "CGU, setembro de cada ano (Bolsa Família, Auxílio Brasil, Novo Bolsa Família)"),
@@ -29,9 +29,15 @@ VARS = [
     ("ind", RG, "Indústria no valor adicionado", "% do total", "pct", [5, 10, 15, 20, 25, 30, 40, 50], False, "IBGE, PIB dos Municípios 2021"),
     ("adm", RG, "Administração pública no valor adicionado", "% do total", "pct", [10, 20, 30, 40, 50, 60, 70, 80], False, "IBGE, PIB dos Municípios 2021"),
     ("bpc100", RG, "Pessoas com BPC (idosos e pessoas com deficiência)", "por 100 habitantes", "n1", [1, 2, 3, 4, 5, 6, 8, 10], False, "CGU, setembro (2022 e 2026; o arquivo de 2018 não está disponível)"),
+    ("emprego", RG, "Empregos formais (pessoal ocupado em empresas)", "por 100 habitantes", "n1", [4, 8, 12, 16, 20, 25, 30, 40], False, "IBGE, Cadastro Central de Empresas 2021"),
+    ("rem", RG, "Remuneração média por assalariado", "R$ por mês", "rs", [1500, 1800, 2100, 2400, 2800, 3300, 4000, 5000], False, "IBGE, Cadastro Central de Empresas 2021 (remunerações ÷ assalariados ÷ 12)"),
     ("alfab", CE, "Alfabetização (15 anos ou mais)", "%", "pct", [80, 84, 88, 91, 93, 95, 96, 98], False, "IBGE, Censo 2022"),
     ("pp", CE, "Pretos e pardos", "% da população", "pct", [10, 20, 30, 40, 50, 60, 70, 80], False, "IBGE, Censo 2022"),
     ("urb", CE, "População urbana", "% da população", "pct", [30, 50, 60, 70, 80, 90, 95, 99], False, "IBGE, Censo 2022"),
+    ("estudo", CE, "Anos médios de estudo (11 anos ou mais)", "anos", "n1", [5, 6, 7, 8, 9, 10, 11, 12], False, "IBGE, Censo 2022"),
+    ("indig", CE, "População indígena", "% da população", "pct", [0.1, 0.5, 1, 2, 5, 10, 25, 50], False, "IBGE, Censo 2022"),
+    ("migr", CE, "Moradores há menos de 10 anos no município", "% da população", "pct", [10, 15, 20, 25, 30, 35, 40, 50], False, "IBGE, Censo 2022"),
+    ("dens", CE, "Densidade demográfica", "habitantes por km²", "n0", [5, 10, 25, 50, 100, 250, 1000, 3000], True, "IBGE, Censo 2022 e área territorial"),
     ("esgoto", CE, "Domicílios com esgoto por rede ou fossa ligada à rede", "% dos domicílios", "pct", [10, 25, 40, 55, 70, 80, 90, 95], False, "IBGE, Censo 2022"),
     ("lixo", CE, "Domicílios com lixo coletado", "% dos domicílios", "pct", [50, 60, 70, 80, 85, 90, 95, 98], False, "IBGE, Censo 2022"),
     ("pop", CE, "Tamanho da população", "habitantes", "n0", [2000, 5000, 10000, 20000, 50000, 100000, 500000, 1000000], True, "IBGE, Censo 2022"),
@@ -41,10 +47,11 @@ VARS = [
     ("ebaixa", EL, "Eleitores sem o fundamental completo", "% do eleitorado", "pct", [20, 30, 40, 50, 55, 60, 65, 70], False, "TSE, perfil do eleitorado por seção"),
     ("efem", EL, "Eleitoras (mulheres)", "% do eleitorado", "pct", [48, 50, 51, 52, 53, 54, 55, 56], False, "TSE, perfil do eleitorado por seção"),
     ("ebio", EL, "Eleitores com biometria cadastrada", "% do eleitorado", "pct", [60, 70, 80, 85, 90, 93, 95, 97], False, "TSE, perfil do eleitorado por seção"),
+    ("hom", SG, "Homicídios", "por 100 mil habitantes, média de 3 anos", "n1", [2, 5, 10, 15, 20, 30, 40, 60], False, "Ministério da Saúde, SIM (CID-10 X85 a Y09); 2016–2018 para 2018 e 2018–2020 para 2022 e 2026 (2021 em diante não abre)"),
     ("comp", VP, "Comparecimento no 2º turno", "% dos eleitores aptos", "pct", [60, 65, 70, 75, 78, 80, 82, 85], False, "TSE, detalhe da votação por seção"),
     ("ant", VP, "Fatia do candidato 13 no 2º turno anterior", "% dos votos", "pct", [20, 30, 40, 50, 60, 70, 80, 90], False, "TSE, votação por seção (2014, 2018, 2022)"),
 ]
-ANUAIS = {"bf100", "bpc100", "e60", "ejov", "esup", "ebaixa", "efem", "ebio", "comp", "ant"}
+ANUAIS = {"bf100", "bpc100", "hom", "e60", "ejov", "esup", "ebaixa", "efem", "ebio", "comp", "ant"}
 
 
 def ordem_do_mapa():
@@ -72,6 +79,13 @@ def main():
     vab = g(s2, "vab")
     for k, c in (("agro", "vab_agro"), ("ind", "vab_ind"), ("adm", "vab_adm")):
         est[k] = g(s2, c) / vab * 100
+    s3 = pd.read_pickle(os.path.join(WORK, "sidra3.pkl")).set_index("ibge")
+    est["emprego"] = g(s3, "po_total") / pop * 100
+    est["rem"] = g(s3, "remun") * 1000 / g(s3, "po_assal") / 12
+    est["estudo"] = g(s3, "estudo")
+    est["migr"] = g(s3, "migr") / pop * 100
+    est["indig"] = g(s2, "cor_2780") / g(s2, "cor_95251") * 100
+    est["dens"] = pop / np.array([cen[i].get("area", np.nan) for i in ibge], dtype=float)
     est["esgoto"] = g(s2, "esg_46290") / g(s2, "esg_46292") * 100
     est["lixo"] = g(s2, "lixo_2520") / g(s2, "lixo_10972") * 100
 
@@ -97,6 +111,15 @@ def main():
             if i in ix:
                 pessoas[ix[i]] = (0 if np.isnan(pessoas[ix[i]]) else pessoas[ix[i]]) + r.pessoas
         anual["bpc100"][ano] = pessoas / pop * 100
+
+    def hom(anos):
+        tot = np.zeros(len(ibge))
+        for a in anos:
+            d = pd.read_pickle(os.path.join(WORK, f"sim_{a}.pkl")).set_index("cod6").homicidios
+            tot += np.array([d.get(i[:6], 0) for i in ibge], dtype=float)
+        return tot / len(anos) / pop * 1e5
+    anual["hom"][2018] = hom((2016, 2017, 2018))
+    anual["hom"][2022] = anual["hom"][2026] = hom((2018, 2019, 2020))
 
     # perfil do eleitorado (2018 e 2022; 2026 usa o de 2022 porque o TSE ainda não publicou o de 2026)
     for ano in (2018, 2022):
@@ -154,7 +177,7 @@ def main():
     for k, grupo, nome, unid, fmt, cortes, log, fonte in VARS:
         vars_out.append({"k": k, "grupo": grupo, "nome": nome, "unid": unid, "fmt": fmt, "cortes": cortes, "log": log, "fonte": fonte, "anual": k in ANUAIS})
         casas = 0 if fmt in ("rs", "n0") else 1
-        perfil = ("e60", "ejov", "esup", "ebaixa", "efem", "ebio")  # 2026 reaproveita o de 2022
+        perfil = ("e60", "ejov", "esup", "ebaixa", "efem", "ebio", "hom")  # 2026 reaproveita o de 2022
         valores[k] = {str(a): arr(v, casas) for a, v in anual[k].items() if not (k in perfil and a == 2026)} if k in ANUAIS else arr(est[k], casas)
     out = {"municipios": len(tse), "pib_ano": int(sid.pib_ano.dropna().iloc[0]), "bf": bf_meta, "perfil_2026_usa": 2022, "vars": vars_out, "valores": valores,
            "pt": {k: arr(v * 1000, 0) for k, v in partes.items()}, "turnos": turnos, "mudanca": mud}
@@ -209,7 +232,7 @@ def estima(ano, share, votos, series, uf, nome):
         validas.append(k)
     ok = base.copy()
     for k in validas:
-        x = series[k]; ok &= np.isfinite(x) & (x > 0)
+        x = series[k]; ok &= np.isfinite(x) & ((x > 0) if next(v[6] for v in VARS if v[0] == k) else True)  # só o log exige > 0
     Z = np.column_stack([padroniza(series[k][ok], votos[ok], next(v[6] for v in VARS if v[0] == k)) for k in validas])
     be, se = fe_ols(share[ok], Z, np.array(uf)[ok], votos[ok])
     for i, k in enumerate(validas):
