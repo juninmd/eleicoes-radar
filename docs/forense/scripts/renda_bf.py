@@ -59,6 +59,34 @@ def baixar_agregar(ano):
     print(ano, programa, mes, "linhas", linhas, "municípios", len(g), "pessoas (soma)", int(g.pessoas.sum()), "R$", int(g.valor.sum()), flush=True)
 
 
+BPC = {2022: "bpc/202209_BPC.zip", 2026: "bpc/202609_BPC.zip"}  # 2018 (201809_BPC.zip) dá 403
+
+
+def bpc(ano):
+    """Benefício de Prestação Continuada: benefícios distintos por município no mês. O arquivo traz também CPF e nome do beneficiário e do representante
+    legal; só se conta. Parte das linhas (titulares menores de 16 anos) vem sem município: a cobertura é impressa e vale como limite."""
+    pasta = os.path.join(BASE, "raw", f"bpc{ano}")
+    os.makedirs(pasta, exist_ok=True)
+    zp = os.path.join(pasta, "bpc.zip")
+    if not os.path.exists(zp):
+        subprocess.run(["curl", "-L", "--fail", "-sS", "-A", "Mozilla/5.0", "-o", zp, B + BPC[ano]], check=True)
+    parts = []
+    with zipfile.ZipFile(zp) as z:
+        nome = [n for n in z.namelist() if n.lower().endswith(".csv")][0]
+        with z.open(nome) as f:
+            for ch in pd.read_csv(f, sep=";", encoding="latin1", dtype=str, usecols=["UF", "CÓDIGO MUNICÍPIO SIAFI", "NOME MUNICÍPIO", "NÚMERO BENEFÍCIO"], chunksize=2_000_000):
+                ch.columns = ["uf", "siafi", "nome", "benef"]
+                parts.append(ch)
+    d = pd.concat(parts, ignore_index=True)
+    os.remove(zp)
+    total = d.benef.nunique()
+    d = d[d.uf.notna() & d.nome.notna()]
+    g = d.groupby(["uf", "siafi", "nome"]).agg(pessoas=("benef", "nunique")).reset_index()
+    g["programa"], g["mes"] = "BPC", str(ano) + "09"
+    g.to_pickle(os.path.join(WORK, f"bpc_{ano}.pkl"))
+    print(ano, "BPC benefícios", total, "com município", int(g.pessoas.sum()), f"({g.pessoas.sum() / total:.1%})", "municípios", len(g), flush=True)
+
+
 def sidra():
     def get(path):
         r = urllib.request.Request("https://apisidra.ibge.gov.br/values" + path, headers={"User-Agent": "Mozilla/5.0"})
@@ -98,6 +126,10 @@ def sidra2():
     cor = get("/t/9605/n6/all/p/last/c86/all")
     for r in cor:
         out.setdefault(r["D1C"], {}).setdefault("cor_" + r["D3C"], num(r["V"]))
+    for r in get("/t/6805/n6/all/p/last/c11558/46292,46290"):
+        out.setdefault(r["D1C"], {})["esg_" + r["D3C"]] = num(r["V"])
+    for r in get("/t/6892/n6/all/p/last/c67/10972,2520"):
+        out.setdefault(r["D1C"], {})["lixo_" + r["D3C"]] = num(r["V"])
     urb = get("/t/9923/n6/all/p/last/c1/all")
     for r in urb:
         out.setdefault(r["D1C"], {}).setdefault("urb_" + r["D3C"], num(r["V"]))
@@ -116,5 +148,7 @@ if __name__ == "__main__":
         baixar_agregar(int(sys.argv[2]))
     elif sys.argv[1] == "sidra":
         sidra()
+    elif sys.argv[1] == "bpc":
+        bpc(int(sys.argv[2]))
     elif sys.argv[1] == "sidra2":
         sidra2()

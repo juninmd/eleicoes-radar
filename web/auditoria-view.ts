@@ -230,7 +230,7 @@ const eixoDe = (v: CorrVar, x: number) => (v.fmt === "pct" ? `${dec(x, 0)}%` : v
 export function serieDe(C: Correl, k: string, ano: number): (number | null)[] {
   const s = C.valores[k];
   if (Array.isArray(s)) return s;
-  return s[String(ano)] ?? s[String(C.perfil_2026_usa)] ?? [];
+  return s[String(ano)] ?? (ano === 2026 ? s[String(C.perfil_2026_usa)] : undefined) ?? [];
 }
 const significativo = (e: CorrEfeito, campo: "fe" | "conj") => Math.abs(e[campo]) > 1.96 * e[campo === "fe" ? "fe_ep" : "conj_ep"];
 export function correlView(C: Correl | null, mapa: MapaCtx | null, id: string, vk: string): string {

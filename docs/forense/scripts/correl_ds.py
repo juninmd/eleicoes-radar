@@ -28,9 +28,12 @@ VARS = [
     ("agro", RG, "Agropecuária no valor adicionado", "% do total", "pct", [2, 5, 10, 20, 30, 40, 50, 60], False, "IBGE, PIB dos Municípios 2021"),
     ("ind", RG, "Indústria no valor adicionado", "% do total", "pct", [5, 10, 15, 20, 25, 30, 40, 50], False, "IBGE, PIB dos Municípios 2021"),
     ("adm", RG, "Administração pública no valor adicionado", "% do total", "pct", [10, 20, 30, 40, 50, 60, 70, 80], False, "IBGE, PIB dos Municípios 2021"),
+    ("bpc100", RG, "Pessoas com BPC (idosos e pessoas com deficiência)", "por 100 habitantes", "n1", [1, 2, 3, 4, 5, 6, 8, 10], False, "CGU, setembro (2022 e 2026; o arquivo de 2018 não está disponível)"),
     ("alfab", CE, "Alfabetização (15 anos ou mais)", "%", "pct", [80, 84, 88, 91, 93, 95, 96, 98], False, "IBGE, Censo 2022"),
     ("pp", CE, "Pretos e pardos", "% da população", "pct", [10, 20, 30, 40, 50, 60, 70, 80], False, "IBGE, Censo 2022"),
     ("urb", CE, "População urbana", "% da população", "pct", [30, 50, 60, 70, 80, 90, 95, 99], False, "IBGE, Censo 2022"),
+    ("esgoto", CE, "Domicílios com esgoto por rede ou fossa ligada à rede", "% dos domicílios", "pct", [10, 25, 40, 55, 70, 80, 90, 95], False, "IBGE, Censo 2022"),
+    ("lixo", CE, "Domicílios com lixo coletado", "% dos domicílios", "pct", [50, 60, 70, 80, 85, 90, 95, 98], False, "IBGE, Censo 2022"),
     ("pop", CE, "Tamanho da população", "habitantes", "n0", [2000, 5000, 10000, 20000, 50000, 100000, 500000, 1000000], True, "IBGE, Censo 2022"),
     ("e60", EL, "Eleitores com 60 anos ou mais", "% do eleitorado", "pct", [10, 14, 18, 22, 26, 30, 34, 38], False, "TSE, perfil do eleitorado por seção"),
     ("ejov", EL, "Eleitores de 16 a 24 anos", "% do eleitorado", "pct", [8, 10, 12, 14, 16, 18, 20, 24], False, "TSE, perfil do eleitorado por seção"),
@@ -41,7 +44,7 @@ VARS = [
     ("comp", VP, "Comparecimento no 2º turno", "% dos eleitores aptos", "pct", [60, 65, 70, 75, 78, 80, 82, 85], False, "TSE, detalhe da votação por seção"),
     ("ant", VP, "Fatia do candidato 13 no 2º turno anterior", "% dos votos", "pct", [20, 30, 40, 50, 60, 70, 80, 90], False, "TSE, votação por seção (2014, 2018, 2022)"),
 ]
-ANUAIS = {"bf100", "e60", "ejov", "esup", "ebaixa", "efem", "ebio", "comp", "ant"}
+ANUAIS = {"bf100", "bpc100", "e60", "ejov", "esup", "ebaixa", "efem", "ebio", "comp", "ant"}
 
 
 def ordem_do_mapa():
@@ -69,6 +72,8 @@ def main():
     vab = g(s2, "vab")
     for k, c in (("agro", "vab_agro"), ("ind", "vab_ind"), ("adm", "vab_adm")):
         est[k] = g(s2, c) / vab * 100
+    est["esgoto"] = g(s2, "esg_46290") / g(s2, "esg_46292") * 100
+    est["lixo"] = g(s2, "lixo_2520") / g(s2, "lixo_10972") * 100
 
     # Bolsa Família (por ano) casando o código SIAFI com o IBGE por UF + nome
     por_nome = {(c["uf"], norm(c["nm"])): i for i, c in cen.items()}
@@ -83,6 +88,15 @@ def main():
                 pessoas[ix[i]] = (0 if np.isnan(pessoas[ix[i]]) else pessoas[ix[i]]) + r.pessoas
         anual["bf100"][ano] = pessoas / pop * 100
         bf_meta[str(ano)] = {"programa": d.programa.iloc[0], "mes": d.mes.iloc[0], "pessoas": int(d.pessoas.sum()), "sem_dado": int(np.isnan(pessoas).sum())}
+
+    for ano in (2022, 2026):  # BPC: o arquivo de 2018 não está disponível
+        d = pd.read_pickle(os.path.join(WORK, f"bpc_{ano}.pkl"))
+        pessoas = np.full(len(ibge), np.nan)
+        for r in d.itertuples():
+            i = por_nome.get((r.uf, norm(r.nome)))
+            if i in ix:
+                pessoas[ix[i]] = (0 if np.isnan(pessoas[ix[i]]) else pessoas[ix[i]]) + r.pessoas
+        anual["bpc100"][ano] = pessoas / pop * 100
 
     # perfil do eleitorado (2018 e 2022; 2026 usa o de 2022 porque o TSE ainda não publicou o de 2026)
     for ano in (2018, 2022):
@@ -114,7 +128,7 @@ def main():
 
     for ano in ANOS:
         sh, vt = fatia(ano)
-        series = {k: (est[k] if k in est else anual[k][ano]) for k, *_ in VARS}
+        series = {k: (est[k] if k in est else anual[k].get(ano, np.full(len(tse), np.nan))) for k, *_ in VARS}
         turnos.append(estima(ano, sh, vt, series, uf, titulo(nomes(ano).get((2, REF)) or nomes(ano).get((1, REF)) or str(REF))))
         partes[f"{ano}-2"] = sh
 
@@ -140,7 +154,8 @@ def main():
     for k, grupo, nome, unid, fmt, cortes, log, fonte in VARS:
         vars_out.append({"k": k, "grupo": grupo, "nome": nome, "unid": unid, "fmt": fmt, "cortes": cortes, "log": log, "fonte": fonte, "anual": k in ANUAIS})
         casas = 0 if fmt in ("rs", "n0") else 1
-        valores[k] = {str(a): arr(v, casas) for a, v in anual[k].items() if not (k != "bf100" and k in ANUAIS and a == 2026 and k in ("e60", "ejov", "esup", "ebaixa", "efem", "ebio"))} if k in ANUAIS else arr(est[k], casas)
+        perfil = ("e60", "ejov", "esup", "ebaixa", "efem", "ebio")  # 2026 reaproveita o de 2022
+        valores[k] = {str(a): arr(v, casas) for a, v in anual[k].items() if not (k in perfil and a == 2026)} if k in ANUAIS else arr(est[k], casas)
     out = {"municipios": len(tse), "pib_ano": int(sid.pib_ano.dropna().iloc[0]), "bf": bf_meta, "perfil_2026_usa": 2022, "vars": vars_out, "valores": valores,
            "pt": {k: arr(v * 1000, 0) for k, v in partes.items()}, "turnos": turnos, "mudanca": mud}
     os.makedirs(os.path.join(BASE, "ds"), exist_ok=True)

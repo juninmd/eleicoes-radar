@@ -57,7 +57,7 @@ python3 docs/forense/scripts/lastsec.py ; python3 docs/forense/scripts/power.py
 python3 docs/forense/scripts/ingest_uf.py 2022 && python3 docs/forense/scripts/gov.py 2022
 python3 docs/forense/scripts/build_ds.py ; python3 docs/forense/scripts/build_gov.py   # ds/*.json
 python3 docs/forense/scripts/bio.py ingest 2022 1   # idem 2022 2, 2018 1/2, 2026 1/2; depois: bio.py agg (eleitores sem biometria, BU)
-python3 docs/forense/scripts/renda_bf.py sidra; python3 docs/forense/scripts/renda_bf.py sidra2; python3 docs/forense/scripts/renda_bf.py bf 2018   # idem 2022, 2026; depois correl_ds.py (seção "Correlações")
+python3 docs/forense/scripts/renda_bf.py sidra; python3 docs/forense/scripts/renda_bf.py sidra2; python3 docs/forense/scripts/renda_bf.py bf 2018   # idem 2022, 2026; renda_bf.py bpc 2022 (e 2026); depois correl_ds.py (seção "Correlações")
 python3 docs/forense/scripts/mapa_voto.py            # candidato mais votado por município (seção "Mais votado")
 bun run radar:auditoria                                                                 # web/data/auditoria/*.json (aba Auditoria do app, `#auditoria`)
 ```
