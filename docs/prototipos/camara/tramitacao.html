@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rastreador de tramitação · protótipo</title>
+<link rel="stylesheet" href="camara.css">
+<style>
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 14px 0; }
+  .stats .card b { display: block; font-size: 1.5rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .barra { display: flex; height: 22px; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); }
+  .barra span { min-width: 2px; }
+  .lg { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; font-size: .84rem; }
+  .lg i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  .tl { list-style: none; margin: 0; padding: 0 0 0 18px; border-left: 2px solid var(--line); }
+  .tl li { position: relative; padding: 0 0 14px 14px; }
+  .tl li::before { content: ""; position: absolute; left: -24px; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--c, var(--accent)); border: 2px solid var(--bg); }
+  .tl .d { font-size: .8rem; color: var(--ink2); font-variant-numeric: tabular-nums; }
+  .tl .t { font-weight: 600; }
+  .ano { font-weight: 700; margin: 16px 0 8px -18px; padding-left: 0; }
+  .gap { font-size: .76rem; color: var(--ink2); }
+  .gap.longo { color: var(--warn-ink); background: var(--warn-bg); border-radius: 4px; padding: 0 5px; }
+  details.desp summary { cursor: pointer; color: var(--ink2); font-size: .84rem; }
+  .temas { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="nav" aria-label="Protótipos"><a href="hemiciclo.html">Hemiciclo da votação</a><a href="pauta.html">Pauta da semana</a><a href="tramitacao.html" aria-current="page">Rastreador de tramitação</a></nav>
+  <h1>Rastreador de tramitação</h1>
+  <p class="sub">A vida de um projeto na Câmara: por onde passou, quanto tempo ficou em cada órgão e o que aconteceu em cada passo.</p>
+
+  <div class="row"><label for="sel">Proposição</label><select id="sel"></select></div>
+  <div class="card" id="cab" style="margin-top:12px"></div>
+  <div class="stats" id="stats"></div>
+
+  <h2>Onde o projeto ficou mais tempo</h2>
+  <div class="card"><div class="barra" id="barra" role="img"></div><div class="lg" id="lg"></div></div>
+
+  <h2>Linha do tempo</h2>
+  <div class="row" style="margin-bottom:10px">
+    <label for="ft">Tipo de movimentação</label><select id="ft"></select>
+    <label for="fo">Órgão</label><select id="fo"></select>
+    <span class="muted" id="cnt"></span>
+  </div>
+  <ol class="tl" id="tl"></ol>
+
+  <p class="aviso">Tempo parado em um órgão não é, por si, bom ou ruim: pode refletir pauta, prazo regimental ou espera por parecer. O painel mostra o que está registrado, sem julgar o ritmo.</p>
+  <p class="fonte" id="fonte"></p>
+</div>
+<script src="dados/tramitacao.js"></script>
+<script>
+"use strict";
+const D = window.DADOS_TRAMITACAO;
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const dias = (a, b) => Math.round((Date.UTC(...b.split("-").map((x, i) => (i === 1 ? x - 1 : +x))) - Date.UTC(...a.split("-").map((x, i) => (i === 1 ? x - 1 : +x)))) / 864e5);
+const fd = (s) => s.split("-").reverse().join("/");
+const nf = new Intl.NumberFormat("pt-BR");
+// paleta categórica neutra (nada de cor de partido); o órgão recebe a cor pela ordem de aparição
+const PAL = ["#4b3fa8", "#1f7a8c", "#d9822b", "#7a4fa3", "#5a8f3d", "#b5485d", "#8d8d86", "#2f6fb0"];
+let P = null, cor = {};
+
+if (!D?.proposicoes?.length) {
+  document.body.insertAdjacentHTML("afterbegin", '<p class="aviso">Sem dados: rode <code>python3 -I docs/prototipos/camara/coletar.py</code>.</p>');
+} else {
+  $("#fonte").textContent = `Fonte: dadosabertos.camara.leg.br/api/v2 (/proposicoes/{id}, /tramitacoes, /autores, /temas), coletado em ${fd(D.geradoEm)}. "Hoje" = data da coleta.`;
+  $("#sel").innerHTML = D.proposicoes.map((p, i) => `<option value="${i}">${esc(p.titulo)} — ${esc(p.ementa.slice(0, 70))}</option>`).join("");
+  $("#sel").onchange = () => abrir(+$("#sel").value);
+  $("#ft").onchange = $("#fo").onchange = linha;
+  abrir(0);
+}
+
+function abrir(i) {
+  P = D.proposicoes[i];
+  const hoje = D.geradoEm;
+  const tr = P.tram.map((t) => ({ d: t[0], org: t[1], tipo: t[2], sit: t[3], reg: t[4], desp: t[5] }));
+  P._tr = tr;
+  cor = {}; tr.forEach((t) => { cor[t.org] ??= PAL[Object.keys(cor).length % PAL.length]; });
+  const tempo = {};
+  tr.forEach((t, k) => { const fim = tr[k + 1]?.d ?? hoje; tempo[t.org] = (tempo[t.org] || 0) + Math.max(0, dias(t.d, fim)); });
+  P._tempo = tempo;
+
+  const ult = tr[tr.length - 1];
+  $("#cab").innerHTML = `<h2 style="margin-top:0">${esc(P.titulo)} <span class="tag">${esc(P.tipo)}</span></h2><p style="margin:6px 0">${esc(P.ementa)}</p>
+    <div class="muted" style="font-size:.88rem">Apresentado em ${fd(P.apresentacao.slice(0, 10))} por ${P.autores.map((a) => esc(a.nome) + ` <span class="tag">${esc(a.tipo || "")}</span>`).join(", ") || "—"}</div>
+    <div class="temas">${P.temas.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>
+    ${P.inteiroTeor ? `<p style="margin:10px 0 0"><a href="${esc(P.inteiroTeor)}" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">Inteiro teor ↗</a></p>` : ""}`;
+  $("#stats").innerHTML = [
+    [nf.format(dias(P.apresentacao.slice(0, 10), hoje)), "dias desde a apresentação"],
+    [tr.length, "movimentações registradas"],
+    [Object.keys(tempo).length, "órgãos pelos quais passou"],
+    [nf.format(dias(ult.d, hoje)), "dias desde a última movimentação"],
+  ].map(([n, t]) => `<div class="card"><b>${n}</b><span class="muted">${t}</span></div>`).join("");
+
+  const total = Object.values(tempo).reduce((a, b) => a + b, 0) || 1;
+  const ord = Object.entries(tempo).sort((a, b) => b[1] - a[1]);
+  $("#barra").innerHTML = ord.map(([o, n]) => `<span style="width:${(n / total) * 100}%;background:${cor[o]}" title="${esc(o)}: ${n} dias"></span>`).join("");
+  $("#barra").setAttribute("aria-label", "Dias por órgão: " + ord.map(([o, n]) => `${o} ${n}`).join(", "));
+  $("#lg").innerHTML = ord.map(([o, n]) => `<span><i style="background:${cor[o]}"></i>${esc(o)} <b>${nf.format(n)} d</b> (${Math.round((n / total) * 100)}%)</span>`).join("");
+
+  const tipos = [...new Set(tr.map((t) => t.tipo))];
+  $("#ft").innerHTML = '<option value="">Todas</option>' + tipos.map((t) => `<option>${esc(t)}</option>`).join("");
+  $("#fo").innerHTML = '<option value="">Todos</option>' + Object.keys(tempo).map((t) => `<option>${esc(t)}</option>`).join("");
+  linha();
+}
+
+function linha() {
+  const ft = $("#ft").value, fo = $("#fo").value;
+  const tr = P._tr;
+  let ano = "", h = "", n = 0;
+  tr.forEach((t, k) => {
+    if ((ft && t.tipo !== ft) || (fo && t.org !== fo)) return;
+    n++;
+    if (t.d.slice(0, 4) !== ano) { ano = t.d.slice(0, 4); h += `<li class="ano" style="--c:transparent">${ano}</li>`; }
+    const g = k ? dias(tr[k - 1].d, t.d) : null;
+    h += `<li style="--c:${cor[t.org]}"><div class="d">${fd(t.d)} · <span class="tag">${esc(t.org)}</span>${g != null ? ` <span class="gap ${g >= 90 ? "longo" : ""}">+${g} d</span>` : ""}</div><div class="t">${esc(t.tipo)}</div><div class="muted" style="font-size:.84rem">${esc(t.sit || "")}${t.reg ? " · " + esc(t.reg) : ""}</div>${t.desp ? `<details class="desp"><summary>Despacho</summary><p style="margin:4px 0">${esc(t.desp)}</p></details>` : ""}</li>`;
+  });
+  $("#tl").innerHTML = h || '<li class="muted">Nada com esse filtro.</li>';
+  $("#cnt").textContent = `${n} de ${tr.length}`;
+}
+</script>
+</body>
+</html>

@@ -26,3 +26,11 @@ test("a aba Auditoria só baixa o módulo e os dados ao abrir; o boot não os pe
   expect(app).toContain('import("./auditoria.js")');
   expect(app).not.toMatch(/^import .*auditoria/m);
 });
+
+test("a aba Câmara só baixa o módulo e os dados ao abrir; o boot não os pede", () => {
+  const boot = between("async function main()", "main().catch");
+  expect(boot).not.toContain("data/camara");
+  expect(boot).not.toContain("camara.js");
+  expect(app).toContain('import("./camara.js")');
+  expect(app).not.toMatch(/^import .*\.\/camara/m);
+});

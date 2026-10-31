@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hemiciclo da votação · protótipo</title>
+<link rel="stylesheet" href="camara.css">
+<style>
+  .grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+  @media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  #hemi { width: 100%; height: auto; display: block; }
+  #hemi circle { transition: opacity .15s, r .15s; }
+  #hemi.foco circle:not(.on) { opacity: .2; }
+  .v-Sim { fill: var(--sim); } .v-Não { fill: var(--nao); } .v-Abstenção { fill: var(--abs); }
+  .v-Obstrução { fill: var(--obs); } .v-outro { fill: var(--nulo); }
+  .leg { display: flex; gap: 14px; flex-wrap: wrap; font-size: .88rem; margin: 6px 0 0; }
+  .leg i { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+  .placar { text-align: center; margin-top: -88px; position: relative; pointer-events: none; }
+  .placar b { font-size: 2rem; display: block; line-height: 1.1; }
+  #tip { position: fixed; z-index: 5; pointer-events: none; background: var(--ink); color: var(--bg); padding: 5px 9px;
+         border-radius: 7px; font-size: .82rem; opacity: 0; transition: opacity .1s; max-width: 260px; }
+  .seg { display: inline-block; height: 8px; vertical-align: middle; }
+  details.dif { margin-top: 10px; font-size: .88rem; }
+  details.dif li { margin: 2px 0; }
+  #tab { font-size: .84rem; } #tab th, #tab td { padding: 5px 6px; }
+  .ori { font-size: .78rem; }
+  .ori-ok { color: var(--sim); } .ori-no { color: var(--nao); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="nav" aria-label="Protótipos"><a href="hemiciclo.html" aria-current="page">Hemiciclo da votação</a><a href="pauta.html">Pauta da semana</a><a href="tramitacao.html">Rastreador de tramitação</a></nav>
+  <h1>Hemiciclo da votação</h1>
+  <p class="sub">Cada ponto é um deputado que registrou voto. Os pontos ficam agrupados por partido, em ordem alfabética: a posição no desenho <b>não</b> indica posição política.</p>
+
+  <div class="row" style="margin-bottom:12px">
+    <label for="sel">Votação nominal do Plenário</label>
+    <select id="sel"></select>
+  </div>
+  <div id="cab" class="card" style="margin-bottom:14px"></div>
+
+  <div class="grid">
+    <div class="card">
+      <svg id="hemi" viewBox="0 0 1000 540" role="img"></svg>
+      <div class="placar" aria-hidden="true"><b id="tot"></b><span class="muted">votos registrados</span></div>
+      <div class="leg" id="leg" style="margin-top:14px"></div>
+      <p class="muted" style="font-size:.82rem;margin:10px 0 0">Passe o mouse (ou toque) num ponto. Clique num partido na tabela para destacá-lo.</p>
+    </div>
+    <div class="card">
+      <h2 style="margin-top:0">Partidos e a orientação da bancada</h2>
+      <div class="scroll" style="overflow-x:auto"><table id="tab"><thead></thead><tbody></tbody></table></div>
+      <div id="dif"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h2 style="margin-top:0">Lideranças e blocos (orientações registradas)</h2>
+    <div id="lid" class="row" style="gap:6px"></div>
+  </div>
+
+  <p class="aviso">Orientação é o que a liderança registrou; deputado pode votar diferente por motivos que a API não informa. "Votou diferente da orientação" é um fato do painel, não julgamento. Votos do presidente da sessão (Art. 17) não entram na contagem. Ausentes não aparecem nesta votação.</p>
+  <p class="fonte" id="fonte"></p>
+</div>
+<div id="tip" role="tooltip"></div>
+<script src="dados/votacoes.js"></script>
+<script>
+"use strict";
+const D = window.DADOS_VOTACOES;
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const norm = (s) => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+const CLASSES = ["Sim", "Não", "Abstenção", "Obstrução"];
+const cls = (v) => (CLASSES.includes(v) ? v : "outro");
+const nf = new Intl.NumberFormat("pt-BR");
+let atual = null, partidoSel = null;
+
+if (!D || !D.votacoes?.length) {
+  document.body.insertAdjacentHTML("afterbegin", '<p class="aviso">Sem dados: rode <code>python3 -I docs/prototipos/camara/coletar.py</code>.</p>');
+} else {
+  $("#sel").innerHTML = D.votacoes.map((v, i) => `<option value="${i}">${v.data.split("-").reverse().join("/")} · ${esc((v.prop.sigla ? v.prop.sigla + " " + v.prop.numero + "/" + v.prop.ano + " — " : "") + v.descricao.slice(0, 70))}</option>`).join("");
+  $("#sel").onchange = () => mostrar(+$("#sel").value);
+  $("#fonte").textContent = `Fonte: dadosabertos.camara.leg.br/api/v2 (/votacoes/{id}, /votos, /orientacoes), coletado em ${D.geradoEm.split("-").reverse().join("/")}.`;
+  mostrar(0);
+}
+
+// Orientação de cada partido: entrada própria (P) ou federação ("Fdr PT-PCdoB-PV") que o inclui.
+function orientacaoDe(partido, orient) {
+  const n = norm(partido);
+  const p = orient.find((o) => o[0] === "P" && norm(o[1]) === n);
+  if (p) return { v: p[2], via: "" };
+  for (const o of orient) {
+    if (o[0] !== "B" || !/^Fdr /i.test(o[1])) continue;
+    if (o[1].replace(/^Fdr /i, "").split("-").map(norm).includes(n)) return { v: o[2], via: "federação" };
+  }
+  return null;
+}
+
+function assentos(n) {
+  const cx = 500, cy = 520, R0 = 200, R1 = 470, linhas = n > 300 ? 8 : 6;
+  const raios = Array.from({ length: linhas }, (_, i) => R0 + ((R1 - R0) * i) / (linhas - 1));
+  const soma = raios.reduce((a, b) => a + b, 0);
+  const qtd = raios.map((r) => Math.round((n * r) / soma));
+  qtd[linhas - 1] += n - qtd.reduce((a, b) => a + b, 0);
+  const todos = [];
+  raios.forEach((r, i) => { for (let j = 0; j < qtd[i]; j++) { const t = Math.PI * (1 - (qtd[i] === 1 ? 0.5 : j / (qtd[i] - 1))); todos.push({ x: cx + r * Math.cos(t), y: cy - r * Math.sin(t), t, r }); } });
+  todos.sort((a, b) => b.t - a.t || a.r - b.r);
+  const folga = Math.min((R1 - R0) / (linhas - 1), ...raios.map((r, i) => (Math.PI * r) / qtd[i]));
+  return { pts: todos, raio: Math.max(3, Math.min(12, folga * 0.42)) };
+}
+
+function mostrar(i) {
+  atual = D.votacoes[i]; partidoSel = null;
+  const v = atual;
+  const votos = v.votos.filter((x) => x[4] !== "Artigo 17").sort((a, b) => a[2].localeCompare(b[2], "pt") || a[1].localeCompare(b[1], "pt"));
+  const cont = {}; votos.forEach((x) => (cont[cls(x[4])] = (cont[cls(x[4])] || 0) + 1));
+  $("#cab").innerHTML = `<b>${esc(v.prop.sigla ? `${v.prop.sigla} ${v.prop.numero}/${v.prop.ano}` : "Votação")}</b> · ${v.data.split("-").reverse().join("/")}<br><span class="muted">${esc(v.prop.ementa || "")}</span><br>${esc(v.descricao)}`;
+  $("#tot").textContent = nf.format(votos.length);
+
+  const { pts, raio } = assentos(votos.length);
+  $("#hemi").innerHTML = votos.map((x, k) => `<circle data-k="${k}" data-p="${esc(norm(x[2]))}" class="v-${cls(x[4])}" cx="${pts[k].x.toFixed(1)}" cy="${pts[k].y.toFixed(1)}" r="${raio.toFixed(1)}"/>`).join("");
+  $("#hemi").setAttribute("aria-label", "Hemiciclo: " + Object.entries(cont).map(([k, n]) => `${n} ${k}`).join(", "));
+  $("#hemi").classList.remove("foco");
+  $("#leg").innerHTML = ["Sim", "Não", "Abstenção", "Obstrução", "outro"].filter((k) => cont[k]).map((k) => `<span><i class="v-${k}" style="background:var(--${{ Sim: "sim", Não: "nao", Abstenção: "abs", Obstrução: "obs", outro: "nulo" }[k]})"></i>${k === "outro" ? "Outro" : k} <b>${nf.format(cont[k])}</b></span>`).join("");
+
+  // tabela por partido
+  const por = {};
+  votos.forEach((x) => { const p = (por[x[2]] ??= { n: 0 }); p.n++; p[cls(x[4])] = (p[cls(x[4])] || 0) + 1; });
+  const temBloco = v.orient.some((o) => /^Bl /i.test(o[1]));
+  const linhas = Object.entries(por).sort((a, b) => b[1].n - a[1].n);
+  $("#tab").tHead.innerHTML = "<tr><th>Partido</th><th>Votos</th><th>Sim</th><th>Não</th><th>Abst.</th><th>Orientação</th><th>Seguiu</th></tr>";
+  $("#tab").tBodies[0].innerHTML = linhas.map(([sig, p]) => {
+    const o = orientacaoDe(sig, v.orient);
+    let ori = `<span class="muted">${temBloco ? "no bloco" : "—"}</span>`, seg = '<span class="muted">—</span>';
+    if (o) {
+      if (CLASSES.includes(o.v)) {
+        const pct = Math.round(((p[o.v] || 0) / p.n) * 100);
+        ori = `${o.v}${o.via ? ` <span class="ori muted">(fed.)</span>` : ""}`;
+        seg = `<span class="${pct >= 80 ? "ori-ok" : "ori-no"}">${pct}%</span>`;
+      } else ori = `<span class="muted">${o.v || "sem orientação"}</span>`;
+    }
+    return `<tr data-sel="${esc(sig)}" tabindex="0" role="button" aria-selected="false" aria-label="Destacar ${esc(sig)}"><td>${esc(sig)}</td><td>${p.n}</td><td>${p.Sim || 0}</td><td>${p["Não"] || 0}</td><td>${p["Abstenção"] || 0}</td><td class="l">${ori}</td><td>${seg}</td></tr>`;
+  }).join("");
+  $("#dif").innerHTML = "";
+
+  $("#lid").innerHTML = v.orient.filter((o) => o[0] === "B").map((o) => `<span class="tag">${esc(o[1])}: <b>${esc(o[2] || "sem orientação")}</b></span>`).join("") || '<span class="muted">Nenhuma.</span>';
+  window._votos = votos;
+}
+
+function destacar(sig) {
+  partidoSel = partidoSel === sig ? null : sig;
+  const alvo = partidoSel && norm(partidoSel);
+  const h = $("#hemi");
+  h.classList.toggle("foco", !!alvo);
+  h.querySelectorAll("circle").forEach((c) => c.classList.toggle("on", !!alvo && c.dataset.p === alvo));
+  document.querySelectorAll("#tab tbody tr").forEach((tr) => tr.setAttribute("aria-selected", String(tr.dataset.sel === partidoSel)));
+  const box = $("#dif");
+  if (!partidoSel) { box.innerHTML = ""; return; }
+  const o = orientacaoDe(partidoSel, atual.orient);
+  if (!o || !CLASSES.includes(o.v)) { box.innerHTML = `<p class="muted" style="font-size:.88rem">${esc(partidoSel)}: sem orientação de voto registrada nesta votação.</p>`; return; }
+  const dif = window._votos.filter((x) => norm(x[2]) === norm(partidoSel) && x[4] !== o.v);
+  box.innerHTML = `<details class="dif" open><summary>${dif.length} deputado(s) de ${esc(partidoSel)} votaram diferente da orientação (${esc(o.v)})</summary><ul>${dif.map((x) => `<li>${esc(x[1])} (${esc(x[3])}): ${esc(x[4])}</li>`).join("") || "<li class='muted'>Ninguém.</li>"}</ul></details>`;
+}
+
+$("#tab").addEventListener("click", (e) => { const tr = e.target.closest("tr[data-sel]"); if (tr) destacar(tr.dataset.sel); });
+$("#tab").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { const tr = e.target.closest("tr[data-sel]"); if (tr) { e.preventDefault(); destacar(tr.dataset.sel); } } });
+
+const tip = $("#tip");
+function dica(e) {
+  const c = e.target.closest("circle");
+  if (!c) { tip.style.opacity = 0; return; }
+  const x = window._votos[+c.dataset.k];
+  tip.innerHTML = `<b>${esc(x[1])}</b><br>${esc(x[2])}-${esc(x[3])} · votou <b>${esc(x[4])}</b>`;
+  tip.style.opacity = 1;
+  tip.style.left = Math.min(e.clientX + 12, innerWidth - 270) + "px";
+  tip.style.top = e.clientY + 14 + "px";
+}
+$("#hemi").addEventListener("pointermove", dica);
+$("#hemi").addEventListener("pointerdown", dica);
+$("#hemi").addEventListener("pointerleave", () => (tip.style.opacity = 0));
+</script>
+</body>
+</html>

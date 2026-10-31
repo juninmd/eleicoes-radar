@@ -27,6 +27,7 @@ bun run radar:municipal   # web/data/municipal/ (1º turno de 2026 por municípi
 bun run radar:profiles    # Câmara/Senado/Wikidata/Wikipédia por candidato (cache em data/extra, data/wikidata)
 bun run radar:suppliers   # CNPJ dos fornecedores na Receita (cache data/receita/cnpj.jsonl, retomável)
 bun run radar:build       # gera web/data/ (4 a 9 min)
+bun run radar:camara      # aba Câmara: web/data/camara/{painel,partidos,fotos}.json (~3 min, independe do build)
 bun run radar:panorama    # web/data/panorama.json (agregados por partido/cargo; sempre depois do build)
 bun test src/radar web
 bun run radar:serve       # http://127.0.0.1:4173  (/health)
@@ -317,6 +318,19 @@ Feito em 2026-10-25, noite do 2º turno. **Só acrescenta**: um chip discreto "�
 - PRs cujos checks não iniciam por billing/spending limit são mesclados pelo bot central
   `juninmd/base-actions/.github/workflows/auto-merge-billing-blocked.yml`.
   Para impedir o merge automático de um PR, aplique a label `do-not-merge`.
+
+## Aba Câmara (votações, pauta, tramitação, afinidade)
+
+Feito em 2026-10-31. Aba nova, **só descreve** como bancadas e deputados votaram e o que está na pauta; não entra na nota, não recomenda voto e não prevê resultado. Protótipos e armadilhas da API: `docs/prototipos/camara/`. Impacto na eleição: `docs/camara-impacto-eleitoral.md`.
+
+- **Dados** (`bun run radar:camara [--max 24] [--dias 10]`, `src/radar/camara/painel.ts`; forma pura e testada em `painel-forma.ts`, tipos em `painel-tipos.ts`): API `dadosabertos.camara.leg.br/api/v2`, sem chave. Votações **nominais** do Plenário (`idOrgao=180`; a descrição traz `Sim: N; Não: M`, as simbólicas vêm com `votos: []`), `/votos` e `/orientacoes` de cada uma, `/eventos` + `/pauta` dos próximos dias, `/proposicoes/{id}` + tramitações + autores + temas dos projetos votados. `painel.json` é compacto (tabelas de deputados e partidos, votos como trios de índices): 24 votações ≈ 350 KB com a pauta.
+- **Armadilhas da API:** `/votos` **não aceita `itens`** (400); `/votacoes` limita o intervalo a 3 meses (o coletor anda em janelas de 85 dias); 504 aleatório (repete com espera crescente); `/deputados?idLegislatura=` devolve **a mesma pessoa várias vezes** (882 linhas, 648 ids); o nome do bloco em `/orientacoes` vem **cortado** ("Bl UniPpPsd..."): só federação ("Fdr PT-PCdoB-PV") dá para decompor, então partido dentro de bloco fica "sem orientação própria". O voto "Artigo 17" (presidente da sessão) não conta.
+- **Fotos e logos:** a CSP só aceita `'self'` e `data:` em imagem, então a coleta baixa (só de `www.camara.leg.br`) e embute: foto do deputado 80×100 JPEG (`bandep/<id>.jpg`, chave = **id da Câmara**, não o índice da tabela) em `fotos.json` (~1,2 MB, **só baixa com "Mostrar fotos" ligado**), logo do partido (`urlLogo` de `/partidos/{id}`) em PNG 96×64 em `partidos.json` (~45 KB). **A Câmara tirou do ar a maior parte dos logos antigos** (12 de 22 em 2026-10-31, os demais dão 404 em HTML): sem logo, selo neutro com as 3 letras da sigla; a sigla sempre aparece ao lado. A view só aceita `data:image/jpeg` e `data:image/png`.
+- **Neutralidade (invariantes testados em `camara-view.test.ts`):** sem cor de partido (azul/laranja são Sim/Não; aqua/violeta, "seguiu/votou diferente"; pares conferidos com `validate_palette.js`, claro e escuro); partidos e estados agrupados em ordem alfabética, nunca por posição política (o texto diz que a posição no desenho não significa nada); nenhum ranking de pessoas nem nota; a ficha do deputado mostra voto a voto e trata ausência como "sem voto registrado", não como posição; "votou diferente da orientação" é fato, com o aviso de que o motivo a API não informa; mapa de proximidade e matriz dizem que os eixos não têm significado político; nada de "vai ser aprovado", "esquerda/direita" (só na frase que nega a classificação) nem "fraude".
+- **Afinidade:** por votação, a posição do partido é `Sim / (Sim + Não)` (só com ≥ 5 votos Sim/Não); afinidade do par = `1 − média |sA − sB|` nas votações em que os dois têm posição (≥ 3); partido precisa de bancada ≥ 8 numa votação e posição em ≥ ¼ das votações. Mapa 2D = MDS clássico (iteração de potência, determinístico). Vale para as votações coletadas, não para o mandato.
+- **Código:** `web/camara.ts` (montagem; o hemiciclo é **um `<svg>` persistente** reencaixado após cada repaint, senão a animação some), `camara-dados.ts` (conta pura), `camara-view.ts` (HTML), `camara.css` (classes `cm-*`: o app tem `.big`, `.num` e `.pan-seg` globais que colidem; `.num` aqui herda o alinhamento). Carrega sob demanda (`abaSobDemanda`, `carga-sob-demanda.test.ts`); link `#camara`. Campos de texto e selects atualizam só a lista (repintar tudo derruba o foco).
+- **Fixture de teste:** nomes fictícios; o nome "com marcação" é montado em pedaços (`INJETADO`) porque `serve.test.ts` varre `web/` atrás de handler inline.
+- **Refazer a cada legislatura/eleição:** `radar:camara` de novo; `idLegislatura=57` em `painel.ts` (lista de partidos para o logo); `MIN_*` em `camara-dados.ts` se o número de votações coletadas mudar muito. Dado velho sem `fotos.json`/`partidos.json` abre com iniciais e siglas (404 do arquivo não é erro).
 
 ## Auditoria estatística dos boletins (docs/forense)
 

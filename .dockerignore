@@ -13,3 +13,4 @@ src/radar/aovivo/*.test.ts
 src/radar/aovivo/keygen.ts
 web/social.css
 web/auditoria.css
+web/camara.css
