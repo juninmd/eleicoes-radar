@@ -13,6 +13,7 @@
 @import "./web/social.css" layer(components);
 @import "./web/panorama.css" layer(components);
 @import "./web/auditoria.css" layer(components);
+@import "./web/camara.css" layer(components);
 @import "tailwindcss/utilities.css" layer(utilities) source(none);
 
 /* The urna palette and fonts, named for utilities (bg-surface, text-muted, font-mono...). They point at the custom properties

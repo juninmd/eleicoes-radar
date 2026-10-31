@@ -20,6 +20,7 @@
     "radar:vapid": "bun run src/radar/aovivo/keygen.ts",
     "radar:geo": "bun run src/radar/geo/uf-map.ts",
     "radar:geo-mundo": "bun run src/radar/geo/world-map.ts",
+    "radar:camara": "bun run src/radar/camara/painel.ts",
     "radar:bu": "bun run src/radar/bu/collect.ts",
     "radar:hist": "bun run src/radar/hist/aggregate.ts",
     "radar:mun-hist": "bun run src/radar/municipal/aggregate.ts",
