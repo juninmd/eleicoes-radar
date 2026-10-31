@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pauta da semana · protótipo</title>
+<link rel="stylesheet" href="camara.css">
+<style>
+  .dia { margin: 20px 0 8px; font-size: 1rem; position: sticky; top: 0; background: var(--bg); padding: 6px 0; z-index: 2; }
+  .ev { margin-bottom: 8px; padding: 0; }
+  .ev > summary { list-style: none; cursor: pointer; padding: 10px 12px; display: grid; grid-template-columns: 52px 1fr auto; gap: 10px; align-items: start; }
+  .ev > summary::-webkit-details-marker { display: none; }
+  .dia::first-letter { text-transform: uppercase; }
+  .hora { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .ev h3 { font-size: .95rem; margin: 0; font-weight: 600; }
+  .meta { font-size: .8rem; color: var(--ink2); margin-top: 2px; }
+  .n { font-size: .78rem; border-radius: 999px; padding: 1px 9px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); white-space: nowrap; }
+  .corpo { border-top: 1px solid var(--line); padding: 8px 12px 12px; }
+  .top { font-size: .78rem; font-weight: 600; color: var(--ink2); text-transform: uppercase; letter-spacing: .04em; margin: 12px 0 4px; }
+  .it { display: grid; grid-template-columns: 30px 1fr; gap: 6px; padding: 5px 0; border-bottom: 1px dashed var(--line); font-size: .88rem; }
+  .it:last-child { border-bottom: 0; }
+  .urg { background: color-mix(in srgb, var(--nao) 22%, transparent); color: var(--ink); border-color: var(--nao); }
+  .resumo { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 6px 0 14px; }
+  .resumo .card b { display: block; font-size: 1.5rem; line-height: 1.1; }
+  a.ext { font-size: .8rem; color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="nav" aria-label="Protótipos"><a href="hemiciclo.html">Hemiciclo da votação</a><a href="pauta.html" aria-current="page">Pauta da semana</a><a href="tramitacao.html">Rastreador de tramitação</a></nav>
+  <h1>Pauta da semana</h1>
+  <p class="sub">O que a Câmara marcou para os próximos dias: Plenário e comissões, com os itens de cada pauta, o regime de tramitação e o relator.</p>
+
+  <div class="resumo" id="resumo"></div>
+  <div class="row" role="group" aria-label="Filtros">
+    <input type="search" id="q" placeholder="Buscar projeto, tema, órgão ou relator" aria-label="Buscar" style="flex:1;min-width:220px">
+    <span id="tipos" class="row" style="gap:6px"></span>
+  </div>
+  <div class="row" style="margin-top:8px;gap:6px">
+    <button class="chip" id="soPauta" aria-pressed="true">Só com pauta publicada</button>
+    <button class="chip" id="soUrg" aria-pressed="false">Só itens em urgência</button>
+  </div>
+  <div id="lista" aria-live="polite"></div>
+
+  <p class="aviso">Pauta é a previsão publicada pela Câmara; pode mudar, ser retirada ou nem chegar a votação. Estar na pauta não diz como cada deputado vai votar. "Urgência" é um regime regimental (Art. 155), não uma avaliação do tema.</p>
+  <p class="fonte" id="fonte"></p>
+</div>
+<script src="dados/pauta.js"></script>
+<script>
+"use strict";
+const D = window.DADOS_PAUTA;
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const sem = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const estado = { q: "", tipo: new Set(), soPauta: true, soUrg: false };
+
+if (!D?.eventos?.length) {
+  $("#lista").innerHTML = '<p class="aviso">Sem dados: rode <code>python3 -I docs/prototipos/camara/coletar.py</code>.</p>';
+} else {
+  $("#fonte").textContent = `Fonte: dadosabertos.camara.leg.br/api/v2 (/eventos e /eventos/{id}/pauta), coletado em ${D.geradoEm.split("-").reverse().join("/")}.`;
+  const tipos = [...new Set(D.eventos.map((e) => e.tipo))].sort();
+  $("#tipos").innerHTML = tipos.map((t) => `<button class="chip" data-t="${esc(t)}" aria-pressed="false">${esc(t)}</button>`).join("");
+  $("#tipos").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; const t = b.dataset.t; estado.tipo.has(t) ? estado.tipo.delete(t) : estado.tipo.add(t); b.setAttribute("aria-pressed", String(estado.tipo.has(t))); desenhar(); };
+  $("#q").oninput = (e) => { estado.q = sem(e.target.value); desenhar(); };
+  for (const [id, k] of [["#soPauta", "soPauta"], ["#soUrg", "soUrg"]]) $(id).onclick = (e) => { estado[k] = !estado[k]; e.currentTarget.setAttribute("aria-pressed", String(estado[k])); desenhar(); };
+}
+
+const ehUrg = (it) => /urg[eê]ncia/i.test(it.regime || "");
+function casa(e) {
+  if (estado.tipo.size && !estado.tipo.has(e.tipo)) return false;
+  if (estado.soPauta && !e.pauta.length) return false;
+  if (estado.soUrg && !e.pauta.some(ehUrg)) return false;
+  if (estado.q) {
+    const palha = sem([e.tipo, e.descricao, e.local, ...e.orgaos.map((o) => o.sigla + " " + o.nome), ...e.pauta.flatMap((i) => [i.titulo, i.ementa, i.parecer, i.relator?.nome, i.topico])].join(" "));
+    if (!estado.q.split(/\s+/).every((t) => palha.includes(t))) return false;
+  }
+  return true;
+}
+
+function desenhar() {
+  const evs = D.eventos.filter(casa).sort((a, b) => a.inicio.localeCompare(b.inicio));
+  const itens = evs.reduce((n, e) => n + e.pauta.length, 0);
+  const urg = evs.reduce((n, e) => n + e.pauta.filter(ehUrg).length, 0);
+  const orgs = new Set(evs.flatMap((e) => e.orgaos.map((o) => o.sigla)));
+  $("#resumo").innerHTML = [[evs.length, "reuniões e sessões"], [itens, "itens em pauta"], [urg, "em regime de urgência"], [orgs.size, "órgãos"]].map(([n, t]) => `<div class="card"><b>${n}</b><span class="muted">${t}</span></div>`).join("");
+  if (!evs.length) { $("#lista").innerHTML = '<p class="muted" style="margin-top:18px">Nada com esses filtros.</p>'; return; }
+  let html = "", dia = "";
+  for (const e of evs) {
+    const d = e.inicio.slice(0, 10);
+    if (d !== dia) { dia = d; html += `<h2 class="dia">${new Date(d + "T12:00").toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}</h2>`; }
+    const nUrg = e.pauta.filter(ehUrg).length;
+    const orgs = e.orgaos.map((o) => `<abbr title="${esc(o.nome)}">${esc(o.sigla)}</abbr>`).join(", ");
+    html += `<details class="card ev"><summary><span class="hora">${e.inicio.slice(11, 16)}</span><div><h3>${esc(e.tipo)} · ${orgs}</h3><div class="meta">${esc(e.descricao || "")}${e.local ? " · " + esc(e.local) : ""} · ${esc(e.situacao || "")}</div></div><span class="n">${e.pauta.length ? e.pauta.length + " itens" + (nUrg ? ` · ${nUrg} urg.` : "") : "sem pauta"}</span></summary><div class="corpo">${corpo(e)}</div></details>`;
+  }
+  $("#lista").innerHTML = html;
+}
+
+function corpo(e) {
+  const links = `<a class="ext" href="https://www.camara.leg.br/evento-legislativo/${e.id}" target="_blank" rel="noopener noreferrer">Abrir no site da Câmara ↗</a>`;
+  if (!e.pauta.length) return `<p class="muted">Pauta ainda não publicada.</p>${links}`;
+  const por = new Map();
+  for (const i of e.pauta) (por.get(i.topico || "Outros") ?? por.set(i.topico || "Outros", []).get(i.topico || "Outros")).push(i);
+  let h = "";
+  for (const [t, is] of por) {
+    h += `<div class="top">${esc(t)} (${is.length})</div>`;
+    for (const i of is.slice(0, 40)) h += `<div class="it"><span class="muted">${i.ordem}</span><div><b>${esc(i.titulo)}</b> <span class="tag ${ehUrg(i) ? "urg" : ""}">${esc(i.regime || "")}</span><br><span class="muted">${esc(i.parecer || i.ementa)}</span>${i.relator ? `<br><span class="muted">Relator: ${esc(i.relator.nome)} (${esc(i.relator.partido)}-${esc(i.relator.uf)})</span>` : ""}</div></div>`;
+    if (is.length > 40) h += `<p class="muted">… e mais ${is.length - 40} neste tópico.</p>`;
+  }
+  return h + links;
+}
+
+if (D?.eventos?.length) desenhar();
+</script>
+</body>
+</html>
