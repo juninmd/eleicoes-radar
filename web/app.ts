@@ -65,8 +65,9 @@ const panorama = abaSobDemanda(() => import("./panorama.js"), (m) => m.mountPano
 const expectativa = abaSobDemanda(() => import("./expectativa.js"), (m) => m.renderExpectativa);
 const redeAba = abaSobDemanda(() => import("./rede.js"), (m) => m.renderRede);
 const auditoria = abaSobDemanda(() => import("./auditoria.js"), (m) => m.mountAuditoria($("#aud-view")));
+const historico = abaSobDemanda(() => import("./historico.js"), (m) => m.mountHistorico($("#his-view")));
 const camara = abaSobDemanda(() => import("./camara.js"), (m) => m.mountCamara($("#cam-view"), undefined, { mostrarFotos: () => state.mostrarFotos }));
-const abaDo = (modo: string) => (modo === "apuracao" ? apuracao : modo === "aovivo" ? aoVivo : modo === "expectativa" ? expectativa : modo === "rede" ? redeAba : modo === "auditoria" ? auditoria : modo === "camara" ? camara : modo in PAN_MODES ? panorama : null);
+const abaDo = (modo: string) => (modo === "apuracao" ? apuracao : modo === "aovivo" ? aoVivo : modo === "expectativa" ? expectativa : modo === "rede" ? redeAba : modo === "auditoria" ? auditoria : modo === "camara" ? camara : modo === "historico" ? historico : modo in PAN_MODES ? panorama : null);
 // A deep link to the Apuração tab, applied once that tab is ready (see abrirLink).
 let linkPendente: Visao | null = null;
 
@@ -377,6 +378,7 @@ function renderModo() {
   $("#live-view").hidden = state.modo !== "aovivo";
   $("#pan-view").hidden = !(state.modo in PAN_MODES);
   $("#aud-view").hidden = state.modo !== "auditoria";
+  $("#his-view").hidden = state.modo !== "historico";
   $("#cam-view").hidden = state.modo !== "camara";
   if (state.modo === "aovivo") { mostrarAoVivo(); carregarFotosPresidente(); }
   else aoVivo.get()?.hide();
@@ -392,6 +394,12 @@ function renderModo() {
     return;
   }
   auditoria.get()?.hide();
+  if (state.modo === "historico") {
+    historico.baixar();
+    quandoPronta(historico, $("#his-view"), () => state.modo === "historico", (x) => x.show());
+    return;
+  }
+  historico.get()?.hide();
   if (state.modo === "camara") {
     camara.baixar();
     quandoPronta(camara, $("#cam-view"), () => state.modo === "camara", (c) => c.show());
@@ -699,6 +707,7 @@ setupConexaoListener();
 async function abrirLink() {
   if (location.hash === "#aovivo") { state.modo = "aovivo"; return; } // the link a push notification opens
   if (location.hash === "#auditoria") { state.modo = "auditoria"; return; } // the link to the statistical audit tab
+  if (location.hash === "#historico") { state.modo = "historico"; return; } // the link to the presidential history tab
   if (location.hash === "#camara") { state.modo = "camara"; return; } // the link to the Câmara tab (votes, agenda, bills)
   if (!location.hash.startsWith("#apuracao")) return;
   const [{ decodificar }, { PASSOS }] = await Promise.all([import("./apuracao-link.js"), import("./apuracao-sim.js")]);

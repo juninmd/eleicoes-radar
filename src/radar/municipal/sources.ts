@@ -72,3 +72,12 @@ export async function readElection(year: number, dir = "data/tse"): Promise<MunE
   for (const uf of UFS) await forEachZipRow(zip, `votacao_candidato_munzona_${year}_${uf}.csv`, (r) => { if (cargoDe(r.DS_CARGO) === "Governador") c.add(r); });
   return c.done(year);
 }
+
+// President only: the _BR file is small, so the older years (1994, 1998) and the history tab do not pay for the governors' files.
+// 1998 has no _BR file, only the _BRASIL union (all offices, 0.7 GB), so the President is filtered out of that one.
+const SO_UNIAO = new Set([1998]);
+export async function readPresidente(year: number, dir = "data/tse"): Promise<MunRace | null> {
+  const c = createCollector();
+  await forEachZipRow(`${dir}/votacao_candidato_munzona_${year}.zip`, `votacao_candidato_munzona_${year}_${SO_UNIAO.has(year) ? "BRASIL" : "BR"}.csv`, (r) => { if (cargoDe(r.DS_CARGO) === "Presidente") c.add(r); });
+  return c.done(year).races[0] ?? null;
+}
