@@ -21,6 +21,7 @@ bun run radar:polls       # pesquisas (Wikipédia)
 bun run radar:hist 2014   # (uma vez; 2014, 2018 e 2022, ~3 min cada, stream de 3-4 GB de votos) -> data/hist/<ano>.json
 bun run radar:model       # modelo de deputados (2018 e 2022, com a eleição anterior de cada uma)
 bun run radar:mc-backtest # (análise) logística vs Monte Carlo, deixando uma eleição de fora
+bun run radar:presidencial # (uma vez; 1989-2022, ~30 s) -> web/data/historico/presidente.json (aba Histórico). Baixar votacao_candidato_munzona_<ano>.zip (1994-2022) e votacao_candidato_uf_1989.zip; 1998 só tem _BRASIL, sem _BR
 bun run radar:mun-hist 2022 # (uma vez por ano: 2002, 2006, 2010, 2014, 2018, 2022 e 2026; ~1 a 3,5 min cada) -> data/hist/mun-<ano>.json
 bun run radar:mun-backtest # ajusta o modelo do 2º turno por município (segundos turnos 2002-2022) e grava data/municipal-modelo.json
 bun run radar:municipal   # web/data/municipal/ (1º turno de 2026 por município das disputas que foram a 2º turno)

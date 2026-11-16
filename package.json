@@ -23,6 +23,7 @@
     "radar:camara": "bun run src/radar/camara/painel.ts",
     "radar:bu": "bun run src/radar/bu/collect.ts",
     "radar:hist": "bun run src/radar/hist/aggregate.ts",
+    "radar:presidencial": "bun run src/radar/hist/presidencial.ts",
     "radar:mun-hist": "bun run src/radar/municipal/aggregate.ts",
     "radar:mun-backtest": "bun run src/radar/municipal/backtest.ts",
     "radar:municipal": "bun run src/radar/municipal/build.ts",
