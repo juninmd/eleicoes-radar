@@ -229,7 +229,7 @@ Antes de abrir um PR: `bun test src/radar web`, `bun run typecheck` e, se mexeu 
 | Dados publicados | sem CPF nem doador pessoa física no JSON; `maskCpf` limpa CPF embutido em nome de fornecedor (teste de regressão) |
 | Links externos | redes sociais só em https de hosts conhecidos; WhatsApp e site arbitrário descartados |
 | Apuração | nenhuma URL montada a partir de entrada do usuário: `tseUrl` aceita só cargo conhecido e UF de 2 letras |
-| Imagem | `.dockerignore` em lista de permissão (só `web/` e `serve.ts`), processo como usuário `bun`, fontes servidas localmente |
+| Imagem | `.dockerignore` em lista de permissão (só `web/` e `serve.ts`), processo como usuário `bun`, `HEALTHCHECK` em `/health`, fontes servidas localmente |
 
 ## Limitações conhecidas
 
