@@ -3,6 +3,7 @@
 // painel.json (all sections) and partidos.json (logos) load with the tab; fotos.json only when photos are on ("Mostrar fotos").
 // The hemicycle is one persistent <svg>: the tab repaints through innerHTML, and a repaint would throw away the circles that animate.
 import { keepFocus } from "./focus.js";
+import { lerJson, type Ler } from "./ler-json.js";
 import { afinidade, assentos, lugares, norm, porUf, preparar } from "./camara-dados.js";
 import type { Afinidade, Assento, Linha, Preparada } from "./camara-dados.js";
 import { afinidadeView, aguardando, barrasOrientacao, barrasPartido, casaEvento, centroHemi, corVoto, deputadoView, dicaDeputado, divergentes, estadoInicial, legendaHemi, listaEventos, mapaBlocos, moldura, pautaView, registroProp, coresOrgao, resultadosBusca, buscarDeputados, SEG_COR, semDados, tramitacaoView, votacaoView } from "./camara-view.js";
@@ -10,12 +11,6 @@ import type { Ctx, Estado, Ficha, Sec } from "./camara-view.js";
 import type { FotosCamara, PainelCamara, PartidosCamara } from "../src/radar/camara/painel-tipos.js";
 
 export const DADOS = "data/camara";
-type Ler = <T>(caminho: string) => Promise<T>;
-const lerJson: Ler = async <T>(caminho: string) => {
-  const r = await fetch(caminho);
-  if (!r.ok) throw new Error(`${r.status} ${caminho}`);
-  return (await r.json()) as T;
-};
 const SECOES = new Set<string>(["votacao", "deputado", "pauta", "tramitacao", "afinidade"]);
 const SELETOR = "[data-cm-sec],[data-cm-vi],[data-cm-agrupar],[data-cm-cor],[data-cm-foco],[data-cm-escala],[data-cm-dep],[data-cm-tipo],[data-cm-pauta],[data-cm-urg],[data-cm-evento],[data-cm-ti],[data-cm-ord],[data-cm-par]";
 
