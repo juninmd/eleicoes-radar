@@ -3,17 +3,12 @@
 // The small main file loads with the tab; the three big ones (fingerprint grid, municipal map, governors) only when their section opens.
 import { h } from "./format.js";
 import { keepFocus } from "./focus.js";
+import { lerJson, type Ler } from "./ler-json.js";
 import { aguardando, biometriaView, eleicaoView, governosView, investigaView, mapaVotoView, metodoView, poderView, correlView, populacaoView, resumoView, SECOES, semDados } from "./auditoria-view.js";
 import type { MapaCtx } from "./auditoria-view.js";
 import type { Auditoria, Governador, Impressao, MapaVoto, PontoMunicipio, Correl } from "./auditoria-tipos.js";
 
 export const DADOS = "data/auditoria";
-type Ler = <T>(caminho: string) => Promise<T>;
-const lerJson: Ler = async <T>(caminho: string) => {
-  const r = await fetch(caminho);
-  if (!r.ok) throw new Error(`${r.status} ${caminho}`);
-  return (await r.json()) as T;
-};
 
 export interface Estado { sec: string; eleicao: string; urna: string; ano: string; gturno: number; gsel: string | null; bio: string; mv: string; rd: string; cv: string }
 export const estadoInicial = (): Estado => ({ sec: "resumo", eleicao: "2022-1", urna: "2022-1", ano: "2022", gturno: 1, gsel: null, bio: "2022-1", mv: "2022-2", rd: "2022-2", cv: "bf100" });

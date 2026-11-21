@@ -1,14 +1,9 @@
 // "Histórico" tab: presidential results 1989-2022. One small JSON (web/data/historico/presidente.json), loaded when the tab first opens.
 import { keepFocus } from "./focus.js";
+import { lerJson, type Ler } from "./ler-json.js";
 import { historicoView, semDados, type Estado } from "./historico-view.js";
 import type { Historico } from "../src/radar/hist/presidencial.js";
 
-type Ler = <T>(caminho: string) => Promise<T>;
-const lerJson: Ler = async <T>(caminho: string) => {
-  const r = await fetch(caminho);
-  if (!r.ok) throw new Error(`${r.status} ${caminho}`);
-  return (await r.json()) as T;
-};
 
 export function mountHistorico(root: HTMLElement, ler: Ler = lerJson) {
   const st: Estado = { ano: 2022, turno: 2 };
