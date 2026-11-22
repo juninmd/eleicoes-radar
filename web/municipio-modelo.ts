@@ -46,13 +46,25 @@ export const ALPHA_MAX = 6;
 // The alpha whose race-wide share of A equals `target`. raceShare grows with alpha, so bisection is enough. A target the model
 // cannot reach (outside what alpha = ±ALPHA_MAX allows) is pinned to the nearest reachable one; `limitado` says so.
 export function solveAlpha(cities: readonly City[], target: number, p: Params): { alpha: number; limitado: boolean } {
-  const lo0 = raceShare(cities, -ALPHA_MAX, p), hi0 = raceShare(cities, ALPHA_MAX, p);
+  // Weight and slope term of each city do not depend on alpha: computed once instead of in all 52 passes.
+  // Same expressions and summation order as raceShare, so the result is bit-identical.
+  const w = cities.map(firstRoundVotes);
+  const k = cities.map((c) => (p.kappa + p.eta * othersShare(c)) * leanOf(c));
+  const share = (alpha: number) => {
+    let num = 0, den = 0;
+    for (let i = 0; i < k.length; i++) {
+      num += w[i]! * logistic(alpha + k[i]!);
+      den += w[i]!;
+    }
+    return den > 0 ? num / den : 0.5;
+  };
+  const lo0 = share(-ALPHA_MAX), hi0 = share(ALPHA_MAX);
   if (target <= lo0) return { alpha: -ALPHA_MAX, limitado: target < lo0 - 1e-9 };
   if (target >= hi0) return { alpha: ALPHA_MAX, limitado: target > hi0 + 1e-9 };
   let lo = -ALPHA_MAX, hi = ALPHA_MAX;
   for (let i = 0; i < 50; i++) {
     const mid = (lo + hi) / 2;
-    if (raceShare(cities, mid, p) < target) lo = mid; else hi = mid;
+    if (share(mid) < target) lo = mid; else hi = mid;
   }
   return { alpha: (lo + hi) / 2, limitado: false };
 }
