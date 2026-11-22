@@ -3,6 +3,7 @@
 import { ler, naoRastrear, ping, votar, type Estado } from "./social-api.js";
 import { ativar, desativar, estadoPush, reinscrever, type EstadoPush } from "./social-push.js";
 import { chip, painel, rotuloChip, type MapaUf } from "./social-view.js";
+import { carregarMapaUf } from "./mapa-uf-carga.js";
 
 const INTERVALO_MS = 25_000;
 const TETO_MS = 120_000;
@@ -71,7 +72,7 @@ export function criarSocial() {
   const carregarMapa = () => {
     if (mapa || pedindoMapa) return;
     pedindoMapa = true;
-    fetch("mapa-uf.json").then((r) => (r.ok ? r.json() : null)).then((m) => { if (m) { mapa = m as MapaUf; pintar(); } }).catch(() => {}).finally(() => { pedindoMapa = false; });
+    carregarMapaUf<MapaUf>().then((m) => { mapa = m; pintar(); }).catch(() => {}).finally(() => { pedindoMapa = false; });
   };
 
   const alternar = async (abrir: boolean) => {

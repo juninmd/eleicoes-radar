@@ -21,12 +21,30 @@ test("the CSS that hides radar-only controls reads the same attribute the script
 // The link opens on Ao vivo whatever tab was saved (and with no storage access at all); deep links keep their own screen.
 test("the link opens on Ao vivo, not on the tab saved by an earlier visit", async () => {
   const src = new Bun.Transpiler({ loader: "ts" }).transformSync(await read("boot.ts")); // same transpile the server applies
-  const run = (hash: string) => { const body = { dataset: {} as Record<string, string> }; new Function("document", "location", src)({ body }, { hash }); return body.dataset.visao; };
+  const links: Record<string, string>[] = [];
+  const run = (hash: string) => {
+    links.length = 0;
+    const body = { dataset: {} as Record<string, string> };
+    const head = { append: (l: Record<string, string>) => links.push(l) };
+    new Function("document", "location", src)({ body, head, createElement: () => ({}) }, { hash });
+    return body.dataset.visao;
+  };
   expect(run("")).toBe("aovivo");
   expect(run("#sobre")).toBe("aovivo"); // an overlay: Ao vivo stays underneath
   expect(run("#cand=280002551544&uf=SP")).toBe("radar");
   expect(run("#apuracao/Presidente/BR")).toBe("apuracao");
   expect(run("#auditoria")).toBe("auditoria");
+});
+
+// Only the default screen pays for the preload: a deep link to another tab would fetch ~60 KB it never uses.
+test("only Ao vivo preloads its modules and map", async () => {
+  const src = new Bun.Transpiler({ loader: "ts" }).transformSync(await read("boot.ts"));
+  const run = (hash: string) => { const out: Record<string, string>[] = []; new Function("document", "location", src)({ body: { dataset: {} }, head: { append: (l: Record<string, string>) => out.push(l) }, createElement: () => ({}) }, { hash }); return out; };
+  const ao = run("");
+  expect(ao.filter((l) => l.rel === "modulepreload").length).toBeGreaterThan(30);
+  expect(ao.find((l) => l.rel === "preload")).toMatchObject({ href: "mapa-uf.json", as: "fetch", crossOrigin: "anonymous" });
+  expect(run("#cand=1&uf=SP")).toEqual([]);
+  expect(run("#camara")).toEqual([]);
 });
 
 test("boot.ts and app.ts agree on the first screen", async () => {

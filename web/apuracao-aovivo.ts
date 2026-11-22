@@ -45,6 +45,7 @@ import type { PontoPrev } from "./apuracao-previsao.js";
 import type { MundoMap } from "./apuracao-noite.js";
 import type { Candidatura } from "./types.js";
 import type { RenderProps } from "./apuracao.js";
+import { carregarMapaUf } from "./mapa-uf-carga.js";
 
 export interface Corrida { cargo: Cargo; uf: string }
 export interface Linha extends Corrida { snap: FeedSnapshot | null; eleitos: EstadoEleitos }
@@ -367,7 +368,7 @@ export function mountAoVivo(el: HTMLElement) {
   let nac: BrasilSnapshot | null = null;
   let mapa: UfMap | null = null;
   let mapaFalhou = false;
-  fetch("mapa-uf.json").then((r) => (r.ok ? r.json() : null)).then((m) => { if (m) mapa = m as UfMap; else mapaFalhou = true; agendar(); }).catch(() => { mapaFalhou = true; agendar(); }); // no map: the tiles below still say it
+  carregarMapaUf<UfMap>().then((m) => { mapa = m; agendar(); }).catch(() => { mapaFalhou = true; agendar(); }); // no map: the tiles below still say it
   let mundo: MundoMap | null | undefined; // the world map of the live map's "Exterior" choice: undefined until asked, null when it failed
   let pedindoMundo = false;
   let feeds: ReturnType<typeof createFeed>[] = [];
