@@ -18,3 +18,10 @@ test("CNPJs, shorter numbers and longer digit runs are left alone", () => {
   expect(maskCpf("LOJA 123456789")).toBe("LOJA 123456789");
   expect(maskCpf("")).toBe("");
 });
+
+test("masks a CPF whose digit groups use spaces or a missing separator", () => {
+  expect(maskCpf("MEI 123 456 789 01")).toBe("MEI (CPF omitido)");
+  expect(maskCpf("JOAO 123456789-01")).toBe("JOAO (CPF omitido)");
+  expect(maskCpf("JOAO SILVA CPF 123.456.789 01")).toBe("JOAO SILVA (CPF omitido)");
+  expect(maskCpf("JOAO 123.456.78901")).toBe("JOAO (CPF omitido)");
+});
