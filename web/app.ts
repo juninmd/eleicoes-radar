@@ -1,4 +1,5 @@
 import { DEFAULT_PRESET, PRESETS, score } from "./score.js";
+import { ligarTema } from "./tema.js";
 import { displayName, h, int, moneyShort, pct, slug, STATUS } from "./format.js";
 import { countUp } from "./hero.js";
 import { renderDossier } from "./dossier.js";
@@ -767,6 +768,10 @@ async function main() {
   document.body.classList.add("ready"); // the method text below stays hidden until the list has its final height
   if (location.hash === "#sobre") $("#metodo-t").focus({ preventScroll: true }); // sobre() ran before the method text was shown
 }
+
+// The header button exists in the static page, so it works before the data does. tema-boot.js already painted the theme.
+const temaBtn = document.getElementById("tema");
+if (temaBtn instanceof HTMLButtonElement) ligarTema(temaBtn);
 
 // The cause goes to the console: the page only tells the reader what to do, not the file that failed.
 main().catch((e) => { console.error(e); document.body.classList.add("ready"); document.body.dataset.visao = "radar"; $("#lista").classList.remove("carregando"); $("#lista").innerHTML = `<li class="empty"><p role="alert">Não foi possível carregar os dados. Verifique a conexão e tente de novo.</p><button type="button" class="btn-confirma" data-retry-main>Tentar novamente</button></li>`; });

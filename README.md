@@ -240,7 +240,7 @@ Antes de abrir um PR: `bun test src/radar web`, `bun run typecheck` e, se mexeu 
 - **Expectativa:** não é pesquisa eleitoral. A faixa da Projeção da Apuração usa ruídos que não foram calibrados contra eleições passadas, e a Chance ao vivo do 2º turno nunca foi testada durante uma apuração (só o resultado final do modelo).
 - **Contas parciais:** a prestação de contas é o retrato do TSE de uma data, mostrada na interface.
 - **Dados fora do CI:** os zips do TSE não estão no git e o WAF bloqueia downloads automáticos, então `web/data` só é gerado numa máquina que rodou o pipeline.
-- **Só tema escuro:** a interface não oferece modo claro.
+- **Tema:** o padrão é o escuro. Sem escolha salva, `prefers-color-scheme: light` abre no claro. O botão "Tema claro/escuro" no cabeçalho troca na hora e grava a escolha neste navegador (`radar:tema`); enquanto nada foi salvo, uma mudança do sistema acompanha.
 - **Código antigo:** `src/*.ts` (fora de `src/radar`) e `dashboard/` são a versão anterior (ranking de "fraude" de deputados de SP), mantidos sem alteração e fora do Radar.
 
 ## Inspirações
